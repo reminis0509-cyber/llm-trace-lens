@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Geist', 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+    line-height: 1.5;
+  }
+
+  body {
+    @apply bg-base text-text-primary antialiased;
+  }
+
+  /* Form elements - ensure dark theme compatibility */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  textarea,
+  select {
+    @apply bg-base-surface text-text-primary border-border;
+    color-scheme: dark;
+  }
+
+  select option {
+    @apply bg-base-surface text-text-primary;
+  }
+
+  /* Custom scrollbar for dark theme */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-base-surface;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-text-muted;
+  }
+
+  /* Selection colors */
+  ::selection {
+    @apply bg-accent/20 text-text-primary;
+  }
+}
+
+@layer components {
+  /* Simple surface card - no glass effect */
+  .surface-card {
+    @apply bg-base-surface border border-border rounded-card;
+  }
+
+  /* Terminal-style code block */
+  .terminal-block {
+    @apply bg-base border border-border-subtle rounded-card font-mono text-sm;
+  }
+
+  /* Status bar styles - 左端の3px vertical bar */
+  .status-bar-pass {
+    @apply border-l-[3px] border-l-status-pass;
+  }
+
+  .status-bar-warn {
+    @apply border-l-[3px] border-l-status-warn;
+  }
+
+  .status-bar-fail {
+    @apply border-l-[3px] border-l-status-fail;
+  }
+
+  .status-bar-block {
+    @apply border-l-[3px] border-l-status-block;
+  }
+
+  /* Focus ring for inputs - シンプルなアウトライン */
+  .input-focus {
+    @apply focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-base transition-all duration-150;
+  }
+
+  /* Skeleton loading - shimmer effect */
+  .skeleton {
+    @apply bg-base-elevated animate-shimmer;
+    background: linear-gradient(90deg, #18181b 0%, #27272a 50%, #18181b 100%);
+    background-size: 200% 100%;
+  }
+
+  /* Segmented control for filters */
+  .segmented-control {
+    @apply inline-flex bg-base-surface border border-border rounded-card p-0.5;
+  }
+
+  .segmented-control-item {
+    @apply px-3 py-1.5 text-sm text-text-secondary rounded-[4px] transition-colors duration-120;
+  }
+
+  .segmented-control-item:hover {
+    @apply text-text-primary;
+  }
+
+  .segmented-control-item.active {
+    @apply bg-base-elevated text-text-primary;
+  }
+
+  /* Provider left border colors */
+  .provider-border-openai {
+    @apply border-l-2 border-l-emerald-400;
+  }
+
+  .provider-border-anthropic {
+    @apply border-l-2 border-l-amber-400;
+  }
+
+  .provider-border-gemini {
+    @apply border-l-2 border-l-blue-400;
+  }
+
+}
+
+@layer utilities {
+  /* Tabular nums for metrics */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Label letter spacing */
+  .label-spacing {
+    letter-spacing: 0.04em;
+  }
+}

@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #0d0d0f;
+  color: #f4f4f5;
+  line-height: 1.6;
+}
+
+@layer base {
+  ::selection {
+    background: rgba(110, 231, 183, 0.2);
+    color: #f4f4f5;
+  }
+}
+
+@layer components {
+  /* Surface card - シンプルな平坦なカード */
+  .surface-card {
+    @apply bg-base-surface border border-border rounded-card;
+  }
+
+  /* Terminal block */
+  .terminal-block {
+    @apply bg-base border border-border-subtle rounded-card font-mono text-sm;
+  }
+
+  /* Section container */
+  .section-container {
+    @apply max-w-5xl mx-auto px-6;
+  }
+
+  /* Feature card with left border */
+  .feature-card {
+    @apply bg-base-surface border border-border rounded-card p-6 border-l-2;
+  }
+
+  /* Pricing card */
+  .pricing-card {
+    @apply bg-base-surface border border-border rounded-card p-8;
+  }
+
+  .pricing-card-highlight {
+    @apply bg-base-surface border-2 border-accent rounded-card p-8;
+  }
+}
+
+@layer utilities {
+  /* Tabular nums for metrics */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Label letter spacing */
+  .label-spacing {
+    letter-spacing: 0.04em;
+  }
+
+  /* Subtle text gradient - 控えめなグラデーション */
+  .gradient-text {
+    @apply bg-gradient-to-r from-accent to-emerald-300 bg-clip-text text-transparent;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* Scrollbar styling - シンプルに */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111113;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+/* Section divider - 極めて控えめに */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #27272a, transparent);
+}

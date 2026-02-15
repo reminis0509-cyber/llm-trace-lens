@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment files (all variants)
+.env
+.env.*
+!.env.example
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+.vercel
+
+# Claude Code local settings
+.claude/
+
+# Confidential docs (strategy, pricing, sales, internal plans)
+docs/strategy-*.md
+docs/pricing-*.md
+docs/sales-*.md
+docs/internal/
+REPORT.md
+PRODUCT_OVERVIEW.md

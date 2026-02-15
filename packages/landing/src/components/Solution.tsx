@@ -1,0 +1,120 @@
+const solutions = [
+  {
+    step: '01',
+    title: '構造化レスポンス強制',
+    description: '全LLM出力を標準JSON形式に変換。回答、信頼度、根拠を機械的に検証可能に。',
+  },
+  {
+    step: '02',
+    title: '多層検証エンジン',
+    description: '信頼度検証、PII検出、リスクスコアリングの3段階で評価。PASS/WARN/BLOCKで即座に判定。',
+  },
+  {
+    step: '03',
+    title: 'Agent意思決定トレース',
+    description: 'ReAct形式でThought→Action→Tool Call→Observationの全ステップを記録・可視化。',
+  },
+];
+
+export default function Solution() {
+  return (
+    <section id="solution" className="py-24 px-6">
+      <div className="section-container">
+        {/* Section header */}
+        <div className="text-center mb-16">
+          <span className="inline-block px-3 py-1.5 text-xs text-text-muted label-spacing uppercase surface-card mb-6">
+            The Solution
+          </span>
+          <h2 className="text-display-sm font-semibold text-text-primary mb-4">
+            FujiTrace が解決
+          </h2>
+          <p className="text-lg text-text-secondary max-w-xl mx-auto">
+            プロキシ型アーキテクチャで、既存システムを変更せずに
+            可観測性・検証・エージェントトレース機能を追加
+          </p>
+        </div>
+
+        {/* Solution steps */}
+        <div className="grid lg:grid-cols-3 gap-4 mb-16">
+          {solutions.map((solution, index) => (
+            <div key={index} className="surface-card p-6 hover:bg-base-elevated transition-colors duration-120">
+              <div className="w-10 h-10 rounded-card bg-accent-dim text-accent flex items-center justify-center font-mono text-sm mb-4">
+                {solution.step}
+              </div>
+              <h3 className="text-base font-medium text-text-primary mb-2">{solution.title}</h3>
+              <p className="text-sm text-text-secondary">{solution.description}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Agent trace example */}
+        <div className="surface-card overflow-hidden">
+          <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-text-muted label-spacing uppercase">Agent Trace</span>
+              <span className="text-xs text-text-muted">ReAct形式</span>
+            </div>
+            <span className="text-xs text-status-pass font-mono">COMPLETED</span>
+          </div>
+
+          <div className="p-6 space-y-3">
+            {/* Thought */}
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded bg-status-block/20 text-status-block flex items-center justify-center text-xs font-mono flex-shrink-0 mt-0.5">
+                T
+              </div>
+              <div className="flex-1 p-3 rounded-card bg-base border-l-2 border-l-status-block">
+                <div className="text-xs text-text-muted mb-1 label-spacing uppercase">Thought</div>
+                <p className="text-sm text-text-secondary">"最新のAIニュースを検索する必要がある"</p>
+              </div>
+            </div>
+
+            {/* Action */}
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded bg-status-warn/20 text-status-warn flex items-center justify-center text-xs font-mono flex-shrink-0 mt-0.5">
+                A
+              </div>
+              <div className="flex-1 p-3 rounded-card bg-base border-l-2 border-l-status-warn">
+                <div className="text-xs text-text-muted mb-1 label-spacing uppercase">Action</div>
+                <p className="text-sm text-text-secondary font-mono">
+                  web_search({"{"}"query": "latest AI news 2024"{"}"})
+                  <span className="text-text-muted ml-2">→ 1,250ms</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Observation */}
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded bg-status-pass/20 text-status-pass flex items-center justify-center text-xs font-mono flex-shrink-0 mt-0.5">
+                O
+              </div>
+              <div className="flex-1 p-3 rounded-card bg-base border-l-2 border-l-status-pass">
+                <div className="text-xs text-text-muted mb-1 label-spacing uppercase">Observation</div>
+                <p className="text-sm text-text-secondary">"5件の関連記事を発見。トップ記事: GPT-5の噂..."</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="px-6 py-4 border-t border-border flex flex-wrap gap-6 text-sm">
+            <div>
+              <span className="text-text-muted">Total Steps:</span>
+              <span className="text-text-primary font-mono tabular-nums ml-2">3</span>
+            </div>
+            <div>
+              <span className="text-text-muted">Tool Calls:</span>
+              <span className="text-text-primary font-mono tabular-nums ml-2">5</span>
+            </div>
+            <div>
+              <span className="text-text-muted">Duration:</span>
+              <span className="text-text-primary font-mono tabular-nums ml-2">4.2s</span>
+            </div>
+            <div>
+              <span className="text-text-muted">Confidence:</span>
+              <span className="text-status-pass font-mono tabular-nums ml-2">92%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
