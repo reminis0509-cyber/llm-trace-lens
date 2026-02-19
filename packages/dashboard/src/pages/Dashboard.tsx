@@ -7,10 +7,11 @@ import { Settings } from './Settings';
 import { Analytics } from './Analytics';
 import { Integrations } from './Integrations';
 import { ApiKeys } from './ApiKeys';
+import { Playground } from './Playground';
 import { useAuth } from '../contexts/AuthContext';
 import type { Trace } from '../types';
 
-type Tab = 'traces' | 'stats' | 'analytics' | 'integrations' | 'settings' | 'apikeys';
+type Tab = 'traces' | 'stats' | 'analytics' | 'integrations' | 'settings' | 'apikeys' | 'playground';
 
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('apikeys'); // Start with API Keys
@@ -44,6 +45,16 @@ export function Dashboard() {
                 }`}
               >
                 API Keys
+              </button>
+              <button
+                onClick={() => setActiveTab('playground')}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  activeTab === 'playground'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                Playground
               </button>
               <button
                 onClick={() => setActiveTab('traces')}
@@ -152,6 +163,9 @@ export function Dashboard() {
           <Integrations onBack={() => setActiveTab('traces')} />
         )}
         {activeTab === 'settings' && <Settings />}
+        {activeTab === 'playground' && (
+          <Playground onBack={() => setActiveTab('apikeys')} />
+        )}
       </main>
     </div>
   );
