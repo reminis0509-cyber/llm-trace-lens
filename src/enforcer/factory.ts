@@ -9,6 +9,7 @@ import type { Provider } from '../types/index.js';
  * Create enforcer for MVP handlers
  * Returns an enforcer with the LLMRequest-based interface
  * Now supports:
+ * - Direct API key from request (highest priority)
  * - Environment variables (development)
  * - KV store (legacy)
  * - Encrypted Secret Manager (recommended for production)
@@ -16,25 +17,45 @@ import type { Provider } from '../types/index.js';
 export async function createEnforcer(
   provider: Provider,
   model?: string,
-  workspaceId?: string
+  workspaceId?: string,
+  requestApiKey?: string
 ): Promise<OpenAIEnforcer | AnthropicEnforcer | GeminiEnforcer | DeepSeekEnforcer> {
   let apiKey: string;
 
+  // If API key is provided directly in the request, use it
+  if (requestApiKey) {
+    apiKey = requestApiKey;
+  } else {
+    // Fall back to stored keys
+    switch (provider) {
+      case 'openai':
+        apiKey = await getApiKey('openai', workspaceId);
+        break;
+      case 'anthropic':
+        apiKey = await getApiKey('anthropic', workspaceId);
+        break;
+      case 'gemini':
+        apiKey = await getApiKey('gemini', workspaceId);
+        break;
+      case 'deepseek':
+        apiKey = await getApiKey('deepseek', workspaceId);
+        break;
+      default:
+        throw new Error(`Unknown provider: ${provider}`);
+    }
+  }
+
   switch (provider) {
     case 'openai':
-      apiKey = await getApiKey('openai', workspaceId);
       return new OpenAIEnforcer(apiKey);
 
     case 'anthropic':
-      apiKey = await getApiKey('anthropic', workspaceId);
       return new AnthropicEnforcer(apiKey);
 
     case 'gemini':
-      apiKey = await getApiKey('gemini', workspaceId);
       return new GeminiEnforcer(apiKey, model);
 
     case 'deepseek':
-      apiKey = await getApiKey('deepseek', workspaceId);
       return new DeepSeekEnforcer(apiKey);
 
     default:

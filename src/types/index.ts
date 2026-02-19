@@ -41,6 +41,7 @@ export interface LLMRequest {
   temperature?: number;
   maxTokens?: number;
   stream?: boolean;
+  api_key?: string; // Direct API key for provider (e.g., OpenAI key)
 }
 
 export interface Usage {

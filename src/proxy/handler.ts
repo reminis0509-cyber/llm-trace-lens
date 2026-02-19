@@ -171,7 +171,8 @@ export async function handleCompletion(
     const enforcer = await createEnforcer(
       llmRequest.provider || 'openai',
       llmRequest.model,
-      workspaceId
+      workspaceId,
+      llmRequest.api_key
     );
 
     // ストリーミング対応

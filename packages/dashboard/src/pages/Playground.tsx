@@ -47,11 +47,11 @@ export function Playground({ onBack }: Props) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${keyData.api_key}`,
         },
         body: JSON.stringify({
           model,
           provider,
+          api_key: keyData.api_key, // Send API key in body for direct provider call
           messages: [
             ...messages.map((m) => ({ role: m.role, content: m.content })),
             { role: 'user', content: userMessage },
