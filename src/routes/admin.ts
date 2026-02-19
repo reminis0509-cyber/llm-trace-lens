@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { timingSafeEqual, createHash } from 'crypto';
 import {
   getValidationConfig,
   saveValidationConfig,
@@ -9,13 +10,28 @@ import {
 import type { ValidationConfig, ValidationConfigData } from '../storage/models.js';
 
 /**
+ * Timing-safe string comparison to prevent timing attacks
+ * Uses SHA-256 hash to ensure equal length comparison
+ */
+function safeCompare(a: string, b: string): boolean {
+  const hashA = createHash('sha256').update(a).digest();
+  const hashB = createHash('sha256').update(b).digest();
+  return timingSafeEqual(hashA, hashB);
+}
+
+/**
  * Admin routes for validation configuration management
  * These endpoints are protected by ADMIN_API_KEY
  * Used for threshold blackboxing - allows admins to configure scoring weights
  */
 export async function adminRoutes(fastify: FastifyInstance): Promise<void> {
-  // Admin authentication middleware
+  // Admin authentication middleware - only for /admin/* routes
   fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
+    // Only apply auth to /admin/* routes
+    if (!request.url.startsWith('/admin')) {
+      return;
+    }
+
     // Skip auth for preflight requests
     if (request.method === 'OPTIONS') {
       return;
@@ -33,7 +49,10 @@ export async function adminRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.code(500).send({ error: 'Server configuration error: ADMIN_API_KEY not set' });
     }
 
-    if (token !== adminToken) {
+    // Use timing-safe comparison to prevent timing attacks
+    if (!safeCompare(token, adminToken)) {
+      // Log failed authentication attempts for security monitoring
+      console.warn(`[Admin] Failed authentication attempt from ${request.ip}`);
       return reply.code(403).send({ error: 'Forbidden: Invalid admin token' });
     }
   });

@@ -21,6 +21,14 @@ export interface ValidationResult {
   rules: RuleResult[];
 }
 
+export interface EvaluationResult {
+  faithfulness: number | null;
+  answerRelevance: number | null;
+  evaluatedAt: string;
+  evaluationModel: string;
+  error?: string;
+}
+
 export interface Trace {
   id: string;
   timestamp: string;
@@ -32,6 +40,7 @@ export interface Trace {
   validation: ValidationResult;
   latencyMs: number;
   tokensUsed: number;
+  evaluation?: EvaluationResult;
 }
 
 export interface TraceListResponse {

@@ -15,10 +15,13 @@ import {
   incrementCost,
   getBudgetConfig,
   getCostStats,
-  getWorkspaceFromApiKey,
   saveWorkspaceTrace,
-  incrementWorkspaceCost
+  incrementWorkspaceCost,
+  updateTraceEvaluation
 } from '../kv/client.js';
+import { evaluateTrace } from '../evaluation/index.js';
+import { config } from '../config.js';
+import type { EvaluationResult } from '../evaluation/types.js';
 
 const confidenceValidator = new ConfidenceValidator();
 const riskScanner = new RiskScanner();
@@ -53,6 +56,9 @@ interface TraceWithCost {
   usage?: UsageInfo;
   estimatedCost?: number;
   workspaceId?: string;
+  evaluation?: EvaluationResult;
+  // Original messages for evaluation
+  messages?: Array<{ role: string; content: string }>;
 }
 
 /**
@@ -154,20 +160,9 @@ export async function handleCompletion(
   const startTime = Date.now();
   const llmRequest = request.body;
 
-  // Workspace authentication (optional, based on x-api-key header)
-  const apiKey = request.headers['x-api-key'] as string | undefined;
-  let workspaceId: string | undefined;
-
-  if (apiKey) {
-    workspaceId = await getWorkspaceFromApiKey(apiKey) || undefined;
-    if (!workspaceId) {
-      console.warn('Invalid API key provided, using default workspace');
-      workspaceId = 'default';
-    }
-  } else {
-    // No API key - use default workspace for backward compatibility
-    workspaceId = 'default';
-  }
+  // ワークスペースは認証ミドルウェアで設定済み（APIキーから自動特定）
+  // X-Workspace-IDヘッダーは不要になりました
+  const workspaceId = request.workspace?.workspaceId || 'default';
 
   try {
     // ストリーミングチェック
@@ -175,7 +170,8 @@ export async function handleCompletion(
 
     const enforcer = await createEnforcer(
       llmRequest.provider || 'openai',
-      llmRequest.model
+      llmRequest.model,
+      workspaceId
     );
 
     // ストリーミング対応
@@ -251,7 +247,8 @@ export async function handleCompletion(
             },
             latencyMs: Date.now() - startTime,
             internalTrace: null,
-            workspaceId
+            workspaceId,
+            messages: llmRequest.messages,
           };
 
           // Track cost (async, non-blocking)
@@ -273,6 +270,28 @@ export async function handleCompletion(
             saveWorkspaceTrace(workspaceId, trace as unknown as Record<string, unknown>).catch(err =>
               console.error('[Handler] Workspace trace save failed:', err)
             );
+          }
+
+          // LLM-as-Judge 評価（fire-and-forget）
+          if (config.enableEvaluation) {
+            const traceRef = trace;
+            setImmediate(async () => {
+              try {
+                const userMessages = traceRef.messages?.filter((m: { role: string; content: string }) => m.role === 'user') ?? [];
+                const question = userMessages[userMessages.length - 1]?.content ?? traceRef.prompt;
+                const answer = traceRef.structuredResponse?.answer ?? '';
+
+                if (question && answer) {
+                  const evalResult = await evaluateTrace({ question, answer });
+                  traceRef.evaluation = evalResult;
+                  if (traceRef.workspaceId) {
+                    await updateTraceEvaluation(traceRef.workspaceId, traceRef.requestId, evalResult);
+                  }
+                }
+              } catch (err) {
+                console.error('[Evaluation] Failed to evaluate trace:', err);
+              }
+            });
           }
 
           // Webhook通知（BLOCK/WARNイベント）
@@ -371,7 +390,8 @@ export async function handleCompletion(
       },
       latencyMs: Date.now() - startTime,
       internalTrace: null,
-      workspaceId
+      workspaceId,
+      messages: llmRequest.messages,
     };
 
     // Track cost (async, non-blocking)
@@ -393,6 +413,28 @@ export async function handleCompletion(
       saveWorkspaceTrace(workspaceId, trace as unknown as Record<string, unknown>).catch(err =>
         console.error('[Handler] Workspace trace save failed:', err)
       );
+    }
+
+    // LLM-as-Judge 評価（fire-and-forget）
+    if (config.enableEvaluation) {
+      const traceRef = trace;
+      setImmediate(async () => {
+        try {
+          const userMessages = traceRef.messages?.filter((m: { role: string; content: string }) => m.role === 'user') ?? [];
+          const question = userMessages[userMessages.length - 1]?.content ?? traceRef.prompt;
+          const answer = traceRef.structuredResponse?.answer ?? '';
+
+          if (question && answer) {
+            const evalResult = await evaluateTrace({ question, answer });
+            traceRef.evaluation = evalResult;
+            if (traceRef.workspaceId) {
+              await updateTraceEvaluation(traceRef.workspaceId, traceRef.requestId, evalResult);
+            }
+          }
+        } catch (err) {
+          console.error('[Evaluation] Failed to evaluate trace:', err);
+        }
+      });
     }
 
     // Webhook通知（BLOCK/WARNイベント）

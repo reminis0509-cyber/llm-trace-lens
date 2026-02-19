@@ -1,9 +1,9 @@
 # LLM Trace Lens - 実装状況レポート
 
 **作成日**: 2026年2月12日
-**最終更新**: 2026年2月16日
-**バージョン**: 0.4.1
-**ステータス**: MVP完成 + SaaS化完了 + エンタープライズ機能追加 + ストレージ最適化
+**最終更新**: 2026年2月18日
+**バージョン**: 0.5.0
+**ステータス**: MVP完成 + SaaS化完了 + エンタープライズ機能追加 + ストレージ最適化 + LLM-as-Judge評価
 
 ---
 
@@ -79,7 +79,8 @@ LLM Trace Lensは、LLMの出力を可観測化するプロキシサーバーで
 | **フィードバックボタン** | ✅ NEW | トレース詳細からフィードバック送信 |
 | **Analyticsページ** | ✅ | フィードバック統計・パターン分析 |
 | **Integrationsページ** | ✅ | Slack/Teams Webhook設定UI |
-| **ストレージ使用量表示** | ✅ NEW | KV使用量ゲージ・警告表示 |
+| **ストレージ使用量表示** | ✅ | KV使用量ゲージ・警告表示 |
+| **LLM-as-Judge評価** | ✅ NEW | Faithfulness・Answer Relevance自動評価 |
 
 ### 2.4 SaaS / Vercelデプロイ対応
 
@@ -96,7 +97,81 @@ LLM Trace Lensは、LLMの出力を可観測化するプロキシサーバーで
 
 ---
 
-## 3. v0.4.1 新機能（2026年2月16日）
+## 3. v0.5.0 新機能（2026年2月18日）
+
+### 3.0 LLM-as-Judge評価エンジン（Phase 1 MVP）
+
+LLMの回答品質を別のLLMで自動評価する機能を追加しました。RAG評価で標準的なFaithfulness（忠実性）とAnswer Relevance（回答関連性）の2指標を計算します。
+
+**実装内容:**
+
+1. **評価エンジン**
+   - OpenAI API（gpt-4o-mini）を使用した自動評価
+   - Faithfulness: 回答が入力コンテキストに基づいているか（0-1スコア）
+   - Answer Relevance: 回答が質問に対して適切か（0-1スコア）
+   - Fire-and-forget方式でレスポンス遅延なし
+
+2. **ダッシュボード表示**
+   - トレース詳細画面に評価スコアを表示
+   - プログレスバーとカラーコード（緑: 高、黄: 中、赤: 低）
+   - 評価モデル・評価時刻の表示
+
+3. **ストレージ対応**
+   - 評価結果をトレースに付加して保存
+   - KV/PostgreSQL/SQLite全対応
+
+**新規ファイル:**
+- `src/evaluation/types.ts` - 評価結果の型定義
+- `src/evaluation/prompts.ts` - LLM-as-Judge用プロンプトテンプレート
+- `src/evaluation/index.ts` - 評価エンジン本体
+- `src/tests/evaluation/faithfulness.test.ts` - 評価機能テスト
+- `packages/dashboard/src/components/EvaluationScores.tsx` - 評価スコア表示コンポーネント
+
+**変更ファイル:**
+- `src/config.ts` - ENABLE_EVALUATION, EVALUATION_MODEL追加
+- `src/types/index.ts` - Trace型にevaluationフィールド追加
+- `src/proxy/handler.ts` - 評価の非同期実行追加
+- `src/storage/adapter.ts` - updateTraceEvaluation追加
+- `src/kv/client.ts` - updateTraceEvaluation追加
+- `packages/dashboard/src/types/index.ts` - EvaluationResult型追加
+- `packages/dashboard/src/components/TraceDetail.tsx` - 評価スコア表示追加
+
+**環境変数:**
+```bash
+# LLM-as-Judge評価（デフォルト: 無効）
+ENABLE_EVALUATION=false  # true で有効化
+EVALUATION_MODEL=gpt-4o-mini  # 評価に使用するモデル
+```
+
+**型定義:**
+```typescript
+interface EvaluationResult {
+  faithfulness: number | null;    // 0-1（コンテキスト忠実性）
+  answerRelevance: number | null; // 0-1（質問への関連性）
+  evaluatedAt: string;            // ISO 8601形式
+  evaluationModel: string;        // 使用した評価モデル
+  error?: string;                 // エラー時のメッセージ
+}
+```
+
+**動作フロー:**
+1. プロキシがLLMレスポンスを受信
+2. トレースを保存
+3. `ENABLE_EVALUATION=true` の場合、バックグラウンドで評価を開始（Fire-and-forget）
+4. 評価完了後、ストレージの該当トレースを更新
+5. ダッシュボードで評価スコアを表示
+
+**テスト結果:**
+```
+ ✓ src/tests/evaluation/faithfulness.test.ts (8 tests)
+
+ Test Files  15 passed (15)
+      Tests  138 passed (138)
+```
+
+---
+
+## 4. v0.4.1 新機能（2026年2月16日）
 
 ### 3.0 PostgreSQLデフォルト化 + KV保持ポリシー（Priority S）
 
@@ -169,7 +244,7 @@ curl http://localhost:3000/api/storage/usage
 
 ---
 
-## 4. v0.4.0 新機能（2026年2月15日）
+## 5. v0.4.0 新機能（2026年2月15日）
 
 ### 4.1 閾値のブラックボックス化（Priority S）
 
@@ -517,7 +592,7 @@ curl -X POST http://localhost:3000/auth/logout \
 
 ---
 
-## 5. システム構成
+## 6. システム構成
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -602,7 +677,7 @@ curl -X POST http://localhost:3000/auth/logout \
 
 ---
 
-## 6. ディレクトリ構成
+## 7. ディレクトリ構成
 
 ```
 llm-trace-lens/
@@ -712,7 +787,7 @@ llm-trace-lens/
 
 ---
 
-## 7. 検証ルール
+## 8. 検証ルール
 
 ### 7.1 ConfidenceValidator
 
@@ -759,7 +834,7 @@ curl -X POST http://localhost:3000/custom-rules \
 
 ---
 
-## 8. テスト結果
+## 9. テスト結果
 
 ```
  ✓ src/tests/enforcer/streaming.test.ts (5 tests)
@@ -768,15 +843,16 @@ curl -X POST http://localhost:3000/custom-rules \
  ✓ src/tests/validation/confidence.test.ts (5 tests)
  ✓ src/tests/validation/risk.test.ts (6 tests)
  ✓ src/tests/validation/japanese-pii.test.ts (16 tests)
- ✓ src/tests/storage/limit-enforcement.test.ts (6 tests) [NEW]
+ ✓ src/tests/storage/limit-enforcement.test.ts (6 tests)
+ ✓ src/tests/evaluation/faithfulness.test.ts (8 tests) [NEW]
 
- Test Files  14 passed (14)
-      Tests  124 passed (124)
+ Test Files  15 passed (15)
+      Tests  138 passed (138)
 ```
 
 ---
 
-## 9. 起動方法
+## 10. 起動方法
 
 ### 9.1 環境設定
 
@@ -856,7 +932,7 @@ curl -X POST http://localhost:3000/custom-rules/scan \
 
 ---
 
-## 10. 環境変数一覧
+## 11. 環境変数一覧
 
 | 変数名 | 説明 | デフォルト |
 |--------|------|-----------|
@@ -898,7 +974,7 @@ curl -X POST http://localhost:3000/custom-rules/scan \
 
 ---
 
-## 11. 今後の拡張予定
+## 12. 今後の拡張予定
 
 ### 完了済み
 
@@ -923,6 +999,7 @@ curl -X POST http://localhost:3000/custom-rules/scan \
 | 4 | 閾値ブラックボックス化 | ✅ 完了 |
 | 4 | フィードバック機能 | ✅ 完了 |
 | 4 | Slack/Teams連携 | ✅ 完了 |
+| 5 | LLM-as-Judge評価 | ✅ 完了 |
 
 ### 予定
 
@@ -936,7 +1013,7 @@ curl -X POST http://localhost:3000/custom-rules/scan \
 
 ---
 
-## 12. 既知の制限事項
+## 13. 既知の制限事項
 
 1. ~~**ストリーミング制限**: Gemini/DeepSeekは非ストリーミングのみ~~ → ✅ v0.4.0で解消
 2. ~~**認証**: シンプルなAPIキー認証のみ（OAuth未対応）~~ → ✅ v0.4.0で解消
@@ -946,7 +1023,7 @@ curl -X POST http://localhost:3000/custom-rules/scan \
 
 ---
 
-## 13. 主要依存パッケージ
+## 14. 主要依存パッケージ
 
 | パッケージ | バージョン | 用途 |
 |-----------|-----------|------|
@@ -970,4 +1047,4 @@ curl -X POST http://localhost:3000/custom-rules/scan \
 ---
 
 **レポート作成**: Claude Code (claude-opus-4-5-20251101)
-**最終更新**: 2026年2月16日（v0.4.1 PostgreSQLデフォルト化・KV保持ポリシー・使用量表示追加）
+**最終更新**: 2026年2月18日（v0.5.0 LLM-as-Judge評価エンジン追加）

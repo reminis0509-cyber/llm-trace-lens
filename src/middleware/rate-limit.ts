@@ -2,10 +2,12 @@ import { FastifyInstance } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 
 export async function setupRateLimit(app: FastifyInstance): Promise<void> {
-  const enabled = process.env.RATE_LIMIT_ENABLED === 'true';
+  // Rate limiting is enabled by default for security
+  // Set RATE_LIMIT_ENABLED=false to explicitly disable
+  const enabled = process.env.RATE_LIMIT_ENABLED !== 'false';
 
   if (!enabled) {
-    console.log('[RateLimit] Disabled');
+    console.log('[RateLimit] Explicitly disabled via RATE_LIMIT_ENABLED=false');
     return;
   }
 

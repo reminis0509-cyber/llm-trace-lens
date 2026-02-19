@@ -14,6 +14,8 @@ import { config } from '../config.js';
 
 export type StorageType = 'kv' | 'postgres' | 'sqlite';
 
+import type { EvaluationResult } from '../evaluation/types.js';
+
 export interface WorkspaceTraceRecord {
   id: string;
   workspace_id: string;
@@ -30,6 +32,7 @@ export interface WorkspaceTraceRecord {
     total_tokens: number;
   };
   estimated_cost?: number;
+  evaluation?: EvaluationResult;
 }
 
 export interface StorageAdapter {
@@ -45,6 +48,9 @@ export interface StorageAdapter {
     endTime?: Date;
     model?: string;
   }): Promise<WorkspaceTraceRecord[]>;
+
+  // Evaluation update
+  updateTraceEvaluation(workspaceId: string, traceId: string, evaluation: EvaluationResult): Promise<void>;
 
   // Workspace operations
   saveWorkspaceSetting(workspaceId: string, key: string, value: unknown): Promise<void>;
@@ -219,6 +225,16 @@ export class KVStorageAdapter implements StorageAdapter {
     return traces.filter((t): t is WorkspaceTraceRecord => t !== null);
   }
 
+  async updateTraceEvaluation(workspaceId: string, traceId: string, evaluation: EvaluationResult): Promise<void> {
+    const trace = await this.getTrace(workspaceId, traceId);
+    if (trace) {
+      const updatedTrace = { ...trace, evaluation };
+      const key = `workspace:${workspaceId}:trace:${traceId}`;
+      const ttlSeconds = config.maxAgeDays * 24 * 60 * 60;
+      await kv.set(key, updatedTrace, { ex: ttlSeconds });
+    }
+  }
+
   async saveWorkspaceSetting(workspaceId: string, key: string, value: unknown): Promise<void> {
     await kv.set(`workspace:${workspaceId}:setting:${key}`, value);
   }
@@ -373,6 +389,16 @@ export class PostgresStorageAdapter implements StorageAdapter {
     return result.rows.map(row => this.deserializeTrace(row));
   }
 
+  async updateTraceEvaluation(workspaceId: string, traceId: string, evaluation: EvaluationResult): Promise<void> {
+    const query = `
+      UPDATE traces
+      SET evaluation = $1::jsonb
+      WHERE id = $2 AND workspace_id = $3
+    `;
+
+    await this.pool.query(query, [JSON.stringify(evaluation), traceId, workspaceId]);
+  }
+
   async saveWorkspaceSetting(workspaceId: string, key: string, value: unknown): Promise<void> {
     const query = `
       INSERT INTO workspace_settings (workspace_id, key, value)
@@ -460,7 +486,8 @@ export class PostgresStorageAdapter implements StorageAdapter {
         : row.validation_results as Record<string, unknown>,
       latency_ms: row.latency_ms as number,
       usage: row.usage ? (typeof row.usage === 'string' ? JSON.parse(row.usage) : row.usage) : undefined,
-      estimated_cost: row.estimated_cost as number | undefined
+      estimated_cost: row.estimated_cost as number | undefined,
+      evaluation: row.evaluation ? (typeof row.evaluation === 'string' ? JSON.parse(row.evaluation) : row.evaluation as EvaluationResult) : undefined
     };
   }
 }

@@ -1,5 +1,6 @@
 import type { Trace, ValidationLevel } from '../types';
 import { FeedbackButton } from './FeedbackButton';
+import { EvaluationScores } from './EvaluationScores';
 
 interface Props {
   trace: Trace;
@@ -145,6 +146,13 @@ export function TraceDetail({ trace, onClose, apiKey }: Props) {
             {trace.prompt}
           </pre>
         </Section>
+
+        {/* LLM-as-Judge Evaluation */}
+        {trace.evaluation && (
+          <section className="mt-6">
+            <EvaluationScores evaluation={trace.evaluation} />
+          </section>
+        )}
       </div>
     </div>
   );

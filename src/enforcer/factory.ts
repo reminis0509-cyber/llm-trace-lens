@@ -8,29 +8,33 @@ import type { Provider } from '../types/index.js';
 /**
  * Create enforcer for MVP handlers
  * Returns an enforcer with the LLMRequest-based interface
- * Now supports both environment variables and KV store for API keys
+ * Now supports:
+ * - Environment variables (development)
+ * - KV store (legacy)
+ * - Encrypted Secret Manager (recommended for production)
  */
 export async function createEnforcer(
   provider: Provider,
-  model?: string
+  model?: string,
+  workspaceId?: string
 ): Promise<OpenAIEnforcer | AnthropicEnforcer | GeminiEnforcer | DeepSeekEnforcer> {
   let apiKey: string;
 
   switch (provider) {
     case 'openai':
-      apiKey = await getApiKey('openai');
+      apiKey = await getApiKey('openai', workspaceId);
       return new OpenAIEnforcer(apiKey);
 
     case 'anthropic':
-      apiKey = await getApiKey('anthropic');
+      apiKey = await getApiKey('anthropic', workspaceId);
       return new AnthropicEnforcer(apiKey);
 
     case 'gemini':
-      apiKey = await getApiKey('gemini');
+      apiKey = await getApiKey('gemini', workspaceId);
       return new GeminiEnforcer(apiKey, model);
 
     case 'deepseek':
-      apiKey = await getApiKey('deepseek');
+      apiKey = await getApiKey('deepseek', workspaceId);
       return new DeepSeekEnforcer(apiKey);
 
     default:

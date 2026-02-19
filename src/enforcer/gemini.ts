@@ -77,6 +77,9 @@ export class GeminiEnforcer {
         if (error.message.includes('API key')) {
           throw new Error('Invalid Google API key. Please check your GOOGLE_API_KEY environment variable.');
         }
+        if (error.message.includes('quota') || error.message.includes('RESOURCE_EXHAUSTED') || error.message.includes('429')) {
+          throw new Error('Gemini API quota exceeded. Please wait or upgrade your plan.');
+        }
         if (error.message.includes('model')) {
           throw new Error(`Invalid Gemini model. Please check the model name.`);
         }

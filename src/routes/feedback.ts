@@ -15,8 +15,15 @@ import type { TraceFeedback } from '../storage/models.js';
  * Enables false positive/negative tracking and analytics
  */
 export async function feedbackRoutes(fastify: FastifyInstance): Promise<void> {
-  // Workspace authentication hook
+  // Workspace authentication hook - only for /feedback/* and /traces/*/feedback routes
   fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
+    // Only apply auth to feedback-related routes
+    const isFeedbackRoute = request.url.startsWith('/feedback') ||
+                           (request.url.startsWith('/traces/') && request.url.includes('/feedback'));
+    if (!isFeedbackRoute) {
+      return;
+    }
+
     if (request.method === 'OPTIONS') {
       return;
     }

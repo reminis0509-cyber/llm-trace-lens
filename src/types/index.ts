@@ -1,3 +1,5 @@
+import { EvaluationResult } from '../evaluation/types.js';
+
 export interface Message {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -91,6 +93,7 @@ export interface Trace {
   latencyMs: number;
   tokensUsed: number;
   cost?: number;
+  evaluation?: EvaluationResult;
 }
 
 export type LLMProvider = 'openai' | 'anthropic' | 'gemini' | 'deepseek';

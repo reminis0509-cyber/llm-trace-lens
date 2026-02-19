@@ -7,8 +7,13 @@ import { getWorkspaceFromApiKey } from '../kv/client.js';
  * Integration routes for Slack and Teams webhook management
  */
 export async function integrationsRoutes(fastify: FastifyInstance): Promise<void> {
-  // Workspace authentication hook
+  // Workspace authentication hook - only for /integrations/* routes
   fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
+    // Only apply auth to /integrations/* routes
+    if (!request.url.startsWith('/integrations')) {
+      return;
+    }
+
     if (request.method === 'OPTIONS') {
       return;
     }

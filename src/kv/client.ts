@@ -116,7 +116,17 @@ export async function saveConfig(config: Partial<AppConfig>): Promise<void> {
   }
 }
 
-export async function getApiKey(provider: string): Promise<string> {
+export async function getApiKey(provider: string, workspaceId?: string): Promise<string> {
+  // If workspace ID is provided, try encrypted Secret Manager first
+  if (workspaceId && workspaceId !== 'default') {
+    try {
+      const { getSecureApiKey } = await import('../security/secret-manager.js');
+      return await getSecureApiKey(provider, workspaceId);
+    } catch {
+      // Fall through to other methods
+    }
+  }
+
   // First try environment variables (for local development)
   const envKeyMap: Record<string, string | undefined> = {
     openai: process.env.OPENAI_API_KEY,
@@ -130,7 +140,7 @@ export async function getApiKey(provider: string): Promise<string> {
     return envKey;
   }
 
-  // Then try KV store
+  // Then try KV store (legacy)
   const config = await getConfig();
   if (!config || !config.providers) {
     throw new Error('Configuration not found. Please complete setup at /setup');
@@ -988,5 +998,48 @@ export async function getFeedbackStats(
   } catch (error) {
     console.error('Failed to get feedback stats:', error);
     return defaultStats;
+  }
+}
+
+// ===========================
+// Trace Evaluation Update
+// ===========================
+
+import type { EvaluationResult } from '../evaluation/types.js';
+
+/**
+ * Update trace with evaluation results
+ * Used by the LLM-as-Judge evaluation system
+ */
+export async function updateTraceEvaluation(
+  workspaceId: string,
+  traceId: string,
+  evaluation: EvaluationResult
+): Promise<void> {
+  if (!isKVAvailable()) {
+    console.warn('KV not configured, evaluation not persisted');
+    return;
+  }
+
+  try {
+    // Find the trace key from the index
+    const indexKey = getWorkspaceKey(workspaceId, 'traces:index');
+    const traceKeys = await kv.zrange(indexKey, 0, -1, { rev: true });
+
+    // Find the matching trace key by checking each one
+    for (const key of traceKeys) {
+      const trace = await kv.get<Record<string, unknown>>(key as string);
+      if (trace && (trace.requestId === traceId || (key as string).includes(traceId))) {
+        // Update the trace with evaluation
+        const updatedTrace = { ...trace, evaluation };
+        await kv.set(key as string, updatedTrace, { ex: 60 * 60 * 24 * 30 }); // 30 days
+        console.log(`[KV] Updated trace ${traceId} with evaluation`);
+        return;
+      }
+    }
+
+    console.warn(`[KV] Trace ${traceId} not found for evaluation update`);
+  } catch (error) {
+    console.error('Failed to update trace evaluation:', error);
   }
 }

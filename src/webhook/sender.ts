@@ -1,5 +1,90 @@
 import axios, { AxiosError } from 'axios';
 
+/**
+ * SSRF Protection: Validate webhook URLs to prevent Server-Side Request Forgery
+ * Blocks requests to:
+ * - Private IP ranges (10.x.x.x, 172.16-31.x.x, 192.168.x.x)
+ * - Loopback addresses (127.x.x.x, localhost)
+ * - Link-local addresses (169.254.x.x)
+ * - Internal cloud metadata endpoints (169.254.169.254)
+ */
+function isUrlSafe(urlString: string): { safe: boolean; reason?: string } {
+  try {
+    const url = new URL(urlString);
+
+    // Only allow HTTPS in production
+    if (process.env.NODE_ENV === 'production' && url.protocol !== 'https:') {
+      return { safe: false, reason: 'Only HTTPS URLs are allowed in production' };
+    }
+
+    // Block non-HTTP(S) protocols
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      return { safe: false, reason: 'Only HTTP/HTTPS protocols are allowed' };
+    }
+
+    const hostname = url.hostname.toLowerCase();
+
+    // Block localhost variations
+    const localhostPatterns = ['localhost', '127.0.0.1', '::1', '0.0.0.0'];
+    if (localhostPatterns.some(p => hostname === p || hostname.endsWith('.' + p))) {
+      return { safe: false, reason: 'Localhost URLs are not allowed' };
+    }
+
+    // Block IP addresses that are private/internal
+    const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+    const ipMatch = hostname.match(ipv4Regex);
+    if (ipMatch) {
+      const [, a, b, c, d] = ipMatch.map(Number);
+
+      // 10.0.0.0/8 (Private)
+      if (a === 10) {
+        return { safe: false, reason: 'Private IP addresses (10.x.x.x) are not allowed' };
+      }
+
+      // 172.16.0.0/12 (Private)
+      if (a === 172 && b >= 16 && b <= 31) {
+        return { safe: false, reason: 'Private IP addresses (172.16-31.x.x) are not allowed' };
+      }
+
+      // 192.168.0.0/16 (Private)
+      if (a === 192 && b === 168) {
+        return { safe: false, reason: 'Private IP addresses (192.168.x.x) are not allowed' };
+      }
+
+      // 127.0.0.0/8 (Loopback)
+      if (a === 127) {
+        return { safe: false, reason: 'Loopback addresses are not allowed' };
+      }
+
+      // 169.254.0.0/16 (Link-local, includes cloud metadata)
+      if (a === 169 && b === 254) {
+        return { safe: false, reason: 'Link-local addresses (including cloud metadata endpoints) are not allowed' };
+      }
+
+      // 0.0.0.0/8 (Current network)
+      if (a === 0) {
+        return { safe: false, reason: 'Invalid IP address' };
+      }
+    }
+
+    // Block common internal hostnames
+    const blockedHostnames = [
+      'metadata.google.internal',
+      'metadata.google.com',
+      'instance-data',
+      'kubernetes.default',
+      'kubernetes.default.svc',
+    ];
+    if (blockedHostnames.some(blocked => hostname === blocked || hostname.endsWith('.' + blocked))) {
+      return { safe: false, reason: 'Internal hostnames are not allowed' };
+    }
+
+    return { safe: true };
+  } catch {
+    return { safe: false, reason: 'Invalid URL format' };
+  }
+}
+
 export interface WebhookEvent {
   event: 'BLOCK' | 'WARN' | 'COST_ALERT';
   timestamp: string;
@@ -42,6 +127,18 @@ export class WebhookSender {
 
   constructor(config?: WebhookConfig) {
     if (config) {
+      // Validate URL for SSRF protection
+      const urlCheck = isUrlSafe(config.url);
+      if (!urlCheck.safe) {
+        console.error(`[Webhook] Unsafe URL rejected: ${urlCheck.reason}`);
+        this.enabled = false;
+        this.url = '';
+        this.timeout = 5000;
+        this.maxRetries = 3;
+        this.events = [];
+        return;
+      }
+
       this.enabled = true;
       this.url = config.url;
       this.timeout = config.timeout || 5000;
@@ -49,8 +146,18 @@ export class WebhookSender {
       this.events = config.events;
     } else {
       // Fallback to environment variables
-      this.enabled = process.env.WEBHOOK_ENABLED === 'true';
-      this.url = process.env.WEBHOOK_URL || '';
+      const envUrl = process.env.WEBHOOK_URL || '';
+      const urlCheck = isUrlSafe(envUrl);
+
+      if (envUrl && !urlCheck.safe) {
+        console.error(`[Webhook] Unsafe WEBHOOK_URL rejected: ${urlCheck.reason}`);
+        this.enabled = false;
+        this.url = '';
+      } else {
+        this.enabled = process.env.WEBHOOK_ENABLED === 'true';
+        this.url = envUrl;
+      }
+
       this.timeout = parseInt(process.env.WEBHOOK_TIMEOUT_MS || '5000');
       this.maxRetries = parseInt(process.env.WEBHOOK_MAX_RETRIES || '3');
       this.events = (process.env.WEBHOOK_EVENTS || 'BLOCK,WARN').split(',') as ('BLOCK' | 'WARN' | 'COST_ALERT')[];

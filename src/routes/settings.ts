@@ -1,9 +1,58 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { getConfig, saveConfig, type LLMProviderKeys } from '../kv/client.js';
+import { getSession } from '../auth/google.js';
+
+/**
+ * Verify that the request has valid authentication
+ * Supports: Bearer token (API key) or session cookie
+ */
+async function verifyAuth(request: FastifyRequest, reply: FastifyReply): Promise<boolean> {
+  // Skip auth if disabled
+  if (process.env.ENABLE_SETTINGS_AUTH !== 'true') {
+    return true;
+  }
+
+  // Check Bearer token
+  const authHeader = request.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    const apiKeys = process.env.API_KEYS?.split(',') || [];
+    const adminKey = process.env.ADMIN_API_KEY;
+
+    if (apiKeys.includes(token) || token === adminKey) {
+      return true;
+    }
+  }
+
+  // Check X-API-Key header
+  const apiKeyHeader = request.headers['x-api-key'] as string | undefined;
+  if (apiKeyHeader) {
+    const apiKeys = process.env.API_KEYS?.split(',') || [];
+    if (apiKeys.includes(apiKeyHeader)) {
+      return true;
+    }
+  }
+
+  // Check session cookie (for dashboard)
+  const sessionId = (request.headers.cookie || '').match(/session_id=([^;]+)/)?.[1];
+  if (sessionId) {
+    const session = await getSession(sessionId);
+    if (session) {
+      return true;
+    }
+  }
+
+  reply.code(401).send({ error: 'Unauthorized', message: 'Valid authentication required' });
+  return false;
+}
 
 export async function settingsRoutes(fastify: FastifyInstance) {
   // Get current configuration (masks API keys)
-  fastify.get('/api/settings', async (request, reply) => {
+  fastify.get('/api/settings', async (request: FastifyRequest, reply: FastifyReply) => {
+    // Verify authentication
+    if (!await verifyAuth(request, reply)) {
+      return;
+    }
     try {
       const config = await getConfig();
 
@@ -39,7 +88,12 @@ export async function settingsRoutes(fastify: FastifyInstance) {
   });
 
   // Save configuration
-  fastify.post('/api/settings', async (request, reply) => {
+  fastify.post('/api/settings', async (request: FastifyRequest, reply: FastifyReply) => {
+    // Verify authentication
+    if (!await verifyAuth(request, reply)) {
+      return;
+    }
+
     try {
       const body = request.body as {
         providers?: LLMProviderKeys;
