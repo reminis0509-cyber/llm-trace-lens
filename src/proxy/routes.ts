@@ -39,6 +39,7 @@ export async function registerRoutes(server: FastifyInstance) {
             temperature: { type: 'number', minimum: 0, maximum: 2 },
             maxTokens: { type: 'integer', minimum: 1 },
             stream: { type: 'boolean' },
+            api_key: { type: 'string' },
           },
         },
       },
