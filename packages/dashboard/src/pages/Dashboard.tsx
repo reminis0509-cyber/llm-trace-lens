@@ -6,20 +6,23 @@ import { StorageUsage } from '../components/StorageUsage';
 import { Settings } from './Settings';
 import { Analytics } from './Analytics';
 import { Integrations } from './Integrations';
+import { ApiKeys } from './ApiKeys';
+import { useAuth } from '../contexts/AuthContext';
 import type { Trace } from '../types';
 
-type Tab = 'traces' | 'stats' | 'analytics' | 'integrations' | 'settings';
+type Tab = 'traces' | 'stats' | 'analytics' | 'integrations' | 'settings' | 'apikeys';
 
-interface DashboardProps {
-  onNavigateToSetup?: () => void;
-}
-
-export function Dashboard({ onNavigateToSetup }: DashboardProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('traces');
+export function Dashboard() {
+  const [activeTab, setActiveTab] = useState<Tab>('apikeys'); // Start with API Keys
   const [selectedTrace, setSelectedTrace] = useState<Trace | null>(null);
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
@@ -27,74 +30,91 @@ export function Dashboard({ onNavigateToSetup }: DashboardProps) {
             <span className="text-2xl">🔍</span>
             <h1 className="text-xl font-bold text-gray-900">LLM Trace Lens</h1>
             <span className="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-              v0.4.0
+              v0.5.0
             </span>
           </div>
-          <nav className="flex gap-1">
-            <button
-              onClick={() => setActiveTab('traces')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                activeTab === 'traces'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              Traces
-            </button>
-            <button
-              onClick={() => setActiveTab('stats')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                activeTab === 'stats'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              Stats
-            </button>
-            <button
-              onClick={() => setActiveTab('analytics')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                activeTab === 'analytics'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              Analytics
-            </button>
-            <button
-              onClick={() => setActiveTab('integrations')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                activeTab === 'integrations'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              Integrations
-            </button>
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                activeTab === 'settings'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              Settings
-            </button>
-            {onNavigateToSetup && (
+          <div className="flex items-center gap-4">
+            <nav className="flex gap-1">
               <button
-                onClick={onNavigateToSetup}
-                className="px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-gray-100 transition"
+                onClick={() => setActiveTab('apikeys')}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  activeTab === 'apikeys'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
               >
                 API Keys
               </button>
-            )}
-          </nav>
+              <button
+                onClick={() => setActiveTab('traces')}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  activeTab === 'traces'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                Traces
+              </button>
+              <button
+                onClick={() => setActiveTab('stats')}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  activeTab === 'stats'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                Stats
+              </button>
+              <button
+                onClick={() => setActiveTab('analytics')}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  activeTab === 'analytics'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                Analytics
+              </button>
+              <button
+                onClick={() => setActiveTab('integrations')}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  activeTab === 'integrations'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                Integrations
+              </button>
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  activeTab === 'settings'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                Settings
+              </button>
+            </nav>
+            {/* User Menu */}
+            <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
+              <span className="text-sm text-gray-600">{user?.email}</span>
+              <button
+                onClick={handleSignOut}
+                className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="p-6">
+        {activeTab === 'apikeys' && (
+          <ApiKeys onBack={() => setActiveTab('traces')} />
+        )}
         {activeTab === 'traces' && (
           <div className="flex gap-6">
             <div className={selectedTrace ? 'w-1/2' : 'w-full'}>
