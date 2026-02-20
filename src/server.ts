@@ -152,7 +152,6 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
       await fastify.register(fastifyStatic, {
         root: dashboardPath,
         prefix: '/',
-        decorateReply: false,
       });
 
       // SPA fallback - serve index.html for non-API routes
