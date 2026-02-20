@@ -141,7 +141,7 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
   // Serve dashboard static files (for Railway/production deployment)
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
-  const dashboardPath = path.join(__dirname, '..', 'packages', 'dashboard', 'dist');
+  const dashboardPath = path.join(__dirname, '..', '..', 'packages', 'dashboard', 'dist');
 
   try {
     await fastify.register(fastifyStatic, {
