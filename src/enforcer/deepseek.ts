@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
-import type { ChatCompletionCreateParamsNonStreaming, ChatCompletionCreateParamsStreaming } from 'openai/resources/chat/completions';
+import type { ChatCompletion, ChatCompletionChunk } from 'openai/resources/chat/completions';
+import type { Stream } from 'openai/streaming';
 import type { LLMRequest, StructuredResponse } from '../types/index.js';
 
 // DeepSeek models that support response_format: { type: 'json_object' }
@@ -61,19 +62,16 @@ export class DeepSeekEnforcer {
 
       // DeepSeek APIコール
       const model = request.model || 'deepseek-chat';
-      const requestParams: ChatCompletionCreateParamsNonStreaming = {
+      const requestParams = {
         model,
         messages,
         temperature: request.temperature,
         max_tokens: request.maxTokens,
+        stream: false as const,
+        response_format: supportsJsonMode(model) ? { type: 'json_object' as const } : undefined,
       };
 
-      // Only add response_format for models that support it
-      if (supportsJsonMode(model)) {
-        requestParams.response_format = { type: 'json_object' };
-      }
-
-      const completion = await this.client.chat.completions.create(requestParams);
+      const completion = await this.client.chat.completions.create(requestParams) as ChatCompletion;
 
       const content = completion.choices[0]?.message?.content;
       if (!content) {
@@ -154,20 +152,16 @@ export class DeepSeekEnforcer {
 
       // DeepSeek ストリーミングAPIコール
       const model = request.model || 'deepseek-chat';
-      const requestParams: ChatCompletionCreateParamsStreaming = {
+      const requestParams = {
         model,
         messages,
         temperature: request.temperature,
         max_tokens: request.maxTokens,
-        stream: true,
+        stream: true as const,
+        response_format: supportsJsonMode(model) ? { type: 'json_object' as const } : undefined,
       };
 
-      // Only add response_format for models that support it
-      if (supportsJsonMode(model)) {
-        requestParams.response_format = { type: 'json_object' };
-      }
-
-      const stream = await this.client.chat.completions.create(requestParams);
+      const stream = await this.client.chat.completions.create(requestParams) as Stream<ChatCompletionChunk>;
 
       let fullContent = '';
 
