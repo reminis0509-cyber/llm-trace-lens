@@ -1,8 +1,8 @@
 {
   "version": 2,
   "framework": "vite",
-  "installCommand": "npm install && cd packages/dashboard && npm install",
-  "buildCommand": "cd packages/dashboard && npm run build",
+  "installCommand": "npm install --include=dev && cd packages/dashboard && npm install",
+  "buildCommand": "npx tsc && cd packages/dashboard && npm run build",
   "outputDirectory": "packages/dashboard/dist",
   "functions": {
     "api/index.ts": {
