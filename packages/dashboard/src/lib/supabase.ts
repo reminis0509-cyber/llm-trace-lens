@@ -1,25 +1,18 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Fallback values for Railway deployment where env vars may not be available at build time
+const FALLBACK_SUPABASE_URL = 'https://qbpmfereuhnpuvnjraxt.supabase.co';
+const FALLBACK_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFicG1mZXJldWhucHV2bmpyYXh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0MjU5MzYsImV4cCI6MjA4NzAwMTkzNn0.-USgan7-G1kX3sdPuuotZiVpR6dIKOY9XNt82c6i4zg';
 
-// Debug: Log environment variables (remove in production after fixing)
-console.log('[Supabase Config]', {
-  url: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : '(empty)',
-  keyLength: supabaseAnonKey ? supabaseAnonKey.length : 0,
-  mode: import.meta.env.MODE,
-});
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || FALLBACK_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || FALLBACK_SUPABASE_ANON_KEY;
 
 // Check if Supabase is configured
 export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
 
-// Create a mock client if not configured to prevent crashes
+// Create Supabase client
 function createSupabaseClient(): SupabaseClient {
-  if (!isSupabaseConfigured) {
-    console.error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables during build.');
-  }
-  // Create client even with empty strings - it will fail gracefully on API calls
-  return createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder');
+  return createClient(supabaseUrl, supabaseAnonKey);
 }
 
 export const supabase = createSupabaseClient();
