@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import fastifyStatic from '@fastify/static';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { registerRoutes } from './proxy/routes.js';
 import { setupRateLimit } from './middleware/rate-limit.js';
@@ -143,16 +144,39 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
   const __dirname = path.dirname(__filename);
   const dashboardPath = path.join(__dirname, '..', '..', 'packages', 'dashboard', 'dist');
 
-  try {
-    await fastify.register(fastifyStatic, {
-      root: dashboardPath,
-      prefix: '/',
-      decorateReply: false,
-    });
+  // Check if dashboard exists before registering static files
+  const dashboardExists = fs.existsSync(dashboardPath) && fs.existsSync(path.join(dashboardPath, 'index.html'));
 
-    // SPA fallback - serve index.html for non-API routes
+  if (dashboardExists) {
+    try {
+      await fastify.register(fastifyStatic, {
+        root: dashboardPath,
+        prefix: '/',
+        decorateReply: false,
+      });
+
+      // SPA fallback - serve index.html for non-API routes
+      fastify.setNotFoundHandler(async (request, reply) => {
+        // Don't serve index.html for API routes
+        if (request.url.startsWith('/api/') ||
+            request.url.startsWith('/v1/') ||
+            request.url.startsWith('/health') ||
+            request.url.startsWith('/admin/') ||
+            request.url.startsWith('/auth/')) {
+          return reply.code(404).send({ error: 'Not Found' });
+        }
+        return reply.sendFile('index.html');
+      });
+
+      fastify.log.info(`[Server] Serving dashboard from ${dashboardPath}`);
+    } catch (err) {
+      fastify.log.warn(`[Server] Failed to register static files: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  } else {
+    fastify.log.warn(`[Server] Dashboard not found at ${dashboardPath}, API-only mode`);
+
+    // Set a simple not found handler for non-API routes
     fastify.setNotFoundHandler(async (request, reply) => {
-      // Don't serve index.html for API routes
       if (request.url.startsWith('/api/') ||
           request.url.startsWith('/v1/') ||
           request.url.startsWith('/health') ||
@@ -160,12 +184,8 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
           request.url.startsWith('/auth/')) {
         return reply.code(404).send({ error: 'Not Found' });
       }
-      return reply.sendFile('index.html');
+      return reply.code(200).send({ message: 'API is running. Dashboard not available.', health: '/health' });
     });
-
-    fastify.log.info(`[Server] Serving dashboard from ${dashboardPath}`);
-  } catch (err) {
-    fastify.log.warn(`[Server] Dashboard not found at ${dashboardPath}, API-only mode`);
   }
 
   return fastify;
