@@ -1,9 +1,14 @@
 {
   "version": 2,
-  "buildCommand": "npm run build && cd packages/dashboard && npm install && npm run build",
-  "installCommand": "npm install",
-  "framework": null,
+  "framework": "vite",
+  "installCommand": "npm install && cd packages/dashboard && npm install",
+  "buildCommand": "cd packages/dashboard && npm run build",
   "outputDirectory": "packages/dashboard/dist",
+  "functions": {
+    "api/index.ts": {
+      "runtime": "@vercel/node@3"
+    }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.ts" },
     { "source": "/v1/(.*)", "destination": "/api/index.ts" },
