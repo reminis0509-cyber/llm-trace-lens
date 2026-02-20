@@ -60,7 +60,7 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
         scriptSrc: ["'self'", "'unsafe-inline'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", 'data:', 'https:'],
-        connectSrc: ["'self'"],
+        connectSrc: ["'self'", "https://*.supabase.co", "wss://*.supabase.co"],
         fontSrc: ["'self'"],
         objectSrc: ["'none'"],
         frameSrc: ["'none'"],
