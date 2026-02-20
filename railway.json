@@ -2,7 +2,7 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "npm run build && cd packages/dashboard && echo \"VITE_SUPABASE_URL=$VITE_SUPABASE_URL\" > .env && echo \"VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY\" >> .env && npm install && npm run build"
+    "buildCommand": "npm run build && cd packages/dashboard && printf 'VITE_SUPABASE_URL=%s\\nVITE_SUPABASE_ANON_KEY=%s\\n' \"$VITE_SUPABASE_URL\" \"$VITE_SUPABASE_ANON_KEY\" > .env && cat .env && npm install && npm run build"
   },
   "deploy": {
     "startCommand": "npm start",
