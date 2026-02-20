@@ -1,6 +1,9 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
+import fastifyStatic from '@fastify/static';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { registerRoutes } from './proxy/routes.js';
 import { setupRateLimit } from './middleware/rate-limit.js';
 import { authMiddleware } from './middleware/auth.js';
@@ -134,6 +137,36 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
 
   // Register main routes
   await registerRoutes(fastify);
+
+  // Serve dashboard static files (for Railway/production deployment)
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const dashboardPath = path.join(__dirname, '..', 'packages', 'dashboard', 'dist');
+
+  try {
+    await fastify.register(fastifyStatic, {
+      root: dashboardPath,
+      prefix: '/',
+      decorateReply: false,
+    });
+
+    // SPA fallback - serve index.html for non-API routes
+    fastify.setNotFoundHandler(async (request, reply) => {
+      // Don't serve index.html for API routes
+      if (request.url.startsWith('/api/') ||
+          request.url.startsWith('/v1/') ||
+          request.url.startsWith('/health') ||
+          request.url.startsWith('/admin/') ||
+          request.url.startsWith('/auth/')) {
+        return reply.code(404).send({ error: 'Not Found' });
+      }
+      return reply.sendFile('index.html');
+    });
+
+    fastify.log.info(`[Server] Serving dashboard from ${dashboardPath}`);
+  } catch (err) {
+    fastify.log.warn(`[Server] Dashboard not found at ${dashboardPath}, API-only mode`);
+  }
 
   return fastify;
 }
