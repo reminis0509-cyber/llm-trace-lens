@@ -470,10 +470,30 @@ export async function handleCompletion(
       }).catch(err => console.error('[Handler] Webhook manager WARN failed:', err));
     }
 
-    // Return sanitized trace (threshold blackboxing)
+    // Return OpenAI-compatible response format
     return reply.send({
-      ...structuredResponse,
-      _trace: sanitizeTraceForResponse(trace)
+      id: trace.requestId,
+      object: 'chat.completion',
+      created: Math.floor(Date.now() / 1000),
+      model: trace.model,
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: structuredResponse.answer,
+          },
+          finish_reason: 'stop',
+        },
+      ],
+      usage: trace.usage ? {
+        prompt_tokens: trace.usage.promptTokens,
+        completion_tokens: trace.usage.completionTokens,
+        total_tokens: trace.usage.totalTokens,
+      } : undefined,
+      // LLM Trace Lens metadata
+      _trace: sanitizeTraceForResponse(trace),
+      _structured: structuredResponse,
     });
 
   } catch (error) {
