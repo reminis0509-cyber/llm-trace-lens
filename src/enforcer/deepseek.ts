@@ -1,6 +1,18 @@
 import OpenAI from 'openai';
 import type { LLMRequest, StructuredResponse } from '../types/index.js';
 
+// DeepSeek models that support response_format: { type: 'json_object' }
+const JSON_MODE_SUPPORTED_MODELS = [
+  'deepseek-chat',
+  'deepseek-coder',
+];
+
+function supportsJsonMode(model: string): boolean {
+  return JSON_MODE_SUPPORTED_MODELS.some(supported =>
+    model.toLowerCase().includes(supported.toLowerCase())
+  );
+}
+
 export class DeepSeekEnforcer {
   private client: OpenAI;
 
@@ -47,13 +59,20 @@ export class DeepSeekEnforcer {
       }
 
       // DeepSeek APIコール
-      const completion = await this.client.chat.completions.create({
-        model: request.model || 'deepseek-chat',
+      const model = request.model || 'deepseek-chat';
+      const requestParams: Parameters<typeof this.client.chat.completions.create>[0] = {
+        model,
         messages: messages as Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
         temperature: request.temperature,
         max_tokens: request.maxTokens,
-        response_format: { type: 'json_object' }
-      });
+      };
+
+      // Only add response_format for models that support it
+      if (supportsJsonMode(model)) {
+        requestParams.response_format = { type: 'json_object' };
+      }
+
+      const completion = await this.client.chat.completions.create(requestParams);
 
       const content = completion.choices[0]?.message?.content;
       if (!content) {
@@ -133,14 +152,21 @@ export class DeepSeekEnforcer {
       }
 
       // DeepSeek ストリーミングAPIコール
-      const stream = await this.client.chat.completions.create({
-        model: request.model || 'deepseek-chat',
+      const model = request.model || 'deepseek-chat';
+      const requestParams: Parameters<typeof this.client.chat.completions.create>[0] = {
+        model,
         messages: messages as Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
         temperature: request.temperature,
         max_tokens: request.maxTokens,
-        response_format: { type: 'json_object' },
-        stream: true
-      });
+        stream: true,
+      };
+
+      // Only add response_format for models that support it
+      if (supportsJsonMode(model)) {
+        requestParams.response_format = { type: 'json_object' };
+      }
+
+      const stream = await this.client.chat.completions.create(requestParams);
 
       let fullContent = '';
 

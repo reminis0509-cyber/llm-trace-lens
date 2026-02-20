@@ -1,6 +1,26 @@
 import OpenAI from 'openai';
 import type { LLMRequest, StructuredResponse } from '../types/index.js';
 
+// Models that support response_format: { type: 'json_object' }
+const JSON_MODE_SUPPORTED_MODELS = [
+  'gpt-4-turbo',
+  'gpt-4-turbo-preview',
+  'gpt-4-turbo-2024-04-09',
+  'gpt-4o',
+  'gpt-4o-mini',
+  'gpt-4o-2024-05-13',
+  'gpt-4o-2024-08-06',
+  'gpt-4o-mini-2024-07-18',
+  'gpt-3.5-turbo-1106',
+  'gpt-3.5-turbo-0125',
+];
+
+function supportsJsonMode(model: string): boolean {
+  return JSON_MODE_SUPPORTED_MODELS.some(supported =>
+    model.toLowerCase().includes(supported.toLowerCase())
+  );
+}
+
 export class OpenAIEnforcer {
   private client: OpenAI;
 
@@ -38,13 +58,20 @@ export class OpenAIEnforcer {
       });
     }
 
-    const completion = await this.client.chat.completions.create({
-      model: request.model || 'gpt-4',
+    const model = request.model || 'gpt-4o-mini';
+    const requestParams: Parameters<typeof this.client.chat.completions.create>[0] = {
+      model,
       messages: messages as Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
       temperature: request.temperature,
       max_tokens: request.maxTokens,
-      response_format: { type: 'json_object' }
-    });
+    };
+
+    // Only add response_format for models that support it
+    if (supportsJsonMode(model)) {
+      requestParams.response_format = { type: 'json_object' };
+    }
+
+    const completion = await this.client.chat.completions.create(requestParams);
 
     const content = completion.choices[0]?.message?.content;
     if (!content) {
@@ -98,14 +125,21 @@ export class OpenAIEnforcer {
       });
     }
 
-    const stream = await this.client.chat.completions.create({
-      model: request.model || 'gpt-4',
+    const model = request.model || 'gpt-4o-mini';
+    const requestParams: Parameters<typeof this.client.chat.completions.create>[0] = {
+      model,
       messages: messages as Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
       temperature: request.temperature,
       max_tokens: request.maxTokens,
-      response_format: { type: 'json_object' },
-      stream: true
-    });
+      stream: true,
+    };
+
+    // Only add response_format for models that support it
+    if (supportsJsonMode(model)) {
+      requestParams.response_format = { type: 'json_object' };
+    }
+
+    const stream = await this.client.chat.completions.create(requestParams);
 
     let fullContent = '';
 
