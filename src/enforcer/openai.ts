@@ -1,6 +1,4 @@
 import OpenAI from 'openai';
-import type { ChatCompletion, ChatCompletionChunk } from 'openai/resources/chat/completions';
-import type { Stream } from 'openai/streaming';
 import type { LLMRequest, StructuredResponse } from '../types/index.js';
 
 // Models that support response_format: { type: 'json_object' }
@@ -34,7 +32,7 @@ export class OpenAIEnforcer {
   }
 
   async enforce(request: LLMRequest): Promise<StructuredResponse> {
-    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
+    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
 
     if (request.systemPrompt) {
       messages.push({
@@ -62,17 +60,15 @@ export class OpenAIEnforcer {
 
     const model = request.model || 'gpt-4o-mini';
 
-    // Build request params - explicitly set stream to false
-    const requestParams = {
+    // Non-streaming request
+    const completion = await this.client.chat.completions.create({
       model,
       messages,
       temperature: request.temperature,
       max_tokens: request.maxTokens,
-      stream: false as const,
-      response_format: supportsJsonMode(model) ? { type: 'json_object' as const } : undefined,
-    };
-
-    const completion = await this.client.chat.completions.create(requestParams) as ChatCompletion;
+      stream: false,
+      ...(supportsJsonMode(model) && { response_format: { type: 'json_object' } }),
+    });
 
     const content = completion.choices[0]?.message?.content;
     if (!content) {
@@ -100,7 +96,7 @@ export class OpenAIEnforcer {
   }
 
   async *enforceStream(request: LLMRequest): AsyncGenerator<string, StructuredResponse, unknown> {
-    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
+    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
 
     if (request.systemPrompt) {
       messages.push({
@@ -128,29 +124,30 @@ export class OpenAIEnforcer {
 
     const model = request.model || 'gpt-4o-mini';
 
-    // Build request params - explicitly set stream to true
-    const requestParams = {
+    // Streaming request
+    const stream = await this.client.chat.completions.create({
       model,
       messages,
       temperature: request.temperature,
       max_tokens: request.maxTokens,
-      stream: true as const,
-      response_format: supportsJsonMode(model) ? { type: 'json_object' as const } : undefined,
-    };
-
-    const stream = await this.client.chat.completions.create(requestParams) as Stream<ChatCompletionChunk>;
+      stream: true,
+      ...(supportsJsonMode(model) && { response_format: { type: 'json_object' } }),
+    });
 
     let fullContent = '';
 
-    for await (const chunk of stream) {
-      const delta = chunk.choices[0]?.delta?.content || '';
-      if (delta) {
-        fullContent += delta;
-        yield delta;
+    // Type guard: check if it's actually a stream
+    if (Symbol.asyncIterator in stream) {
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta?.content || '';
+        if (delta) {
+          fullContent += delta;
+          yield delta;
+        }
       }
     }
 
-    // 最終的な構造化レスポンスを生成
+    // Generate final structured response
     let structured: StructuredResponse;
     try {
       structured = JSON.parse(fullContent);
