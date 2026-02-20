@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import type { ChatCompletionCreateParamsNonStreaming, ChatCompletionCreateParamsStreaming } from 'openai/resources/chat/completions';
 import type { LLMRequest, StructuredResponse } from '../types/index.js';
 
 // DeepSeek models that support response_format: { type: 'json_object' }
@@ -29,7 +30,7 @@ export class DeepSeekEnforcer {
 
   async enforce(request: LLMRequest): Promise<StructuredResponse> {
     try {
-      const messages: Array<{ role: string; content: string }> = [];
+      const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
 
       // システムプロンプト
       if (request.systemPrompt) {
@@ -48,7 +49,7 @@ export class DeepSeekEnforcer {
       // ユーザーメッセージ
       if (request.messages && request.messages.length > 0) {
         messages.push(...request.messages.map(msg => ({
-          role: msg.role,
+          role: msg.role as 'system' | 'user' | 'assistant',
           content: msg.content
         })));
       } else if (request.prompt) {
@@ -60,9 +61,9 @@ export class DeepSeekEnforcer {
 
       // DeepSeek APIコール
       const model = request.model || 'deepseek-chat';
-      const requestParams: Parameters<typeof this.client.chat.completions.create>[0] = {
+      const requestParams: ChatCompletionCreateParamsNonStreaming = {
         model,
-        messages: messages as Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+        messages,
         temperature: request.temperature,
         max_tokens: request.maxTokens,
       };
@@ -83,7 +84,7 @@ export class DeepSeekEnforcer {
       let structured: StructuredResponse;
       try {
         structured = JSON.parse(content);
-      } catch (parseError) {
+      } catch {
         // フォールバック
         structured = {
           answer: content,
@@ -122,7 +123,7 @@ export class DeepSeekEnforcer {
 
   async *enforceStream(request: LLMRequest): AsyncGenerator<string, StructuredResponse, unknown> {
     try {
-      const messages: Array<{ role: string; content: string }> = [];
+      const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
 
       // システムプロンプト
       if (request.systemPrompt) {
@@ -141,7 +142,7 @@ export class DeepSeekEnforcer {
       // ユーザーメッセージ
       if (request.messages && request.messages.length > 0) {
         messages.push(...request.messages.map(msg => ({
-          role: msg.role,
+          role: msg.role as 'system' | 'user' | 'assistant',
           content: msg.content
         })));
       } else if (request.prompt) {
@@ -153,9 +154,9 @@ export class DeepSeekEnforcer {
 
       // DeepSeek ストリーミングAPIコール
       const model = request.model || 'deepseek-chat';
-      const requestParams: Parameters<typeof this.client.chat.completions.create>[0] = {
+      const requestParams: ChatCompletionCreateParamsStreaming = {
         model,
-        messages: messages as Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+        messages,
         temperature: request.temperature,
         max_tokens: request.maxTokens,
         stream: true,
@@ -182,7 +183,7 @@ export class DeepSeekEnforcer {
       let structured: StructuredResponse;
       try {
         structured = JSON.parse(fullContent);
-      } catch (parseError) {
+      } catch {
         structured = {
           answer: fullContent,
           confidence: 50,

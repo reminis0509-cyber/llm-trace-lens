@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import type { ChatCompletionCreateParamsNonStreaming, ChatCompletionCreateParamsStreaming } from 'openai/resources/chat/completions';
 import type { LLMRequest, StructuredResponse } from '../types/index.js';
 
 // Models that support response_format: { type: 'json_object' }
@@ -32,7 +33,7 @@ export class OpenAIEnforcer {
   }
 
   async enforce(request: LLMRequest): Promise<StructuredResponse> {
-    const messages: Array<{ role: string; content: string }> = [];
+    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
 
     if (request.systemPrompt) {
       messages.push({
@@ -48,7 +49,7 @@ export class OpenAIEnforcer {
 
     if (request.messages && request.messages.length > 0) {
       messages.push(...request.messages.map(msg => ({
-        role: msg.role,
+        role: msg.role as 'system' | 'user' | 'assistant',
         content: msg.content
       })));
     } else if (request.prompt) {
@@ -59,9 +60,11 @@ export class OpenAIEnforcer {
     }
 
     const model = request.model || 'gpt-4o-mini';
-    const requestParams: Parameters<typeof this.client.chat.completions.create>[0] = {
+
+    // Build request params with explicit non-streaming type
+    const requestParams: ChatCompletionCreateParamsNonStreaming = {
       model,
-      messages: messages as Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+      messages,
       temperature: request.temperature,
       max_tokens: request.maxTokens,
     };
@@ -81,7 +84,7 @@ export class OpenAIEnforcer {
     let structured: StructuredResponse;
     try {
       structured = JSON.parse(content);
-    } catch (parseError) {
+    } catch {
       structured = {
         answer: content,
         confidence: 50,
@@ -99,7 +102,7 @@ export class OpenAIEnforcer {
   }
 
   async *enforceStream(request: LLMRequest): AsyncGenerator<string, StructuredResponse, unknown> {
-    const messages: Array<{ role: string; content: string }> = [];
+    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
 
     if (request.systemPrompt) {
       messages.push({
@@ -115,7 +118,7 @@ export class OpenAIEnforcer {
 
     if (request.messages && request.messages.length > 0) {
       messages.push(...request.messages.map(msg => ({
-        role: msg.role,
+        role: msg.role as 'system' | 'user' | 'assistant',
         content: msg.content
       })));
     } else if (request.prompt) {
@@ -126,9 +129,11 @@ export class OpenAIEnforcer {
     }
 
     const model = request.model || 'gpt-4o-mini';
-    const requestParams: Parameters<typeof this.client.chat.completions.create>[0] = {
+
+    // Build request params with explicit streaming type
+    const requestParams: ChatCompletionCreateParamsStreaming = {
       model,
-      messages: messages as Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+      messages,
       temperature: request.temperature,
       max_tokens: request.maxTokens,
       stream: true,
@@ -155,7 +160,7 @@ export class OpenAIEnforcer {
     let structured: StructuredResponse;
     try {
       structured = JSON.parse(fullContent);
-    } catch (parseError) {
+    } catch {
       structured = {
         answer: fullContent,
         confidence: 50,
