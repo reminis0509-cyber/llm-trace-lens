@@ -4,11 +4,6 @@
   "installCommand": "npm install --include=dev && cd packages/dashboard && npm install",
   "buildCommand": "npx tsc && cd packages/dashboard && npm run build",
   "outputDirectory": "packages/dashboard/dist",
-  "functions": {
-    "api/index.ts": {
-      "runtime": "@vercel/node@3"
-    }
-  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.ts" },
     { "source": "/v1/(.*)", "destination": "/api/index.ts" },
