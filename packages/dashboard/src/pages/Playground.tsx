@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Send, Trash2, MessageSquare } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -30,7 +31,6 @@ export function Playground({ onBack }: Props) {
     setLoading(true);
 
     try {
-      // Get user's API key for the selected provider
       const { data: keyData, error: keyError } = await supabase
         .from('api_keys')
         .select('api_key')
@@ -42,7 +42,6 @@ export function Playground({ onBack }: Props) {
         throw new Error(`No ${provider} API key found. Please add one in API Keys.`);
       }
 
-      // Call the proxy endpoint
       const response = await fetch('/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -51,7 +50,7 @@ export function Playground({ onBack }: Props) {
         body: JSON.stringify({
           model,
           provider,
-          api_key: keyData.api_key, // Send API key in body for direct provider call
+          api_key: keyData.api_key,
           messages: [
             ...messages.map((m) => ({ role: m.role, content: m.content })),
             { role: 'user', content: userMessage },
@@ -96,69 +95,60 @@ export function Playground({ onBack }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">💬</span>
-            <h1 className="text-xl font-bold text-gray-900">Playground</h1>
-          </div>
-          <div className="flex items-center gap-4">
-            {/* Provider Select */}
-            <select
-              value={provider}
-              onChange={(e) => {
-                setProvider(e.target.value);
-                setModel(models[e.target.value][0]);
-              }}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="openai">OpenAI</option>
-              <option value="anthropic">Anthropic</option>
-              <option value="gemini">Google Gemini</option>
-              <option value="deepseek">DeepSeek</option>
-            </select>
+    <div className="flex flex-col h-[calc(100vh-120px)]">
+      {/* Header Controls */}
+      <div className="flex items-center justify-between mb-4 p-4 glass-card">
+        <div className="flex items-center gap-4">
+          {/* Provider Select */}
+          <select
+            value={provider}
+            onChange={(e) => {
+              setProvider(e.target.value);
+              setModel(models[e.target.value][0]);
+            }}
+            className="px-4 py-2 bg-navy-800 border border-navy-600 rounded-lg text-gray-100 focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan"
+          >
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+            <option value="gemini">Google Gemini</option>
+            <option value="deepseek">DeepSeek</option>
+          </select>
 
-            {/* Model Select */}
-            <select
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              {models[provider].map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-
-            <button
-              onClick={clearChat}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
-            >
-              Clear
-            </button>
-            <button
-              onClick={onBack}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
-            >
-              Back
-            </button>
-          </div>
+          {/* Model Select */}
+          <select
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            className="px-4 py-2 bg-navy-800 border border-navy-600 rounded-lg text-gray-100 focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan font-mono text-sm"
+          >
+            {models[provider].map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
         </div>
-      </header>
+
+        <button
+          onClick={clearChat}
+          className="flex items-center gap-2 px-4 py-2 text-gray-400 hover:text-gray-200 hover:bg-navy-700 rounded-lg transition"
+        >
+          <Trash2 className="w-4 h-4" />
+          Clear
+        </button>
+      </div>
 
       {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto glass-card p-6">
         <div className="max-w-3xl mx-auto space-y-4">
           {messages.length === 0 && (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">🤖</div>
-              <h2 className="text-xl font-semibold text-gray-700 mb-2">
+            <div className="text-center py-16">
+              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-navy-700 flex items-center justify-center">
+                <MessageSquare className="w-10 h-10 text-gray-500" />
+              </div>
+              <h2 className="text-xl font-semibold text-gray-200 mb-2">
                 Test your LLM API
               </h2>
-              <p className="text-gray-500">
+              <p className="text-gray-400">
                 Select a provider and model, then start chatting!
               </p>
             </div>
@@ -172,29 +162,29 @@ export function Playground({ onBack }: Props) {
               <div
                 className={`max-w-[80%] px-4 py-3 rounded-2xl ${
                   msg.role === 'user'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white border border-gray-200 text-gray-800'
+                    ? 'bg-navy-700 text-gray-100'
+                    : 'gradient-border text-gray-100'
                 }`}
               >
-                <pre className="whitespace-pre-wrap font-sans">{msg.content}</pre>
+                <pre className="whitespace-pre-wrap font-sans text-sm">{msg.content}</pre>
               </div>
             </div>
           ))}
 
           {loading && (
             <div className="flex justify-start">
-              <div className="bg-white border border-gray-200 px-4 py-3 rounded-2xl">
+              <div className="bg-navy-800 border border-navy-600 px-4 py-3 rounded-2xl">
                 <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.1s]" />
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]" />
+                  <div className="w-2 h-2 bg-accent-cyan rounded-full animate-bounce" />
+                  <div className="w-2 h-2 bg-accent-cyan rounded-full animate-bounce [animation-delay:0.1s]" />
+                  <div className="w-2 h-2 bg-accent-cyan rounded-full animate-bounce [animation-delay:0.2s]" />
                 </div>
               </div>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg">
               {error}
             </div>
           )}
@@ -202,7 +192,7 @@ export function Playground({ onBack }: Props) {
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-gray-200 bg-white p-4">
+      <div className="mt-4 p-4 glass-card">
         <div className="max-w-3xl mx-auto flex gap-3">
           <textarea
             value={input}
@@ -210,14 +200,14 @@ export function Playground({ onBack }: Props) {
             onKeyPress={handleKeyPress}
             placeholder="Type a message..."
             rows={1}
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+            className="flex-1 px-4 py-3 bg-navy-800 border border-navy-600 rounded-xl text-gray-100 placeholder-gray-500 focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan resize-none transition"
           />
           <button
             onClick={sendMessage}
             disabled={loading || !input.trim()}
-            className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+            className="px-4 py-3 bg-accent-cyan text-navy-900 rounded-xl font-medium hover:bg-accent-cyan-dim disabled:bg-navy-600 disabled:text-gray-500 disabled:cursor-not-allowed transition flex items-center justify-center"
           >
-            Send
+            <Send className="w-5 h-5" />
           </button>
         </div>
       </div>

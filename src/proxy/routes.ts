@@ -1,9 +1,75 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { handleCompletion } from './handler.js';
 import { TraceRepository } from '../storage/repository.js';
-import type { LLMProvider } from '../types/index.js';
+import type { LLMProvider, LLMRequest } from '../types/index.js';
 
 const traceRepo = new TraceRepository();
+
+/**
+ * モデル名からプロバイダーを自動検出
+ */
+function detectProviderFromModel(model: string): LLMProvider {
+  const modelLower = model.toLowerCase();
+
+  // OpenAI models
+  if (modelLower.startsWith('gpt-') ||
+      modelLower.startsWith('o1') ||
+      modelLower.includes('davinci') ||
+      modelLower.includes('curie') ||
+      modelLower.includes('babbage') ||
+      modelLower.includes('ada')) {
+    return 'openai';
+  }
+
+  // Anthropic models
+  if (modelLower.startsWith('claude')) {
+    return 'anthropic';
+  }
+
+  // Google Gemini models
+  if (modelLower.startsWith('gemini') || modelLower.startsWith('models/gemini')) {
+    return 'gemini';
+  }
+
+  // DeepSeek models
+  if (modelLower.startsWith('deepseek')) {
+    return 'deepseek';
+  }
+
+  // Default to OpenAI
+  return 'openai';
+}
+
+/**
+ * Authorization ヘッダーからAPIキーを抽出
+ */
+function extractApiKeyFromHeader(request: FastifyRequest): string | undefined {
+  const authHeader = request.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.slice(7); // "Bearer " の後の部分を取得
+  }
+  return undefined;
+}
+
+/**
+ * プロキシ用のプリハンドラー
+ * - Authorization ヘッダーからAPIキーを抽出
+ * - モデル名からプロバイダーを自動検出
+ */
+async function proxyPreHandler(request: FastifyRequest, reply: FastifyReply) {
+  const body = request.body as Record<string, unknown>;
+
+  // 1. Authorization ヘッダーからAPIキーを取得（優先）
+  const headerApiKey = extractApiKeyFromHeader(request);
+  if (headerApiKey && !body.api_key) {
+    body.api_key = headerApiKey;
+  }
+
+  // 2. プロバイダーが未指定の場合、モデル名から自動検出
+  if (!body.provider && body.model) {
+    body.provider = detectProviderFromModel(body.model as string);
+  }
+}
 
 export async function registerRoutes(server: FastifyInstance) {
   // Health check
@@ -13,10 +79,11 @@ export async function registerRoutes(server: FastifyInstance) {
     version: '0.1.0',
   }));
 
-  // OpenAI互換エンドポイント（MVP版）
-  server.post(
+  // OpenAI互換エンドポイント（完全互換版）
+  server.post<{ Body: LLMRequest }>(
     '/v1/chat/completions',
     {
+      preHandler: proxyPreHandler,
       schema: {
         body: {
           type: 'object',

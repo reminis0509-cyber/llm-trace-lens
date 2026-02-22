@@ -1,9 +1,17 @@
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { RoleProvider } from './contexts/RoleContext';
 import { Auth } from './pages/Auth';
 import { Dashboard } from './pages/Dashboard';
+import { InviteAccept } from './pages/InviteAccept';
 
 function AppContent() {
   const { user, loading, error } = useAuth();
+  const path = window.location.pathname;
+
+  // Handle invite accept route (accessible without login to show login prompt)
+  if (path.startsWith('/invite/accept')) {
+    return <InviteAccept />;
+  }
 
   if (loading) {
     return (
@@ -39,7 +47,15 @@ function AppContent() {
     return <Auth />;
   }
 
-  return <Dashboard />;
+  // Get workspace ID from URL query params or default
+  const params = new URLSearchParams(window.location.search);
+  const workspaceId = params.get('workspace') || 'default';
+
+  return (
+    <RoleProvider initialWorkspaceId={workspaceId}>
+      <Dashboard />
+    </RoleProvider>
+  );
 }
 
 export default function App() {

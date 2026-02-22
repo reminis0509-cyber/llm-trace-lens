@@ -2,6 +2,113 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-gray-50 text-gray-900;
+@layer base {
+  html {
+    font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  }
+
+  body {
+    @apply bg-navy-900 text-gray-100 antialiased;
+  }
+
+  /* Custom scrollbar for dark theme */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-navy-800;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-navy-600 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-navy-500;
+  }
+
+  /* Selection colors */
+  ::selection {
+    @apply bg-accent-cyan/30 text-white;
+  }
+}
+
+@layer components {
+  /* Glass card effect */
+  .glass-card {
+    @apply bg-navy-800/50 backdrop-blur-xl border border-navy-600/50 rounded-xl;
+  }
+
+  /* Gradient border effect */
+  .gradient-border {
+    position: relative;
+    background: linear-gradient(135deg, #0f1629, #1a2035);
+    border-radius: 0.75rem;
+  }
+
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, #00d4ff, #a855f7);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Terminal-style code block */
+  .terminal-block {
+    @apply bg-navy-950 border border-navy-700 rounded-lg font-mono text-sm;
+  }
+
+  /* Status badge styles */
+  .badge-pass {
+    @apply bg-status-pass/10 text-status-pass border border-status-pass/30;
+  }
+
+  .badge-warn {
+    @apply bg-status-warn/10 text-status-warn border border-status-warn/30;
+  }
+
+  .badge-fail {
+    @apply bg-status-fail/10 text-status-fail border border-status-fail/30;
+  }
+
+  .badge-block {
+    @apply bg-status-block/10 text-status-block border border-status-block/30;
+  }
+
+  /* Focus ring for inputs */
+  .input-focus {
+    @apply focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan transition-all duration-200;
+  }
+
+  /* Glow effect on hover */
+  .hover-glow {
+    @apply transition-all duration-300;
+  }
+
+  .hover-glow:hover {
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
+  }
+}
+
+@layer utilities {
+  /* Text gradient */
+  .text-gradient-cyan {
+    @apply bg-gradient-to-r from-accent-cyan to-accent-emerald bg-clip-text text-transparent;
+  }
+
+  /* Grid background pattern */
+  .bg-grid {
+    background-image:
+      linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
 }

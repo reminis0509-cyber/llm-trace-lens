@@ -20,6 +20,9 @@ import { storageRoutes } from './routes/storage.js';
 import { secretsRoutes } from './routes/secrets.js';
 import { webhookManager } from './webhook/sender.js';
 import { getWebhookConfig } from './kv/client.js';
+import rbacPlugin from './middleware/rbac.js';
+import membersRoutes from './routes/members.js';
+import { closeKnex } from './storage/knex-client.js';
 
 /**
  * Get allowed CORS origins from environment variable
@@ -93,7 +96,7 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Admin-API-Key', 'X-User-ID'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Admin-API-Key', 'X-User-ID', 'X-User-Email', 'X-Workspace-ID'],
   });
 
   // Rate Limiting (optional)
@@ -105,6 +108,12 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
   if (options?.enableAuth !== false && process.env.ENABLE_AUTH === 'true') {
     fastify.addHook('onRequest', authMiddleware);
   }
+
+  // Register RBAC plugin (role-based access control)
+  await fastify.register(rbacPlugin);
+
+  // Register member management routes
+  await membersRoutes(fastify);
 
   // Register settings routes (for SaaS setup)
   await settingsRoutes(fastify);
@@ -210,6 +219,7 @@ export async function start() {
     process.on(signal, async () => {
       fastify.log.info(`Received ${signal}, shutting down...`);
       await fastify.close();
+      await closeKnex();
       process.exit(0);
     });
   }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Key, Copy, Check, Trash2, Plus, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -24,6 +25,7 @@ export function ApiKeys({ onBack }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [proxyEndpoint, setProxyEndpoint] = useState('');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     loadKeys();
@@ -56,7 +58,6 @@ export function ApiKeys({ onBack }: Props) {
     setError('');
 
     try {
-      // Create preview (first 8 and last 4 chars)
       const keyPreview = newKey.length > 12
         ? `${newKey.slice(0, 8)}...${newKey.slice(-4)}`
         : newKey;
@@ -64,7 +65,7 @@ export function ApiKeys({ onBack }: Props) {
       const { error } = await supabase.from('api_keys').insert({
         user_id: user.id,
         provider: newProvider,
-        api_key: newKey, // Will be encrypted by Supabase RLS or trigger
+        api_key: newKey,
         key_preview: keyPreview,
       });
 
@@ -100,6 +101,8 @@ export function ApiKeys({ onBack }: Props) {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const providers = [
@@ -109,51 +112,53 @@ export function ApiKeys({ onBack }: Props) {
     { value: 'deepseek', label: 'DeepSeek', placeholder: 'sk-...' },
   ];
 
+  const getProviderColor = (provider: string) => {
+    switch (provider) {
+      case 'openai': return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/30';
+      case 'anthropic': return 'text-amber-400 bg-amber-400/10 border-amber-400/30';
+      case 'gemini': return 'text-blue-400 bg-blue-400/10 border-blue-400/30';
+      case 'deepseek': return 'text-purple-400 bg-purple-400/10 border-purple-400/30';
+      default: return 'text-gray-400 bg-gray-400/10 border-gray-400/30';
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">🔑</span>
-            <h1 className="text-xl font-bold text-gray-900">API Keys</h1>
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Proxy Endpoint */}
+      <div className="gradient-border p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-lg bg-accent-cyan/10 flex items-center justify-center">
+            <Key className="w-5 h-5 text-accent-cyan" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-100">Your Proxy Endpoint</h2>
+            <p className="text-sm text-gray-400">
+              Use this endpoint instead of the OpenAI API URL
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <div className="flex-1 terminal-block px-4 py-3 text-accent-cyan">
+            {proxyEndpoint}
           </div>
           <button
-            onClick={onBack}
-            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+            onClick={() => copyToClipboard(proxyEndpoint)}
+            className="px-4 py-2 bg-navy-700 border border-navy-600 rounded-lg hover:bg-navy-600 transition flex items-center justify-center"
+            title="Copy to clipboard"
           >
-            Back to Dashboard
+            {copied ? (
+              <Check className="w-5 h-5 text-status-pass" />
+            ) : (
+              <Copy className="w-5 h-5 text-gray-400" />
+            )}
           </button>
         </div>
-      </header>
+      </div>
 
-      <main className="max-w-4xl mx-auto p-6 space-y-6">
-        {/* Proxy Endpoint */}
-        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-6 text-white">
-          <h2 className="text-lg font-semibold mb-2">Your Proxy Endpoint</h2>
-          <p className="text-blue-100 text-sm mb-4">
-            Use this endpoint instead of the OpenAI API URL
-          </p>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={proxyEndpoint}
-              readOnly
-              className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white font-mono text-sm"
-            />
-            <button
-              onClick={() => copyToClipboard(proxyEndpoint)}
-              className="px-4 py-2 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition"
-            >
-              Copy
-            </button>
-          </div>
-        </div>
-
-        {/* Usage Example */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold mb-4">Quick Start</h3>
-          <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
+      {/* Usage Example */}
+      <div className="glass-card p-6">
+        <h3 className="text-lg font-semibold text-gray-100 mb-4">Quick Start</h3>
+        <pre className="terminal-block p-4 overflow-x-auto text-gray-300">
 {`from openai import OpenAI
 
 client = OpenAI(
@@ -165,124 +170,131 @@ response = client.chat.completions.create(
     model="gpt-4",
     messages=[{"role": "user", "content": "Hello!"}]
 )`}
-          </pre>
+        </pre>
+      </div>
+
+      {/* API Keys List */}
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-semibold text-gray-100">Your API Keys</h2>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center gap-2 px-4 py-2 border border-accent-cyan text-accent-cyan rounded-lg font-medium hover:bg-accent-cyan/10 transition"
+          >
+            <Plus className="w-4 h-4" />
+            Add Key
+          </button>
         </div>
 
-        {/* API Keys List */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Your API Keys</h2>
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
-            >
-              + Add Key
-            </button>
+        {error && (
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg text-sm">
+            {error}
           </div>
+        )}
 
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Add Key Form */}
-          {showAddForm && (
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <h3 className="font-medium mb-3">Add New API Key</h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Provider
-                  </label>
-                  <select
-                    value={newProvider}
-                    onChange={(e) => setNewProvider(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  >
-                    {providers.map((p) => (
-                      <option key={p.value} value={p.value}>
-                        {p.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    API Key
-                  </label>
-                  <input
-                    type="password"
-                    value={newKey}
-                    onChange={(e) => setNewKey(e.target.value)}
-                    placeholder={providers.find((p) => p.value === newProvider)?.placeholder}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={addKey}
-                    disabled={saving || !newKey.trim()}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 transition"
-                  >
-                    {saving ? 'Saving...' : 'Save Key'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowAddForm(false);
-                      setNewKey('');
-                      setError('');
-                    }}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition"
-                  >
-                    Cancel
-                  </button>
-                </div>
+        {/* Add Key Form */}
+        {showAddForm && (
+          <div className="mb-6 p-4 bg-navy-800 rounded-lg border border-navy-600">
+            <h3 className="font-medium text-gray-100 mb-3">Add New API Key</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Provider
+                </label>
+                <select
+                  value={newProvider}
+                  onChange={(e) => setNewProvider(e.target.value)}
+                  className="w-full px-4 py-2 bg-navy-900 border border-navy-600 rounded-lg text-gray-100 focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan"
+                >
+                  {providers.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  API Key
+                </label>
+                <input
+                  type="password"
+                  value={newKey}
+                  onChange={(e) => setNewKey(e.target.value)}
+                  placeholder={providers.find((p) => p.value === newProvider)?.placeholder}
+                  className="w-full px-4 py-2 bg-navy-900 border border-navy-600 rounded-lg text-gray-100 placeholder-gray-500 focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={addKey}
+                  disabled={saving || !newKey.trim()}
+                  className="px-4 py-2 bg-accent-cyan text-navy-900 rounded-lg font-medium hover:bg-accent-cyan-dim disabled:bg-navy-600 disabled:text-gray-400 transition"
+                >
+                  {saving ? 'Saving...' : 'Save Key'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setNewKey('');
+                    setError('');
+                  }}
+                  className="px-4 py-2 bg-navy-700 text-gray-300 rounded-lg font-medium hover:bg-navy-600 transition"
+                >
+                  Cancel
+                </button>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Keys List */}
-          {loading ? (
-            <div className="text-center py-8 text-gray-500">Loading...</div>
-          ) : keys.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="text-4xl mb-2">🔐</div>
-              <p className="text-gray-500">No API keys yet. Add one to get started!</p>
+        {/* Keys List */}
+        {loading ? (
+          <div className="text-center py-8 text-gray-400">Loading...</div>
+        ) : keys.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-navy-700 flex items-center justify-center">
+              <Lock className="w-8 h-8 text-gray-500" />
             </div>
-          ) : (
-            <div className="space-y-3">
-              {keys.map((key) => (
-                <div
-                  key={key.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium capitalize">{key.provider}</span>
-                      <span className="text-gray-500 font-mono text-sm">
-                        {key.key_preview}
+            <p className="text-gray-400">No API keys yet. Add one to get started!</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {keys.map((key) => (
+              <div
+                key={key.id}
+                className="flex items-center justify-between p-4 bg-navy-800 rounded-lg border border-navy-700 hover:border-navy-600 transition"
+              >
+                <div className="flex items-center gap-4">
+                  <span className={`px-3 py-1 text-xs font-medium rounded-full border capitalize ${getProviderColor(key.provider)}`}>
+                    {key.provider}
+                  </span>
+                  <span className="text-gray-300 font-mono text-sm">
+                    {key.key_preview}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-sm text-gray-500">
+                    Added {new Date(key.created_at).toLocaleDateString()}
+                    {key.last_used_at && (
+                      <span className="ml-2">
+                        Last used {new Date(key.last_used_at).toLocaleDateString()}
                       </span>
-                    </div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      Added {new Date(key.created_at).toLocaleDateString()}
-                      {key.last_used_at && (
-                        <> • Last used {new Date(key.last_used_at).toLocaleDateString()}</>
-                      )}
-                    </div>
+                    )}
                   </div>
                   <button
                     onClick={() => deleteKey(key.id)}
-                    className="px-3 py-1 text-red-600 hover:bg-red-50 rounded-lg transition"
+                    className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
+                    title="Delete key"
                   >
-                    Delete
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

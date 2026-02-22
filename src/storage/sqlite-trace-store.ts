@@ -1,5 +1,5 @@
 import knex, { Knex } from 'knex';
-import config from '../config/knexfile.js';
+import { config } from '../config/knexfile.js';
 import { Trace, TraceStoreInterface } from './trace-store-interface.js';
 
 export class SQLiteTraceStore implements TraceStoreInterface {

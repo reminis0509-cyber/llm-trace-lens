@@ -8,13 +8,15 @@ import { dirname, resolve } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const migrationsDirectory = resolve(__dirname, '../../migrations');
+const projectRoot = resolve(__dirname, '../..');
+const migrationsDirectory = resolve(projectRoot, 'migrations');
+const dataDirectory = resolve(projectRoot, 'data');
 
 const config: { [key: string]: Knex.Config } = {
   sqlite: {
     client: 'better-sqlite3',
     connection: {
-      filename: process.env.SQLITE_PATH || './data/traces.db'
+      filename: process.env.SQLITE_PATH || resolve(dataDirectory, 'traces.db')
     },
     useNullAsDefault: true,
     migrations: {
@@ -42,4 +44,10 @@ const config: { [key: string]: Knex.Config } = {
   }
 };
 
-export default config;
+// Determine which config to use based on DB_TYPE env var
+const dbType = process.env.DB_TYPE || 'sqlite';
+const activeConfig = config[dbType] || config.sqlite;
+
+// Export for both ESM and knex CLI
+export default activeConfig;
+export { config };

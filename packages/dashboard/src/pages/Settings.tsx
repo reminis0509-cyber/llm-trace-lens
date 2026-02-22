@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Settings as SettingsIcon, DollarSign, Bell, Webhook } from 'lucide-react';
 
 interface CostData {
   stats: {
@@ -154,209 +155,213 @@ export function Settings({ onBack }: SettingsProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">Settings</span>
-            <h1 className="text-xl font-bold text-gray-900">LLM Trace Lens Settings</h1>
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Cost Overview */}
+      {costData && (
+        <div className="gradient-border p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-accent-cyan/10 flex items-center justify-center">
+              <DollarSign className="w-5 h-5 text-accent-cyan" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-100">Cost This Month</h2>
+              <p className="text-sm text-gray-400">Current spending and budget status</p>
+            </div>
           </div>
-          {onBack && (
-            <button
-              onClick={onBack}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
-            >
-              Back to Dashboard
-            </button>
-          )}
-        </div>
-      </header>
 
-      <main className="max-w-4xl mx-auto p-6 space-y-6">
-        {/* Cost Overview */}
-        {costData && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <span>Cost This Month</span>
-            </h2>
-
-            <div className="mb-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-3xl font-bold">
-                  ${costData.stats.totalCost.toFixed(2)}
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-3xl font-bold font-mono text-gray-100">
+                ${costData.stats.totalCost.toFixed(2)}
+              </span>
+              {costData.budget && (
+                <span className="text-lg text-gray-400 font-mono">
+                  / ${costData.budget.monthlyLimit.toFixed(2)}
                 </span>
-                {costData.budget && (
-                  <span className="text-lg text-gray-600">
-                    / ${costData.budget.monthlyLimit.toFixed(2)}
-                  </span>
-                )}
-              </div>
-
-              {costData.budget && (
-                <div className="w-full bg-gray-200 rounded-full h-4">
-                  <div
-                    className={`h-4 rounded-full transition-all ${
-                      costData.percentage > 95
-                        ? 'bg-red-600'
-                        : costData.percentage > 80
-                          ? 'bg-yellow-500'
-                          : 'bg-green-600'
-                    }`}
-                    style={{ width: `${Math.min(costData.percentage, 100)}%` }}
-                  />
-                </div>
-              )}
-
-              {costData.budget && (
-                <p className="mt-2 text-sm text-gray-600">
-                  {costData.percentage.toFixed(1)}% of budget used
-                </p>
               )}
             </div>
 
-            {Object.keys(costData.stats.byProvider).length > 0 && (
-              <div className="mt-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Cost by Provider:</h4>
-                <div className="space-y-2">
-                  {Object.entries(costData.stats.byProvider).map(([provider, cost]) => (
-                    <div key={provider} className="flex justify-between text-sm">
-                      <span className="capitalize">{provider}</span>
-                      <span className="font-medium">${cost.toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
+            {costData.budget && (
+              <div className="w-full bg-navy-700 rounded-full h-3">
+                <div
+                  className={`h-3 rounded-full transition-all ${
+                    costData.percentage > 95
+                      ? 'bg-status-fail'
+                      : costData.percentage > 80
+                        ? 'bg-status-warn'
+                        : 'bg-status-pass'
+                  }`}
+                  style={{ width: `${Math.min(costData.percentage, 100)}%` }}
+                />
               </div>
             )}
-          </div>
-        )}
 
-        {/* Budget Management */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <span>Budget Management</span>
-          </h2>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Monthly Budget (USD)
-            </label>
-            <input
-              type="number"
-              value={monthlyBudget}
-              onChange={(e) => setMonthlyBudget(Number(e.target.value))}
-              min="0"
-              step="10"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+            {costData.budget && (
+              <p className="mt-2 text-sm text-gray-400">
+                {costData.percentage.toFixed(1)}% of budget used
+              </p>
+            )}
           </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Alert Thresholds
-            </label>
-            <div className="space-y-2">
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={alertAt80}
-                  onChange={(e) => setAlertAt80(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <span className="ml-2 text-sm text-gray-700">Alert at 80% of budget</span>
-              </label>
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={alertAt95}
-                  onChange={(e) => setAlertAt95(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <span className="ml-2 text-sm text-gray-700">Alert at 95% of budget</span>
-              </label>
+          {Object.keys(costData.stats.byProvider).length > 0 && (
+            <div className="mt-4 pt-4 border-t border-navy-700">
+              <h4 className="text-sm font-medium text-gray-400 mb-3">Cost by Provider</h4>
+              <div className="space-y-2">
+                {Object.entries(costData.stats.byProvider).map(([provider, cost]) => (
+                  <div key={provider} className="flex justify-between text-sm">
+                    <span className="text-gray-300 capitalize">{provider}</span>
+                    <span className="font-mono text-gray-200">${cost.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Budget Management */}
+      <div className="glass-card p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-lg bg-accent-emerald/10 flex items-center justify-center">
+            <SettingsIcon className="w-5 h-5 text-accent-emerald" />
           </div>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-100">Budget Management</h2>
+            <p className="text-sm text-gray-400">Set spending limits and alert thresholds</p>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Monthly Budget (USD)
+          </label>
+          <input
+            type="number"
+            value={monthlyBudget}
+            onChange={(e) => setMonthlyBudget(Number(e.target.value))}
+            min="0"
+            step="10"
+            className="w-full px-4 py-2 bg-navy-800 border border-navy-600 rounded-lg text-gray-100 font-mono focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan"
+          />
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-300 mb-3">
+            Alert Thresholds
+          </label>
+          <div className="space-y-3">
+            <label className="flex items-center cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={alertAt80}
+                onChange={(e) => setAlertAt80(e.target.checked)}
+                className="h-4 w-4 bg-navy-800 border-navy-600 rounded text-accent-cyan focus:ring-accent-cyan/50"
+              />
+              <span className="ml-3 text-sm text-gray-300 group-hover:text-gray-200">
+                Alert at 80% of budget
+              </span>
+            </label>
+            <label className="flex items-center cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={alertAt95}
+                onChange={(e) => setAlertAt95(e.target.checked)}
+                className="h-4 w-4 bg-navy-800 border-navy-600 rounded text-accent-cyan focus:ring-accent-cyan/50"
+              />
+              <span className="ml-3 text-sm text-gray-300 group-hover:text-gray-200">
+                Alert at 95% of budget
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <button
+          onClick={saveBudgetConfig}
+          disabled={isSavingBudget}
+          className="px-4 py-2 bg-accent-cyan text-navy-900 rounded-lg font-medium hover:bg-accent-cyan-dim disabled:bg-navy-600 disabled:text-gray-400 disabled:cursor-not-allowed transition"
+        >
+          {isSavingBudget ? 'Saving...' : 'Save Budget Settings'}
+        </button>
+      </div>
+
+      {/* Webhook Settings */}
+      <div className="glass-card p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-lg bg-accent-purple/10 flex items-center justify-center">
+            <Webhook className="w-5 h-5 text-accent-purple" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-100">Webhook Notifications</h2>
+            <p className="text-sm text-gray-400">Configure alerts for validation events</p>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Webhook URL
+          </label>
+          <input
+            type="url"
+            value={webhookUrl}
+            onChange={(e) => setWebhookUrl(e.target.value)}
+            placeholder="https://hooks.slack.com/services/..."
+            className="w-full px-4 py-2 bg-navy-800 border border-navy-600 rounded-lg text-gray-100 placeholder-gray-500 font-mono text-sm focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan"
+          />
+          <p className="mt-1 text-sm text-gray-500">
+            Supports Slack, Microsoft Teams, or any HTTP endpoint
+          </p>
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-300 mb-3">
+            Trigger Events
+          </label>
+          <div className="space-y-3">
+            {[
+              { event: 'BLOCK', desc: 'Blocked requests (PII, security issues)' },
+              { event: 'WARN', desc: 'Warning level issues' },
+              { event: 'COST_ALERT', desc: 'Budget threshold alerts' },
+            ].map(({ event, desc }) => (
+              <label key={event} className="flex items-center cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={selectedEvents.includes(event)}
+                  onChange={() => toggleEvent(event)}
+                  className="h-4 w-4 bg-navy-800 border-navy-600 rounded text-accent-cyan focus:ring-accent-cyan/50"
+                />
+                <span className="ml-3 text-sm text-gray-300 group-hover:text-gray-200">
+                  <span className="font-mono text-accent-cyan">{event}</span>
+                  <span className="text-gray-500 ml-2">- {desc}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={saveWebhookConfig}
+            disabled={isSavingWebhook || !webhookUrl}
+            className="px-4 py-2 bg-accent-cyan text-navy-900 rounded-lg font-medium hover:bg-accent-cyan-dim disabled:bg-navy-600 disabled:text-gray-400 disabled:cursor-not-allowed transition"
+          >
+            {isSavingWebhook ? 'Saving...' : 'Save Settings'}
+          </button>
 
           <button
-            onClick={saveBudgetConfig}
-            disabled={isSavingBudget}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+            onClick={testWebhook}
+            disabled={!webhookUrl}
+            className="px-4 py-2 border border-navy-600 text-gray-300 rounded-lg font-medium hover:bg-navy-700 hover:text-gray-100 disabled:border-navy-700 disabled:text-gray-500 disabled:cursor-not-allowed transition"
           >
-            {isSavingBudget ? 'Saving...' : 'Save Budget Settings'}
+            Send Test
           </button>
         </div>
 
-        {/* Webhook Settings */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <span>Webhook Notifications</span>
-          </h2>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Webhook URL
-            </label>
-            <input
-              type="url"
-              value={webhookUrl}
-              onChange={(e) => setWebhookUrl(e.target.value)}
-              placeholder="https://hooks.slack.com/services/..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              Supports Slack, Microsoft Teams, or any HTTP endpoint
-            </p>
+        {testStatus && (
+          <div className={`mt-4 text-sm ${testStatus.includes('success') ? 'text-status-pass' : 'text-status-fail'}`}>
+            {testStatus}
           </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Trigger Events
-            </label>
-            <div className="space-y-2">
-              {['BLOCK', 'WARN', 'COST_ALERT'].map(event => (
-                <label key={event} className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedEvents.includes(event)}
-                    onChange={() => toggleEvent(event)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">
-                    {event}
-                    {event === 'BLOCK' && ' - Blocked requests (PII, security issues)'}
-                    {event === 'WARN' && ' - Warning level issues'}
-                    {event === 'COST_ALERT' && ' - Budget threshold alerts'}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={saveWebhookConfig}
-              disabled={isSavingWebhook || !webhookUrl}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
-            >
-              {isSavingWebhook ? 'Saving...' : 'Save Settings'}
-            </button>
-
-            <button
-              onClick={testWebhook}
-              disabled={!webhookUrl}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
-            >
-              Send Test
-            </button>
-          </div>
-
-          {testStatus && (
-            <div className={`mt-3 text-sm ${testStatus.includes('success') ? 'text-green-600' : 'text-red-600'}`}>
-              {testStatus}
-            </div>
-          )}
-        </div>
-      </main>
+        )}
+      </div>
     </div>
   );
 }

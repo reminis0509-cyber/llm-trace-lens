@@ -4,16 +4,48 @@
 
 ---
 
+## クイックスタート（最短導入）
+
+### 必要な変更: たった1行
+
+既存のコードを**1行変更するだけ**で、LLM Trace Lens の監視機能が有効になります。
+
+#### Python (OpenAI SDK)
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="sk-your-openai-key",           # 既存のAPIキーをそのまま使用
+    base_url="https://your-trace-lens.com/v1"  # ← この1行を追加
+)
+
+# 使い方は今まで通り
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+
+#### または環境変数で設定（コード変更不要）
+
+```bash
+export OPENAI_BASE_URL=https://your-trace-lens.com/v1
+```
+
+これだけで、すべてのLLMリクエストがLLM Trace Lensを経由し、自動的にトレース・監視されます。
+
+---
+
 ## 目次
 
 1. [概要](#概要)
-2. [接続情報](#接続情報)
-3. [認証](#認証)
-4. [API リファレンス](#api-リファレンス)
-5. [言語別コード例](#言語別コード例)
-6. [既存SDKからの移行](#既存sdkからの移行)
-7. [ストリーミング](#ストリーミング)
-8. [トラブルシューティング](#トラブルシューティング)
+2. [導入方法](#導入方法)
+3. [対応プロバイダー](#対応プロバイダー)
+4. [言語別コード例](#言語別コード例)
+5. [API リファレンス](#api-リファレンス)
+6. [ストリーミング](#ストリーミング)
+7. [トラブルシューティング](#トラブルシューティング)
 
 ---
 
@@ -22,7 +54,7 @@
 LLM Trace Lens は、LLM API リクエストをプロキシし、自動的に以下を行います：
 
 - **トレース記録** - すべてのリクエスト/レスポンスを保存
-- **バリデーション** - レスポンスの品質チェック（ハルシネーション検出等）
+- **バリデーション** - PII検出、ハルシネーション検出
 - **コスト追跡** - トークン使用量と費用の記録
 - **ダッシュボード** - リアルタイムの監視・分析
 
@@ -33,45 +65,167 @@ LLM Trace Lens は、LLM API リクエストをプロキシし、自動的に以
 │  (Client)       │     │  (Proxy)        │     │  (OpenAI etc)   │
 │                 │◀────│                 │◀────│                 │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
+                              │
+                              ▼
+                        トレース記録
+                        バリデーション
+                        コスト追跡
 ```
 
 ---
 
-## 接続情報
+## 導入方法
 
-### エンドポイント
+### 方法1: 環境変数（推奨・コード変更不要）
 
-| 環境 | URL |
-|------|-----|
-| 本番 | `https://your-deployment-url.com` |
-| 開発 | `http://localhost:3000` |
+既存のコードを一切変更せず、環境変数だけで設定できます。
 
-### 利用可能なプロバイダー
+```bash
+# OpenAI SDK用
+export OPENAI_BASE_URL=https://your-trace-lens.com/v1
 
-| Provider | model 例 |
-|----------|----------|
-| `openai` | `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo` |
-| `anthropic` | `claude-3-5-sonnet-20241022`, `claude-3-opus-20240229` |
-| `gemini` | `gemini-1.5-pro`, `gemini-1.5-flash` |
-| `deepseek` | `deepseek-chat`, `deepseek-coder` |
+# その後、通常通りアプリを起動
+python your_app.py
+```
+
+### 方法2: コードで設定（1行追加）
+
+```python
+client = OpenAI(
+    api_key="sk-xxxxx",
+    base_url="https://your-trace-lens.com/v1"  # ← この1行を追加
+)
+```
+
+### 重要なポイント
+
+| 項目 | 説明 |
+|------|------|
+| APIキー | **既存のLLM APIキー（OpenAI等）をそのまま使用** |
+| プロバイダー | **モデル名から自動検出**（指定不要） |
+| 変更箇所 | **base_url のみ** |
 
 ---
 
-## 認証
+## 対応プロバイダー
 
-### 方法 1: Authorization ヘッダー（推奨）
+以下のプロバイダーは、モデル名から**自動検出**されます。
 
-```http
-Authorization: Bearer YOUR_API_KEY
+| Provider | モデル名の例 | 自動検出パターン |
+|----------|-------------|-----------------|
+| OpenAI | `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo`, `o1-preview` | `gpt-*`, `o1*` |
+| Anthropic | `claude-3-5-sonnet-20241022`, `claude-3-opus-20240229` | `claude*` |
+| Google Gemini | `gemini-1.5-pro`, `gemini-1.5-flash` | `gemini*` |
+| DeepSeek | `deepseek-chat`, `deepseek-coder` | `deepseek*` |
+
+> **注意**: プロバイダーを明示的に指定したい場合は、リクエストボディに `provider` パラメータを追加できます。
+
+---
+
+## 言語別コード例
+
+### Python (OpenAI SDK)
+
+```python
+from openai import OpenAI
+
+# LLM Trace Lens 経由で接続
+client = OpenAI(
+    api_key="sk-your-openai-key",
+    base_url="https://your-trace-lens.com/v1"
+)
+
+# 通常通り使用 - すべてのリクエストが自動的にトレースされます
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "日本の首都は？"}
+    ]
+)
+
+print(response.choices[0].message.content)
 ```
 
-### 方法 2: X-API-Key ヘッダー
+### Python (Anthropic SDK)
 
-```http
-X-API-Key: YOUR_API_KEY
+```python
+from anthropic import Anthropic
+
+# LLM Trace Lens 経由で接続
+client = Anthropic(
+    api_key="sk-ant-your-key",
+    base_url="https://your-trace-lens.com"
+)
+
+response = client.messages.create(
+    model="claude-3-5-sonnet-20241022",
+    max_tokens=1024,
+    messages=[
+        {"role": "user", "content": "Hello!"}
+    ]
+)
+
+print(response.content[0].text)
 ```
 
-> **注意**: API キーは管理者から発行されます。サーバー側で認証が無効化されている場合、この手順は不要です。
+### TypeScript / JavaScript (OpenAI SDK)
+
+```typescript
+import OpenAI from 'openai';
+
+// LLM Trace Lens 経由で接続
+const client = new OpenAI({
+  apiKey: 'sk-your-openai-key',
+  baseURL: 'https://your-trace-lens.com/v1',
+});
+
+const response = await client.chat.completions.create({
+  model: 'gpt-4o-mini',
+  messages: [
+    { role: 'user', content: 'Hello!' }
+  ],
+});
+
+console.log(response.choices[0].message.content);
+```
+
+### cURL
+
+```bash
+curl https://your-trace-lens.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-your-openai-key" \
+  -d '{
+    "model": "gpt-4o-mini",
+    "messages": [
+      {"role": "user", "content": "Hello!"}
+    ]
+  }'
+```
+
+### Python (requests)
+
+```python
+import requests
+
+response = requests.post(
+    'https://your-trace-lens.com/v1/chat/completions',
+    headers={
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer sk-your-openai-key',
+    },
+    json={
+        'model': 'gpt-4o-mini',
+        'messages': [
+            {'role': 'user', 'content': 'Hello!'}
+        ],
+    }
+)
+
+data = response.json()
+print(data['choices'][0]['message']['content'])
+```
 
 ---
 
@@ -79,60 +233,69 @@ X-API-Key: YOUR_API_KEY
 
 ### POST `/v1/chat/completions`
 
-LLM にチャット完了リクエストを送信します。
+OpenAI互換のチャット完了エンドポイント。
 
-#### リクエスト
+#### リクエストヘッダー
+
+| ヘッダー | 説明 |
+|---------|------|
+| `Authorization` | `Bearer YOUR_LLM_API_KEY` (OpenAI/Anthropic等のAPIキー) |
+| `Content-Type` | `application/json` |
+
+#### リクエストボディ
 
 ```json
 {
-  "provider": "openai",
   "model": "gpt-4o-mini",
   "messages": [
     { "role": "system", "content": "You are a helpful assistant." },
-    { "role": "user", "content": "Hello, how are you?" }
+    { "role": "user", "content": "Hello!" }
   ],
   "temperature": 0.7,
-  "maxTokens": 1000,
+  "max_tokens": 1000,
   "stream": false
 }
 ```
 
 | パラメータ | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
-| `provider` | string | No | `openai`, `anthropic`, `gemini`, `deepseek` (デフォルト: `openai`) |
-| `model` | string | Yes | 使用するモデル名 |
+| `model` | string | Yes | モデル名（プロバイダーは自動検出） |
 | `messages` | array | Yes | チャットメッセージの配列 |
 | `temperature` | number | No | 0〜2 (デフォルト: 1.0) |
-| `maxTokens` | integer | No | 最大出力トークン数 |
-| `stream` | boolean | No | ストリーミングを有効化 (デフォルト: false) |
-| `systemPrompt` | string | No | システムプロンプト（`messages` の代わりに使用可） |
-| `prompt` | string | No | ユーザープロンプト（`messages` の代わりに使用可） |
+| `max_tokens` | integer | No | 最大出力トークン数 |
+| `stream` | boolean | No | ストリーミングを有効化 |
+| `provider` | string | No | 明示的にプロバイダーを指定（通常不要） |
 
-#### レスポンス（通常）
+#### レスポンス
 
 ```json
 {
-  "id": "trace_abc123",
-  "provider": "openai",
+  "id": "req_1234567890",
+  "object": "chat.completion",
+  "created": 1234567890,
   "model": "gpt-4o-mini",
-  "response": {
-    "content": "Hello! I'm doing well, thank you for asking.",
-    "role": "assistant"
-  },
-  "usage": {
-    "prompt_tokens": 25,
-    "completion_tokens": 12,
-    "total_tokens": 37
-  },
-  "validation": {
-    "overall": "PASS",
-    "checks": {
-      "hallucination": { "passed": true },
-      "toxicity": { "passed": true }
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Hello! How can I help you today?"
+      },
+      "finish_reason": "stop"
     }
+  ],
+  "usage": {
+    "prompt_tokens": 10,
+    "completion_tokens": 8,
+    "total_tokens": 18
   },
-  "latency_ms": 450,
-  "estimated_cost": 0.000037
+  "_trace": {
+    "requestId": "req_1234567890",
+    "validationResults": {
+      "overall": "PASS",
+      "riskLevel": "low"
+    }
+  }
 }
 ```
 
@@ -142,32 +305,12 @@ LLM にチャット完了リクエストを送信します。
 
 トレース履歴を取得します。
 
-#### クエリパラメータ
-
-| パラメータ | 説明 |
-|-----------|------|
+| クエリパラメータ | 説明 |
+|-----------------|------|
 | `limit` | 取得件数（デフォルト: 50） |
 | `offset` | オフセット |
-| `level` | バリデーションレベルでフィルタ |
+| `level` | バリデーションレベルでフィルタ（PASS/WARN/FAIL/BLOCK） |
 | `provider` | プロバイダーでフィルタ |
-| `model` | モデルでフィルタ |
-
-#### レスポンス
-
-```json
-{
-  "traces": [...],
-  "total": 150,
-  "limit": 50,
-  "offset": 0
-}
-```
-
----
-
-### GET `/v1/traces/:id`
-
-特定のトレースを取得します。
 
 ---
 
@@ -191,180 +334,30 @@ LLM にチャット完了リクエストを送信します。
 
 ---
 
-## 言語別コード例
-
-### TypeScript / JavaScript
-
-```typescript
-// fetch を使った例
-async function chat(message: string) {
-  const response = await fetch('https://your-server.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer YOUR_API_KEY',
-    },
-    body: JSON.stringify({
-      provider: 'openai',
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'user', content: message }
-      ],
-    }),
-  });
-
-  const data = await response.json();
-  return data.response.content;
-}
-
-// 使用例
-const answer = await chat('日本の首都は？');
-console.log(answer);
-```
-
-### Python
-
-```python
-import requests
-
-def chat(message: str) -> str:
-    response = requests.post(
-        'https://your-server.com/v1/chat/completions',
-        headers={
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer YOUR_API_KEY',
-        },
-        json={
-            'provider': 'openai',
-            'model': 'gpt-4o-mini',
-            'messages': [
-                {'role': 'user', 'content': message}
-            ],
-        }
-    )
-    data = response.json()
-    return data['response']['content']
-
-# 使用例
-answer = chat('日本の首都は？')
-print(answer)
-```
-
-### cURL
-
-```bash
-curl -X POST https://your-server.com/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d '{
-    "provider": "openai",
-    "model": "gpt-4o-mini",
-    "messages": [
-      {"role": "user", "content": "Hello!"}
-    ]
-  }'
-```
-
----
-
-## 既存SDKからの移行
-
-### OpenAI SDK (Python)
-
-```python
-from openai import OpenAI
-
-# Before: 直接 OpenAI に接続
-# client = OpenAI()
-
-# After: LLM Trace Lens 経由
-client = OpenAI(
-    base_url='https://your-server.com/v1',
-    api_key='YOUR_API_KEY',  # LLM Trace Lens の API キー
-)
-
-# 使い方は同じ
-response = client.chat.completions.create(
-    model='gpt-4o-mini',
-    messages=[
-        {'role': 'user', 'content': 'Hello!'}
-    ]
-)
-print(response.choices[0].message.content)
-```
-
-### OpenAI SDK (TypeScript)
-
-```typescript
-import OpenAI from 'openai';
-
-// Before: 直接 OpenAI に接続
-// const client = new OpenAI();
-
-// After: LLM Trace Lens 経由
-const client = new OpenAI({
-  baseURL: 'https://your-server.com/v1',
-  apiKey: 'YOUR_API_KEY',  // LLM Trace Lens の API キー
-});
-
-// 使い方は同じ
-const response = await client.chat.completions.create({
-  model: 'gpt-4o-mini',
-  messages: [
-    { role: 'user', content: 'Hello!' }
-  ],
-});
-console.log(response.choices[0].message.content);
-```
-
-> **注意**: OpenAI SDK を使う場合、`provider` パラメータを指定できないため、デフォルトで OpenAI が使用されます。他のプロバイダーを使う場合は直接 API を呼び出してください。
-
----
-
 ## ストリーミング
 
 `stream: true` を指定すると、Server-Sent Events (SSE) 形式でレスポンスが返されます。
 
-### JavaScript での例
+### OpenAI SDK でのストリーミング
 
-```javascript
-async function streamChat(message) {
-  const response = await fetch('https://your-server.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer YOUR_API_KEY',
-    },
-    body: JSON.stringify({
-      provider: 'openai',
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: message }],
-      stream: true,
-    }),
-  });
+```python
+from openai import OpenAI
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
+client = OpenAI(
+    api_key="sk-your-key",
+    base_url="https://your-trace-lens.com/v1"
+)
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+stream = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "Tell me a story"}],
+    stream=True
+)
 
-    const chunk = decoder.decode(value);
-    const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
-
-    for (const line of lines) {
-      const data = line.slice(6); // 'data: ' を除去
-      if (data === '[DONE]') return;
-
-      const parsed = JSON.parse(data);
-      const content = parsed.choices?.[0]?.delta?.content;
-      if (content) {
-        process.stdout.write(content);
-      }
-    }
-  }
-}
+for chunk in stream:
+    content = chunk.choices[0].delta.content
+    if content:
+        print(content, end="", flush=True)
 ```
 
 ---
@@ -373,34 +366,34 @@ async function streamChat(message) {
 
 ### 401 Unauthorized
 
-- API キーが正しいか確認
-- `Authorization: Bearer` または `X-API-Key` ヘッダーを確認
+- LLM プロバイダーのAPIキーが正しいか確認
+- `Authorization: Bearer` ヘッダーが正しく設定されているか確認
 
 ### 400 Bad Request
 
 - `messages` 配列が正しい形式か確認
-- `provider` と `model` の組み合わせが有効か確認
+- `model` 名が正しいか確認
 
 ### 502 Bad Gateway / Provider Error
 
 - LLM プロバイダー側の問題
 - しばらく待ってから再試行
-- 管理者にプロバイダーの API キー設定を確認
 
-### CORS エラー
+### プロバイダーが正しく検出されない
 
-- ブラウザからの直接呼び出しは CORS 設定が必要
-- 管理者に許可オリジンの追加を依頼
+リクエストボディに `provider` を明示的に指定してください：
 
-### 接続タイムアウト
-
-- `maxTokens` を小さくする
-- モデルを `gpt-4o-mini` など軽量なものに変更
+```json
+{
+  "provider": "anthropic",
+  "model": "claude-3-5-sonnet-20241022",
+  "messages": [...]
+}
+```
 
 ---
 
 ## サポート
 
-問題が発生した場合は、管理者に連絡するか、ダッシュボードでトレースログを確認してください。
-
-ダッシュボード URL: `https://your-server.com/`
+- **ダッシュボード**: `https://your-trace-lens.com/` でトレースを確認
+- **問題報告**: 管理者に連絡するか、ダッシュボードでエラーログを確認

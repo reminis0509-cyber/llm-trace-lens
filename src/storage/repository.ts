@@ -5,6 +5,8 @@ import type {
   ValidationResult,
   LLMProvider,
   Usage,
+  RuleResult,
+  ValidationLevel,
 } from '../types/index.js';
 
 export interface TraceInput {
@@ -101,22 +103,22 @@ export class TraceRepository {
   }
 
   /**
-   * IDでトレースを取得
+   * IDでトレースを取得 (traces_v2 table)
    */
   findById(id: string): Trace | null {
     const db = getDatabase();
 
     const row = db
-      .prepare('SELECT * FROM traces WHERE id = ?')
-      .get(id) as TraceRow | undefined;
+      .prepare('SELECT * FROM traces_v2 WHERE id = ?')
+      .get(id) as TraceRowV2 | undefined;
 
     if (!row) return null;
 
-    return this.rowToTrace(row);
+    return this.rowToTraceV2(row);
   }
 
   /**
-   * トレース一覧を取得
+   * トレース一覧を取得 (traces_v2 table)
    */
   findAll(query: TraceQuery = {}): TraceListResult {
     const db = getDatabase();
@@ -151,13 +153,13 @@ export class TraceRepository {
     const whereClause =
       conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Get total count
-    const countSql = `SELECT COUNT(*) as count FROM traces ${whereClause}`;
+    // Get total count from traces_v2
+    const countSql = `SELECT COUNT(*) as count FROM traces_v2 ${whereClause}`;
     const { count: total } = db.prepare(countSql).get(...params) as { count: number };
 
-    // Get traces
+    // Get traces from traces_v2
     const selectSql = `
-      SELECT * FROM traces
+      SELECT * FROM traces_v2
       ${whereClause}
       ORDER BY timestamp DESC
       LIMIT ? OFFSET ?
@@ -165,10 +167,10 @@ export class TraceRepository {
 
     const rows = db
       .prepare(selectSql)
-      .all(...params, limit, offset) as TraceRow[];
+      .all(...params, limit, offset) as TraceRowV2[];
 
     return {
-      traces: rows.map((row) => this.rowToTrace(row)),
+      traces: rows.map((row) => this.rowToTraceV2(row)),
       total,
       limit,
       offset,
@@ -176,7 +178,7 @@ export class TraceRepository {
   }
 
   /**
-   * プロバイダ別の統計を取得
+   * プロバイダ別の統計を取得 (traces_v2 table)
    */
   getStats(): ProviderStats[] {
     const db = getDatabase();
@@ -188,28 +190,27 @@ export class TraceRepository {
         provider,
         model,
         COUNT(*) as count,
-        AVG(validation_score) as avg_score,
-        AVG(latency_ms) as avg_latency,
-        SUM(tokens_total) as total_tokens
-      FROM traces
+        AVG(confidence) as avg_score,
+        AVG(latency_ms) as avg_latency
+      FROM traces_v2
       GROUP BY provider, model
       ORDER BY count DESC
     `
       )
-      .all() as ProviderStatsRow[];
+      .all() as ProviderStatsRowV2[];
 
     return rows.map((row) => ({
       provider: row.provider as LLMProvider,
       model: row.model,
       count: row.count,
-      avgScore: Math.round(row.avg_score * 10) / 10,
-      avgLatency: Math.round(row.avg_latency),
-      totalTokens: row.total_tokens,
+      avgScore: Math.round((row.avg_score || 0) * 10) / 10,
+      avgLatency: Math.round(row.avg_latency || 0),
+      totalTokens: 0, // Not tracked in traces_v2
     }));
   }
 
   /**
-   * DBの行をTraceオブジェクトに変換
+   * DBの行をTraceオブジェクトに変換 (legacy traces table - deprecated)
    */
   private rowToTrace(row: TraceRow): Trace {
     return {
@@ -240,8 +241,70 @@ export class TraceRepository {
         : null,
     };
   }
+
+  /**
+   * DBの行をTraceオブジェクトに変換 (traces_v2 table)
+   */
+  private rowToTraceV2(row: TraceRowV2): Trace {
+    // Parse validation issues to create rule results
+    const confidenceIssues: string[] = row.validation_confidence_issues
+      ? JSON.parse(row.validation_confidence_issues)
+      : [];
+    const riskIssues: string[] = row.validation_risk_issues
+      ? JSON.parse(row.validation_risk_issues)
+      : [];
+
+    const rules: RuleResult[] = [];
+
+    // Add confidence rule if there are issues
+    if (confidenceIssues.length > 0 || row.validation_confidence_status) {
+      rules.push({
+        ruleName: 'confidence',
+        level: (row.validation_confidence_status || 'PASS') as ValidationLevel,
+        message: confidenceIssues.join(', ') || 'Confidence check passed',
+      });
+    }
+
+    // Add risk rule if there are issues
+    if (riskIssues.length > 0 || row.validation_risk_status) {
+      rules.push({
+        ruleName: 'risk',
+        level: (row.validation_risk_status || 'PASS') as ValidationLevel,
+        message: riskIssues.join(', ') || 'Risk scan passed',
+      });
+    }
+
+    return {
+      id: row.id,
+      timestamp: new Date(row.timestamp),
+      provider: row.provider as LLMProvider,
+      model: row.model,
+      prompt: row.prompt,
+      systemPrompt: undefined,
+      temperature: undefined,
+      rawResponse: row.answer, // Use answer as rawResponse for compatibility
+      structured: {
+        thinking: '', // Not stored in traces_v2
+        confidence: row.confidence,
+        evidence: row.evidence ? JSON.parse(row.evidence) : [],
+        risks: row.alternatives ? JSON.parse(row.alternatives) : [], // Map alternatives to risks for compatibility
+        answer: row.answer,
+      },
+      validation: {
+        overall: (row.validation_overall || 'PASS') as ValidationResult['overall'],
+        score: row.confidence, // Use confidence as score
+        rules,
+      },
+      latencyMs: row.latency_ms,
+      tokensUsed: 0, // Not tracked in traces_v2
+      internalTrace: row.internal_trace
+        ? JSON.parse(row.internal_trace)
+        : null,
+    };
+  }
 }
 
+// Legacy traces table schema (deprecated)
 interface TraceRow {
   id: string;
   timestamp: string;
@@ -268,6 +331,28 @@ interface TraceRow {
   created_at: string;
 }
 
+// traces_v2 table schema (current)
+interface TraceRowV2 {
+  id: string;
+  timestamp: string;
+  provider: string;
+  model: string;
+  prompt: string;
+  answer: string;
+  confidence: number;
+  evidence: string | null;
+  alternatives: string | null;
+  validation_confidence_status: string | null;
+  validation_confidence_issues: string | null;
+  validation_risk_status: string | null;
+  validation_risk_issues: string | null;
+  validation_overall: string | null;
+  latency_ms: number;
+  internal_trace: string | null;
+  created_at: string;
+}
+
+// Legacy stats row (deprecated)
 interface ProviderStatsRow {
   provider: string;
   model: string;
@@ -275,6 +360,15 @@ interface ProviderStatsRow {
   avg_score: number;
   avg_latency: number;
   total_tokens: number;
+}
+
+// Stats row for traces_v2
+interface ProviderStatsRowV2 {
+  provider: string;
+  model: string;
+  count: number;
+  avg_score: number | null;
+  avg_latency: number | null;
 }
 
 export interface ProviderStats {

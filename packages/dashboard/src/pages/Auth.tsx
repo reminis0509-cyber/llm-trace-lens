@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Activity } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export function Auth() {
@@ -47,25 +48,28 @@ export function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+    <div className="min-h-screen bg-navy-900 bg-grid flex items-center justify-center p-4">
+      {/* Glassmorphism card */}
+      <div className="glass-card w-full max-w-md p-8">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="text-4xl mb-2">🔍</div>
-          <h1 className="text-2xl font-bold text-gray-900">LLM Trace Lens</h1>
-          <p className="text-gray-600 mt-2">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-accent-cyan to-accent-emerald flex items-center justify-center">
+            <Activity className="w-8 h-8 text-navy-900" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-100 tracking-wide">LLM Trace Lens</h1>
+          <p className="text-gray-400 mt-2">
             {isLogin ? 'Sign in to your account' : 'Create a new account'}
           </p>
         </div>
 
         {/* Error/Message */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg text-sm">
             {error}
           </div>
         )}
         {message && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">
+          <div className="mb-4 p-3 bg-status-pass/10 border border-status-pass/30 text-status-pass rounded-lg text-sm">
             {message}
           </div>
         )}
@@ -73,7 +77,7 @@ export function Auth() {
         {/* Google Sign In */}
         <button
           onClick={handleGoogleSignIn}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition mb-6"
+          className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-navy-600 rounded-lg hover:bg-navy-700 hover:border-navy-500 transition mb-6"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path
@@ -93,23 +97,23 @@ export function Auth() {
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
             />
           </svg>
-          <span className="text-gray-700 font-medium">Continue with Google</span>
+          <span className="text-gray-200 font-medium">Continue with Google</span>
         </button>
 
         {/* Divider */}
         <div className="relative mb-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
+            <div className="w-full border-t border-navy-600"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">or continue with email</span>
+            <span className="px-2 bg-navy-800 text-gray-500">or continue with email</span>
           </div>
         </div>
 
         {/* Email Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Email
             </label>
             <input
@@ -117,13 +121,13 @@ export function Auth() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2.5 bg-navy-900 border border-navy-600 rounded-lg text-gray-100 placeholder-gray-500 focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan transition"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Password
             </label>
             <input
@@ -132,22 +136,22 @@ export function Auth() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="••••••••"
+              className="w-full px-4 py-2.5 bg-navy-900 border border-navy-600 rounded-lg text-gray-100 placeholder-gray-500 focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan transition"
+              placeholder="Enter your password"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+            className="w-full py-3 bg-accent-cyan text-navy-900 rounded-lg font-semibold hover:bg-accent-cyan-dim disabled:bg-navy-600 disabled:text-gray-400 disabled:cursor-not-allowed transition"
           >
             {loading ? 'Loading...' : isLogin ? 'Sign In' : 'Sign Up'}
           </button>
         </form>
 
         {/* Toggle */}
-        <p className="mt-6 text-center text-sm text-gray-600">
+        <p className="mt-6 text-center text-sm text-gray-400">
           {isLogin ? "Don't have an account?" : 'Already have an account?'}
           <button
             onClick={() => {
@@ -155,7 +159,7 @@ export function Auth() {
               setError('');
               setMessage('');
             }}
-            className="ml-1 text-blue-600 font-medium hover:underline"
+            className="ml-1 text-accent-cyan font-medium hover:underline"
           >
             {isLogin ? 'Sign Up' : 'Sign In'}
           </button>

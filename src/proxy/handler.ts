@@ -22,6 +22,7 @@ import {
 import { evaluateTrace } from '../evaluation/index.js';
 import { config } from '../config.js';
 import type { EvaluationResult } from '../evaluation/types.js';
+import { broadcastNewTrace } from '../lib/realtime.js';
 
 const confidenceValidator = new ConfidenceValidator();
 const riskScanner = new RiskScanner();
@@ -271,6 +272,16 @@ export async function handleCompletion(
             saveWorkspaceTrace(workspaceId, trace as unknown as Record<string, unknown>).catch(err =>
               console.error('[Handler] Workspace trace save failed:', err)
             );
+
+            // Broadcast new trace event for real-time updates
+            broadcastNewTrace(workspaceId, {
+              id: trace.requestId,
+              model: trace.model,
+              timestamp: trace.timestamp || new Date().toISOString(),
+              totalTokens: trace.usage?.totalTokens,
+              status: overallStatus,
+              latencyMs: trace.latencyMs,
+            });
           }
 
           // LLM-as-Judge 評価（fire-and-forget）
@@ -414,6 +425,16 @@ export async function handleCompletion(
       saveWorkspaceTrace(workspaceId, trace as unknown as Record<string, unknown>).catch(err =>
         console.error('[Handler] Workspace trace save failed:', err)
       );
+
+      // Broadcast new trace event for real-time updates
+      broadcastNewTrace(workspaceId, {
+        id: trace.requestId,
+        model: trace.model,
+        timestamp: trace.timestamp || new Date().toISOString(),
+        totalTokens: trace.usage?.totalTokens,
+        status: trace.validationResults?.riskLevel || trace.validationResults?.overall,
+        latencyMs: trace.latencyMs,
+      });
     }
 
     // LLM-as-Judge 評価（fire-and-forget）
