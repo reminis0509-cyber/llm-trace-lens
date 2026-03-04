@@ -19,7 +19,7 @@ export default function CTA() {
               無料デモを申し込む
             </a>
             <a
-              href="mailto:contact@example.com"
+              href="mailto:contact@fujitrace.com"
               className="px-6 py-3 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-base-elevated transition-colors duration-120"
             >
               お問い合わせ

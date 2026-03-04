@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { membersApi, type Role } from '../api/client';
+import { adminApi } from '../api/admin';
 import { useAuth } from './AuthContext';
 
 interface RoleContextValue {
@@ -10,6 +11,7 @@ interface RoleContextValue {
   isAdmin: boolean;
   isMember: boolean;
   hasAccess: boolean;
+  isSystemAdmin: boolean;
   workspaceId: string | null;
   setWorkspaceId: (id: string | null) => void;
   refresh: () => Promise<void>;
@@ -23,6 +25,7 @@ const RoleContext = createContext<RoleContextValue>({
   isAdmin: false,
   isMember: false,
   hasAccess: false,
+  isSystemAdmin: false,
   workspaceId: null,
   setWorkspaceId: () => {},
   refresh: async () => {},
@@ -39,6 +42,7 @@ export function RoleProvider({ children, initialWorkspaceId }: RoleProviderProps
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [workspaceId, setWorkspaceId] = useState<string | null>(initialWorkspaceId || null);
+  const [isSystemAdmin, setIsSystemAdmin] = useState(false);
 
   const fetchRole = useCallback(async () => {
     if (!workspaceId || !user) {
@@ -60,6 +64,18 @@ export function RoleProvider({ children, initialWorkspaceId }: RoleProviderProps
     }
   }, [workspaceId, user]);
 
+  // Check system admin status when user changes
+  useEffect(() => {
+    if (!user) {
+      setIsSystemAdmin(false);
+      return;
+    }
+
+    adminApi.checkAdmin()
+      .then(data => setIsSystemAdmin(data.isAdmin))
+      .catch(() => setIsSystemAdmin(false));
+  }, [user]);
+
   // Fetch role when workspace or user changes
   useEffect(() => {
     fetchRole();
@@ -73,6 +89,7 @@ export function RoleProvider({ children, initialWorkspaceId }: RoleProviderProps
     isAdmin: role === 'owner' || role === 'admin',
     isMember: role !== null,
     hasAccess: role !== null,
+    isSystemAdmin,
     workspaceId,
     setWorkspaceId,
     refresh: fetchRole,

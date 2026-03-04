@@ -13,26 +13,48 @@ FujiTrace は、LLM の入出力をリアルタイムで監視・評価・保護
 
 - **1行で導入** — プロキシ型アーキテクチャ。SDKの組み込み不要、URLを変えるだけ
 - **AIエージェント対応** — ReActパターンのステップ・ツール呼び出し・判断プロセスを完全トレース
-- **LLM-as-Judge評価** — OpenAI / Claude 両対応。忠実性・回答関連性を自動スコアリング
-- **日本語PII検出** — マイナンバー、住所、電話番号、パスポート、保険証、免許証を検出・ブロック
-- **マルチプロバイダー** — OpenAI、Anthropic、Gemini に対応
+- **LLM-as-Judge評価** — OpenAI / Claude 両対応。忠実性・回答関連性・ハルシネーション検出を自動スコアリング
+- **日本語PII検出** — マイナンバー、住所、電話番号、パスポート、保険証、免許証、郵便番号を検出・ブロック（15+パターン）
+- **マルチプロバイダー** — OpenAI、Anthropic、Google Gemini に対応（ストリーミング完全対応）
 - **プラン課金基盤** — Free / Pro / Enterprise の3段階。月次トレースカウント・自動制限
-- **セキュリティ** — fail-closed 予算ガード、入力検証（SQLi/XSS）、CSP、RBAC
+- **ダッシュボード** — トレース一覧・統計・エージェントステップ可視化・業界ベンチマーク
+- **Webhook通知** — Slack・Teams・メール連携。ブロック・警告・コストアラート自動通知
+- **セキュリティ** — fail-closed 予算ガード、入力検証（SQLi/XSS）、CSP、RBAC、暗号化APIキー管理
 
 ## 対応プロバイダー
 
-| プロバイダー | ステータス | ストリーミング |
+| プロバイダー | 対応モデル | ストリーミング |
 |-------------|-----------|-------------|
-| OpenAI (GPT-4, GPT-4o, etc.) | ✅ | ✅ |
-| Anthropic (Claude 3.5, Claude 3, etc.) | ✅ | ✅ |
-| Google Gemini | ✅ | ✅ |
+| OpenAI | GPT-4o, GPT-4o-mini, GPT-4, o1, o1-mini | ✅ |
+| Anthropic | Claude Opus 4, Claude Sonnet 4, Claude 3.5 Sonnet, Claude 3 Haiku | ✅ |
+| Google Gemini | Gemini 2.0 Flash, Gemini 1.5 Pro, Gemini 1.5 Flash | ✅ |
 
 ## クイックスタート
 
+### Docker Compose（推奨）
+
 ```bash
 # 1. リポジトリをクローン
-git clone https://github.com/your-org/fujitrace.git
-cd fujitrace
+git clone https://github.com/reminis0509-cyber/llm-trace-lens.git
+cd llm-trace-lens
+
+# 2. 環境変数を設定
+cp .env.example .env
+# .env を編集してAPIキーを設定
+
+# 3. 起動（プロキシ + Redis + ダッシュボード）
+docker compose up -d
+```
+
+- プロキシサーバー: `http://localhost:3000`
+- ダッシュボード: `http://localhost:8080`
+
+### ローカル開発
+
+```bash
+# 1. リポジトリをクローン
+git clone https://github.com/reminis0509-cyber/llm-trace-lens.git
+cd llm-trace-lens
 
 # 2. 依存関係をインストール
 npm install
@@ -58,7 +80,7 @@ curl -X POST http://localhost:3000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "provider": "openai",
-    "model": "gpt-4",
+    "model": "gpt-4o",
     "messages": [
       {"role": "user", "content": "東京の天気を教えて"}
     ]
@@ -72,7 +94,7 @@ curl -N -X POST http://localhost:3000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "provider": "openai",
-    "model": "gpt-4",
+    "model": "gpt-4o",
     "stream": true,
     "messages": [
       {"role": "user", "content": "1から5まで数えて"}
@@ -89,7 +111,7 @@ curl -X POST http://localhost:3000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "provider": "openai",
-    "model": "gpt-4",
+    "model": "gpt-4o",
     "traceType": "agent",
     "agentTrace": {
       "goal": "売上レポートを作成する",
@@ -113,16 +135,29 @@ curl -X POST http://localhost:3000/v1/chat/completions \
                     ├── トレース記録
                     ├── バリデーション（信頼性・リスク）
                     ├── PII検出・ブロック
-                    ├── LLM-as-Judge評価
+                    ├── LLM-as-Judge評価（RAG品質含む）
                     ├── コスト追跡・予算管理
+                    ├── Webhook通知（Slack/Teams/Email）
                     └── ダッシュボード表示
 ```
+
+## ダッシュボード
+
+React製のダッシュボードUIで、以下を可視化:
+
+- **トレース一覧** — フィルタ・検索・詳細表示。評価バッジ付き
+- **エージェントステップフロー** — ReActパターンの思考→行動→観察を図式表示
+- **統計パネル** — プロバイダー別・モデル別の利用統計
+- **コスト分析** — モデル別コスト・月次推移・予算消化率
+- **業界ベンチマーク** — 匿名化された業界平均との比較（Enterprise）
+- **メンバー管理** — ワークスペースへの招待・ロール設定
+- **連携設定** — Slack / Teams / Email のWebhook設定
 
 ## 環境変数
 
 ```bash
 # データベース（PostgreSQL推奨）
-DATABASE_TYPE=postgres
+DATABASE_TYPE=postgres          # postgres / kv / sqlite
 DATABASE_URL=postgresql://user:password@localhost:5432/fujitrace
 
 # プロバイダーAPIキー（使用するものだけ設定）
@@ -137,6 +172,11 @@ LOG_LEVEL=info
 # 認証（オプション）
 ENABLE_AUTH=false
 API_KEYS=your-secret-key-1,your-secret-key-2
+ADMIN_API_KEY=your-admin-key    # /admin ルートの認証
+
+# OAuth/SSO（オプション）
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
 
 # LLM-as-Judge評価（オプション）
 ENABLE_EVALUATION=true
@@ -148,6 +188,10 @@ EVALUATION_TIMEOUT_MS=5000
 # 予算管理（オプション）
 BUDGET_LIMIT=100                  # USD
 BUDGET_WARN_THRESHOLD=0.9         # 90%で警告
+
+# Webhook通知（オプション）
+WEBHOOK_ENABLED=true
+WEBHOOK_URL=https://hooks.slack.com/services/xxx
 ```
 
 全ての設定項目は [`.env.example`](.env.example) を参照してください。
@@ -157,6 +201,7 @@ BUDGET_WARN_THRESHOLD=0.9         # 90%で警告
 | ストレージ | 用途 | 設定 |
 |-----------|------|------|
 | **PostgreSQL** | 本番環境推奨 | `DATABASE_TYPE=postgres` |
+| **SQLite** | ローカル開発 | `DATABASE_TYPE=sqlite` |
 | **Vercel KV** | 開発・プロトタイピング | `DATABASE_TYPE=kv` |
 
 > 本番環境では必ずPostgreSQLを使用してください。
@@ -179,15 +224,22 @@ npm run test:coverage
 | 月間トレース | 5,000 | 50,000 | 無制限 |
 | LLM-as-Judge | - | 月1,000回 | 無制限 |
 | データ保持 | 7日 | 90日 | 365日 |
+| ワークスペース | 1 | 3 | 無制限 |
+| メンバー | 2名 | 10名 | 無制限 |
 | SSO | - | - | 対応 |
+| SLA | - | 99.5% | 99.9% |
+
+※ OSSセルフホスト版は全機能無料で利用可能です。
 
 ## セキュリティ
 
 - **fail-closed 予算ガード**: エラー時はリクエストをブロック（安全側に倒す）
 - **入力検証**: SQLインジェクション・XSSパターンを検出・拒否
 - **CSP**: Content Security Policy で `unsafe-inline` 排除
-- **RBAC**: ワークスペース単位のロールベースアクセス制御
-- **日本語PII検出**: マイナンバー、住所、電話番号、パスポート、保険証、免許証
+- **RBAC**: ワークスペース単位のロールベースアクセス制御（owner / admin / member）
+- **暗号化APIキー管理**: プロバイダーAPIキーをAES暗号化で保存・ローテーション対応
+- **日本語PII検出**: マイナンバー、住所、電話番号、パスポート、保険証、免許証、郵便番号（15+パターン）
+- **タイミングセーフ認証**: SHA-256ベースのAPIキー比較でタイミング攻撃を防止
 
 ## ライセンス
 

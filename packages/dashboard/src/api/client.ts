@@ -260,3 +260,73 @@ export const membersApi = {
     return res.json();
   },
 };
+
+// ---- Plan API ----
+
+export interface PlanLimits {
+  monthlyTraces: number;
+  maxWorkspaces: number;
+  maxMembers: number;
+  retentionDays: number;
+  customRules: boolean;
+  monthlyEvaluations: number;
+  sso: boolean;
+  sla: number | null;
+  prioritySupport: boolean;
+}
+
+export interface PlanInfo {
+  plan: {
+    workspaceId: string;
+    planType: string;
+    startedAt: string;
+    expiresAt?: string;
+  };
+  limits: PlanLimits;
+  usage: {
+    traceCount: number;
+    traceLimit: number;
+    tracePercentage: number;
+    evaluationCount: number;
+    evaluationLimit: number;
+    month: string;
+  };
+}
+
+export interface PlanDefinition {
+  type: string;
+  name: string;
+  priceMonthly: number | null;
+  limits: PlanLimits;
+}
+
+export const planApi = {
+  /**
+   * Get current workspace plan and usage
+   */
+  getCurrentPlan: async (): Promise<PlanInfo> => {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE}/api/plan`, {
+      headers,
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.message || error.error || 'プラン情報の取得に失敗しました');
+    }
+    return res.json();
+  },
+
+  /**
+   * Get all available plans
+   */
+  getAllPlans: async (): Promise<PlanDefinition[]> => {
+    const res = await fetch(`${API_BASE}/api/plans`);
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.message || error.error || 'プラン一覧の取得に失敗しました');
+    }
+    const data = await res.json();
+    return data.plans || [];
+  },
+};

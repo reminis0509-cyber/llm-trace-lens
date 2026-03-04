@@ -52,7 +52,7 @@ export default function Footer() {
 
         <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-text-muted">
-            &copy; 2024 FujiTrace. All rights reserved.
+            &copy; 2026 FujiTrace. All rights reserved.
           </p>
           <div className="flex items-center gap-2">
             <a href="#" className="text-text-muted hover:text-text-primary transition-colors duration-120 p-2 hover:bg-base-elevated rounded-card">

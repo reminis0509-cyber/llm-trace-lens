@@ -73,7 +73,7 @@ export default function Architecture() {
             {[
               { title: '1行の変更で導入', desc: 'baseURLを変更するだけ' },
               { title: 'ベンダーロックインなし', desc: '複数プロバイダを統一管理' },
-              { title: 'Vercelワンクリック', desc: '数分で本番環境構築' },
+              { title: 'Docker Composeで即起動', desc: 'ワンコマンドで本番環境構築' },
             ].map((item, i) => (
               <div key={i} className="flex items-start gap-3">
                 <div className="w-6 h-6 bg-accent-dim text-accent rounded flex items-center justify-center flex-shrink-0">

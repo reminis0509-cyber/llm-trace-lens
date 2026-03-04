@@ -24,7 +24,7 @@ export default function Hero() {
           {/* Stats */}
           <div className="flex flex-wrap justify-center gap-12 mb-12">
             {[
-              { value: '4+', label: 'LLMプロバイダ対応' },
+              { value: '3', label: 'LLMプロバイダ対応' },
               { value: '1行', label: 'コード変更で導入' },
               { value: 'ReAct', label: 'エージェント形式対応' },
             ].map((stat) => (
@@ -71,7 +71,7 @@ export default function Hero() {
                   <span className="text-text-muted">// After</span>
                   {'\n'}
                   <span className="text-text-secondary">const client = new OpenAI({'{'} baseURL: "</span>
-                  <span className="text-accent">https://your-fujitrace.vercel.app/v1</span>
+                  <span className="text-accent">https://your-fujitrace.example.com/v1</span>
                   <span className="text-text-secondary">" {'}'});</span>
                 </code>
               </pre>

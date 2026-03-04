@@ -28,6 +28,8 @@ import { getWebhookConfig } from './kv/client.js';
 import rbacPlugin from './middleware/rbac.js';
 import membersRoutes from './routes/members.js';
 import benchmarkRoutes from './routes/benchmarks.js';
+import adminDashboardRoutes from './routes/admin-dashboard.js';
+import billingRoutes from './routes/billing.js';
 import { closeKnex } from './storage/knex-client.js';
 
 /**
@@ -60,6 +62,18 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
         },
       },
     } : true,
+  });
+
+  // Raw body preservation for Stripe webhook signature verification
+  fastify.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
+    try {
+      // Preserve raw body for webhook verification
+      (req as unknown as { rawBody: string }).rawBody = body as string;
+      const json = JSON.parse(body as string);
+      done(null, json);
+    } catch (err) {
+      done(err as Error, undefined);
+    }
   });
 
   // Security headers (helmet)
@@ -167,6 +181,12 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
 
   // Register benchmark routes (industry benchmark)
   await benchmarkRoutes(fastify);
+
+  // Register admin dashboard routes (system admin only)
+  await adminDashboardRoutes(fastify);
+
+  // Register billing routes (Stripe Checkout / Portal / Webhook)
+  await billingRoutes(fastify);
 
   // Register main routes
   await registerRoutes(fastify);
