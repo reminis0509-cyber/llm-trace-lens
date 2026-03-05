@@ -153,11 +153,7 @@ export default async function billingRoutes(fastify: FastifyInstance): Promise<v
    * Stripe Webhook 受信
    * 重要: raw body が必要（署名検証のため）
    */
-  fastify.post('/api/billing/webhook', {
-    config: {
-      rawBody: true,
-    },
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post('/api/billing/webhook', async (request: FastifyRequest, reply: FastifyReply) => {
     if (!isStripeConfigured()) {
       return reply.code(400).send({ error: 'Stripe is not configured' });
     }
