@@ -39,7 +39,7 @@ const features = [
   },
   {
     title: 'プラン課金基盤',
-    description: 'Free / Pro / Enterprise の3段階。月次トレースカウント・自動制限。',
+    description: 'Free / Pro / Enterprise Standard〜Premium の5段階。月次トレースカウント・自動制限。',
     borderColor: 'border-l-amber-400',
   },
 ];

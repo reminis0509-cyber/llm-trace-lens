@@ -18,6 +18,7 @@ export default function Header() {
     { label: '機能', href: '#features' },
     { label: 'Agent対応', href: '#architecture' },
     { label: '料金', href: '#pricing' },
+    { label: 'パートナー', href: '#partners' },
   ];
 
   return (

@@ -33,6 +33,7 @@ export default function Footer() {
             <h4 className="text-sm font-medium text-text-primary mb-3">会社情報</h4>
             <ul className="space-y-2 text-sm text-text-muted">
               <li><a href="#" className="hover:text-text-primary transition-colors duration-120">会社概要</a></li>
+              <li><a href="#partners" className="hover:text-text-primary transition-colors duration-120">パートナープログラム</a></li>
               <li><a href="#" className="hover:text-text-primary transition-colors duration-120">採用情報</a></li>
               <li><a href="#" className="hover:text-text-primary transition-colors duration-120">ブログ</a></li>
               <li><a href="#contact" className="hover:text-text-primary transition-colors duration-120">お問い合わせ</a></li>

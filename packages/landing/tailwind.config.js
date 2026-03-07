@@ -24,10 +24,10 @@ export default {
           secondary: '#a1a1aa',
           muted: '#52525b',
         },
-        // アクセント：セージグリーン
+        // アクセント：ブルー（信頼・安定・エンタープライズ）
         accent: {
-          DEFAULT: '#6ee7b7',
-          dim: 'rgba(110, 231, 183, 0.12)',
+          DEFAULT: '#60a5fa',
+          dim: 'rgba(96, 165, 250, 0.12)',
         },
         // ステータス
         status: {

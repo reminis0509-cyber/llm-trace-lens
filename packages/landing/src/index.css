@@ -19,7 +19,7 @@ body {
 
 @layer base {
   ::selection {
-    background: rgba(110, 231, 183, 0.2);
+    background: rgba(96, 165, 250, 0.2);
     color: #f4f4f5;
   }
 }
@@ -66,9 +66,9 @@ body {
     letter-spacing: 0.04em;
   }
 
-  /* Subtle text gradient - 控えめなグラデーション */
+  /* アクセントカラーテキスト */
   .gradient-text {
-    @apply bg-gradient-to-r from-accent to-emerald-300 bg-clip-text text-transparent;
+    @apply text-accent;
   }
 
   .line-clamp-3 {
