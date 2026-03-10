@@ -1,12 +1,15 @@
 {
   "version": 2,
-  "framework": "vite",
-  "installCommand": "npm install && cd packages/dashboard && npm install",
-  "buildCommand": "cd packages/dashboard && npm run build",
-  "outputDirectory": "packages/dashboard/dist",
+  "installCommand": "npm install && cd packages/landing && npm install && cd ../dashboard && npm install",
+  "buildCommand": "npm run build:all",
+  "outputDirectory": "build",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.ts" },
     { "source": "/v1/(.*)", "destination": "/api/index.ts" },
-    { "source": "/health", "destination": "/api/index.ts" }
+    { "source": "/health", "destination": "/api/index.ts" },
+    { "source": "/terms", "destination": "/index.html" },
+    { "source": "/privacy", "destination": "/index.html" },
+    { "source": "/dashboard/(.*)", "destination": "/dashboard/index.html" },
+    { "source": "/dashboard", "destination": "/dashboard/index.html" }
   ]
 }

@@ -56,8 +56,8 @@ export function InviteAccept() {
   };
 
   const handleLogin = () => {
-    // Redirect to login page, keeping the current URL for redirect back
-    window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+    // Redirect to dashboard login page, keeping the current URL for redirect back
+    window.location.href = `/dashboard?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
   };
 
   return (

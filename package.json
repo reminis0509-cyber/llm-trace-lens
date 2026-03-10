@@ -13,7 +13,10 @@
     "migrate:latest": "tsx node_modules/knex/bin/cli.js migrate:latest --knexfile src/config/knexfile.ts",
     "migrate:rollback": "tsx node_modules/knex/bin/cli.js migrate:rollback --knexfile src/config/knexfile.ts",
     "migrate:make": "tsx node_modules/knex/bin/cli.js migrate:make --knexfile src/config/knexfile.ts",
-    "vercel-build": "npm run build && cd packages/dashboard && npm install && npm run build",
+    "build:landing": "cd packages/landing && npm run build",
+    "build:dashboard": "cd packages/dashboard && npm run build",
+    "build:all": "npm run build:landing && npm run build:dashboard && mkdir -p build && cp -r packages/landing/dist/* build/ && mkdir -p build/dashboard && cp -r packages/dashboard/dist/* build/dashboard/",
+    "vercel-build": "npm run build && cd packages/landing && npm install && npm run build && cd ../dashboard && npm install && npm run build && cd ../.. && mkdir -p build && cp -r packages/landing/dist/* build/ && mkdir -p build/dashboard && cp -r packages/dashboard/dist/* build/dashboard/",
     "vercel-dev": "vercel dev"
   },
   "dependencies": {

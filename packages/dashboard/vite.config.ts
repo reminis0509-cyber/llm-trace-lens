@@ -25,6 +25,8 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    // Serve dashboard assets from /dashboard/ path for unified Vercel deployment
+    base: '/dashboard/',
     // Explicitly define environment variables (only if they have values)
     define: defineConfig,
     server: {

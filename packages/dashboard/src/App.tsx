@@ -9,7 +9,8 @@ function AppContent() {
   const path = window.location.pathname;
 
   // Handle invite accept route (accessible without login to show login prompt)
-  if (path.startsWith('/invite/accept')) {
+  // Supports both /dashboard/invite/accept (production) and /invite/accept (dev)
+  if (path.startsWith('/dashboard/invite/accept') || path.startsWith('/invite/accept')) {
     return <InviteAccept />;
   }
 
