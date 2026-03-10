@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
-import DemoVideo from './components/DemoVideo';
+import DemoShowcase from './components/DemoShowcase';
 import Problems from './components/Problems';
 import Solution from './components/Solution';
 import Features from './components/Features';
@@ -53,7 +53,7 @@ export default function App() {
       <main>
         <Hero />
         <div className="section-divider" />
-        <DemoVideo />
+        <DemoShowcase />
         <div className="section-divider" />
         <Problems />
         <div className="section-divider" />
