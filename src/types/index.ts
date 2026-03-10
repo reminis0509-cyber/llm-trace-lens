@@ -184,6 +184,15 @@ export interface Usage {
   totalTokens: number;
 }
 
+/**
+ * Enforcer result wrapping a StructuredResponse with optional token usage data.
+ * Returned by all enforcer enforce() methods so that callers can access usage info.
+ */
+export interface EnforcerResult {
+  response: StructuredResponse;
+  usage?: Usage;
+}
+
 export type ValidationLevel = 'PASS' | 'WARN' | 'FAIL' | 'BLOCK';
 
 export interface RuleResult {

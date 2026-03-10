@@ -115,6 +115,7 @@ export function createTrace(params: {
   messages?: Array<{ role: string; content: string }>;
   traceType?: TraceType;
   agentTrace?: AgentTrace;
+  usage?: UsageInfo;
 }): TraceWithCost {
   return {
     requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -133,6 +134,7 @@ export function createTrace(params: {
     },
     latencyMs: Date.now() - params.startTime,
     internalTrace: null,
+    usage: params.usage,
     workspaceId: params.workspaceId,
     messages: params.messages,
     traceType: params.traceType || 'standard',

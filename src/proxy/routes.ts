@@ -45,6 +45,12 @@ function kvTraceToTrace(kvTrace: Record<string, unknown>): Trace {
     });
   }
 
+  const usage = kvTrace.usage as {
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  } | undefined;
+
   return {
     id: (kvTrace.requestId as string) || '',
     timestamp: new Date(kvTrace.timestamp as string || Date.now()),
@@ -65,7 +71,7 @@ function kvTraceToTrace(kvTrace: Record<string, unknown>): Trace {
       rules,
     },
     latencyMs: (kvTrace.latencyMs as number) || 0,
-    tokensUsed: 0,
+    tokensUsed: usage?.totalTokens || 0,
     internalTrace: null,
     // Agent trace support
     traceType: (kvTrace.traceType as TraceType) || 'standard',
@@ -81,6 +87,7 @@ function calculateStatsFromTraces(traces: Trace[]): ProviderStats[] {
     count: number;
     totalScore: number;
     totalLatency: number;
+    totalTokens: number;
   }>();
 
   for (const trace of traces) {
@@ -91,6 +98,7 @@ function calculateStatsFromTraces(traces: Trace[]): ProviderStats[] {
       existing.count++;
       existing.totalScore += trace.validation.score;
       existing.totalLatency += trace.latencyMs;
+      existing.totalTokens += trace.tokensUsed || 0;
     } else {
       statsMap.set(key, {
         provider: trace.provider,
@@ -98,6 +106,7 @@ function calculateStatsFromTraces(traces: Trace[]): ProviderStats[] {
         count: 1,
         totalScore: trace.validation.score,
         totalLatency: trace.latencyMs,
+        totalTokens: trace.tokensUsed || 0,
       });
     }
   }
@@ -108,7 +117,7 @@ function calculateStatsFromTraces(traces: Trace[]): ProviderStats[] {
     count: stat.count,
     avgScore: Math.round((stat.totalScore / stat.count) * 10) / 10,
     avgLatency: Math.round(stat.totalLatency / stat.count),
-    totalTokens: 0,
+    totalTokens: stat.totalTokens,
   }));
 }
 

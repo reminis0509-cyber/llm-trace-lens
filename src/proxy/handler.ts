@@ -151,7 +151,9 @@ async function handleNonStreamingCompletion(
   const provider = llmRequest.provider || 'openai';
   const enforcer = await createEnforcer(provider, llmRequest.model, workspaceId, llmRequest.api_key);
 
-  const structuredResponse = await enforcer.enforce(llmRequest);
+  const enforcerResult = await enforcer.enforce(llmRequest);
+  const structuredResponse = enforcerResult.response;
+  const usage = enforcerResult.usage;
 
   // バリデーション & トレース生成
   const validation = await runValidation(structuredResponse, workspaceId);
@@ -166,6 +168,7 @@ async function handleNonStreamingCompletion(
     messages: llmRequest.messages,
     traceType: llmRequest.traceType,
     agentTrace: llmRequest.agentTrace,
+    usage,
   });
 
   // 後処理（保存・コスト・評価・Webhook）

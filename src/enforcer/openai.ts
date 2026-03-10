@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import type { LLMRequest, StructuredResponse } from '../types/index.js';
+import type { LLMRequest, StructuredResponse, EnforcerResult } from '../types/index.js';
 
 // Models that support response_format: { type: 'json_object' }
 const JSON_MODE_SUPPORTED_MODELS = [
@@ -31,7 +31,7 @@ export class OpenAIEnforcer {
     this.client = new OpenAI({ apiKey });
   }
 
-  async enforce(request: LLMRequest): Promise<StructuredResponse> {
+  async enforce(request: LLMRequest): Promise<EnforcerResult> {
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
 
     if (request.systemPrompt) {
@@ -43,7 +43,7 @@ export class OpenAIEnforcer {
 
     messages.push({
       role: 'system',
-      content: 'You must respond with a valid JSON object containing: "answer" (your response), "confidence" (0-100), "evidence" (array of facts), "alternatives" (array of alternative answers).'
+      content: 'You must respond with a valid JSON object containing: "answer" (your response), "confidence" (a decimal number between 0.0 and 1.0, where 1.0 means 100% certain), "evidence" (array of facts), "alternatives" (array of alternative answers).'
     });
 
     if (request.messages && request.messages.length > 0) {
@@ -81,7 +81,7 @@ export class OpenAIEnforcer {
     } catch {
       structured = {
         answer: content,
-        confidence: 50,
+        confidence: 0.5,
         evidence: ['Raw response - could not parse structured format'],
         alternatives: []
       };
@@ -93,7 +93,7 @@ export class OpenAIEnforcer {
     } else if (typeof structured.answer !== 'string') {
       structured.answer = JSON.stringify(structured.answer, null, 2);
     }
-    if (typeof structured.confidence !== 'number') structured.confidence = 50;
+    if (typeof structured.confidence !== 'number') structured.confidence = 0.5;
     if (!Array.isArray(structured.evidence)) structured.evidence = [];
     // Ensure each evidence item is a string
     structured.evidence = structured.evidence.map((e: unknown) =>
@@ -105,7 +105,16 @@ export class OpenAIEnforcer {
       typeof a === 'string' ? a : JSON.stringify(a)
     );
 
-    return structured;
+    // Extract token usage from OpenAI response
+    const usage = completion.usage
+      ? {
+          promptTokens: completion.usage.prompt_tokens,
+          completionTokens: completion.usage.completion_tokens,
+          totalTokens: completion.usage.total_tokens,
+        }
+      : undefined;
+
+    return { response: structured, usage };
   }
 
   async *enforceStream(request: LLMRequest): AsyncGenerator<string, StructuredResponse, unknown> {
@@ -120,7 +129,7 @@ export class OpenAIEnforcer {
 
     messages.push({
       role: 'system',
-      content: 'You must respond with a valid JSON object containing: "answer" (your response), "confidence" (0-100), "evidence" (array of facts), "alternatives" (array of alternative answers).'
+      content: 'You must respond with a valid JSON object containing: "answer" (your response), "confidence" (a decimal number between 0.0 and 1.0, where 1.0 means 100% certain), "evidence" (array of facts), "alternatives" (array of alternative answers).'
     });
 
     if (request.messages && request.messages.length > 0) {
@@ -167,7 +176,7 @@ export class OpenAIEnforcer {
     } catch {
       structured = {
         answer: fullContent,
-        confidence: 50,
+        confidence: 0.5,
         evidence: ['Raw response - could not parse structured format'],
         alternatives: []
       };
@@ -179,7 +188,7 @@ export class OpenAIEnforcer {
     } else if (typeof structured.answer !== 'string') {
       structured.answer = JSON.stringify(structured.answer, null, 2);
     }
-    if (typeof structured.confidence !== 'number') structured.confidence = 50;
+    if (typeof structured.confidence !== 'number') structured.confidence = 0.5;
     if (!Array.isArray(structured.evidence)) structured.evidence = [];
     // Ensure each evidence item is a string
     structured.evidence = structured.evidence.map((e: unknown) =>

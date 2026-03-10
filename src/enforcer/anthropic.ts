@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { LLMRequest, StructuredResponse } from '../types/index.js';
+import type { LLMRequest, StructuredResponse, EnforcerResult } from '../types/index.js';
 
 export class AnthropicEnforcer {
   private client: Anthropic;
@@ -11,10 +11,10 @@ export class AnthropicEnforcer {
     this.client = new Anthropic({ apiKey });
   }
 
-  async enforce(request: LLMRequest): Promise<StructuredResponse> {
+  async enforce(request: LLMRequest): Promise<EnforcerResult> {
     const systemPrompt = [
       request.systemPrompt || '',
-      'You must respond with a valid JSON object containing: "answer" (your response), "confidence" (0-100), "evidence" (array of facts), "alternatives" (array of alternative answers).'
+      'You must respond with a valid JSON object containing: "answer" (your response), "confidence" (a decimal number between 0.0 and 1.0, where 1.0 means 100% certain), "evidence" (array of facts), "alternatives" (array of alternative answers).'
     ].filter(Boolean).join('\n\n');
 
     let userMessage = '';
@@ -55,7 +55,7 @@ export class AnthropicEnforcer {
     } catch (parseError) {
       structured = {
         answer: text,
-        confidence: 50,
+        confidence: 0.5,
         evidence: ['Raw response - could not parse structured format'],
         alternatives: []
       };
@@ -67,7 +67,7 @@ export class AnthropicEnforcer {
     } else if (typeof structured.answer !== 'string') {
       structured.answer = JSON.stringify(structured.answer, null, 2);
     }
-    if (typeof structured.confidence !== 'number') structured.confidence = 50;
+    if (typeof structured.confidence !== 'number') structured.confidence = 0.5;
     if (!Array.isArray(structured.evidence)) structured.evidence = [];
     structured.evidence = structured.evidence.map((e: unknown) =>
       typeof e === 'string' ? e : JSON.stringify(e)
@@ -77,13 +77,22 @@ export class AnthropicEnforcer {
       typeof a === 'string' ? a : JSON.stringify(a)
     );
 
-    return structured;
+    // Extract token usage from Anthropic response (input_tokens / output_tokens)
+    const inputTokens = message.usage?.input_tokens ?? 0;
+    const outputTokens = message.usage?.output_tokens ?? 0;
+    const usage = {
+      promptTokens: inputTokens,
+      completionTokens: outputTokens,
+      totalTokens: inputTokens + outputTokens,
+    };
+
+    return { response: structured, usage };
   }
 
   async *enforceStream(request: LLMRequest): AsyncGenerator<string, StructuredResponse, unknown> {
     const systemPrompt = [
       request.systemPrompt || '',
-      'You must respond with a valid JSON object containing: "answer" (your response), "confidence" (0-100), "evidence" (array of facts), "alternatives" (array of alternative answers).'
+      'You must respond with a valid JSON object containing: "answer" (your response), "confidence" (a decimal number between 0.0 and 1.0, where 1.0 means 100% certain), "evidence" (array of facts), "alternatives" (array of alternative answers).'
     ].filter(Boolean).join('\n\n');
 
     let userMessage = '';
@@ -130,7 +139,7 @@ export class AnthropicEnforcer {
     } catch (parseError) {
       structured = {
         answer: fullContent,
-        confidence: 50,
+        confidence: 0.5,
         evidence: ['Raw response - could not parse structured format'],
         alternatives: []
       };
@@ -142,7 +151,7 @@ export class AnthropicEnforcer {
     } else if (typeof structured.answer !== 'string') {
       structured.answer = JSON.stringify(structured.answer, null, 2);
     }
-    if (typeof structured.confidence !== 'number') structured.confidence = 50;
+    if (typeof structured.confidence !== 'number') structured.confidence = 0.5;
     if (!Array.isArray(structured.evidence)) structured.evidence = [];
     structured.evidence = structured.evidence.map((e: unknown) =>
       typeof e === 'string' ? e : JSON.stringify(e)

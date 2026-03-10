@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
-import type { LLMRequest, StructuredResponse } from '../types/index.js';
+import type { LLMRequest, StructuredResponse, EnforcerResult } from '../types/index.js';
 
 export class GeminiEnforcer {
   private client: GoogleGenerativeAI;
@@ -18,13 +18,13 @@ export class GeminiEnforcer {
     }
   }
 
-  async enforce(request: LLMRequest): Promise<StructuredResponse> {
+  async enforce(request: LLMRequest): Promise<EnforcerResult> {
     try {
       // プロンプトの構築
       const systemPrompt = request.systemPrompt || '';
       const userMessage = request.messages?.[request.messages.length - 1]?.content || request.prompt || '';
 
-      const fullPrompt = `${systemPrompt}\n\nUser: ${userMessage}\n\nYou must respond with a valid JSON object containing:\n- "answer": your response text\n- "confidence": number 0-100\n- "evidence": array of supporting facts\n- "alternatives": array of alternative answers`;
+      const fullPrompt = `${systemPrompt}\n\nUser: ${userMessage}\n\nYou must respond with a valid JSON object containing:\n- "answer": your response text\n- "confidence": a decimal number between 0.0 and 1.0, where 1.0 means 100% certain\n- "evidence": array of supporting facts\n- "alternatives": array of alternative answers`;
 
       // Gemini APIリクエスト
       const result = await this.model.generateContent(fullPrompt);
@@ -50,7 +50,7 @@ export class GeminiEnforcer {
         // パース失敗時はフォールバック
         structured = {
           answer: text,
-          confidence: 50,
+          confidence: 0.5,
           evidence: ['Raw response from Gemini - could not parse structured format'],
           alternatives: []
         };
@@ -64,7 +64,7 @@ export class GeminiEnforcer {
         structured.answer = JSON.stringify(structured.answer, null, 2);
       }
       if (typeof structured.confidence !== 'number') {
-        structured.confidence = 50;
+        structured.confidence = 0.5;
       }
       if (!Array.isArray(structured.evidence)) {
         structured.evidence = [];
@@ -79,7 +79,17 @@ export class GeminiEnforcer {
         typeof a === 'string' ? a : JSON.stringify(a)
       );
 
-      return structured;
+      // Extract token usage from Gemini usageMetadata
+      const meta = response.usageMetadata;
+      const usage = meta
+        ? {
+            promptTokens: meta.promptTokenCount ?? 0,
+            completionTokens: meta.candidatesTokenCount ?? 0,
+            totalTokens: meta.totalTokenCount ?? 0,
+          }
+        : undefined;
+
+      return { response: structured, usage };
 
     } catch (error) {
       if (error instanceof Error) {
@@ -104,7 +114,7 @@ export class GeminiEnforcer {
       const systemPrompt = request.systemPrompt || '';
       const userMessage = request.messages?.[request.messages.length - 1]?.content || request.prompt || '';
 
-      const fullPrompt = `${systemPrompt}\n\nUser: ${userMessage}\n\nYou must respond with a valid JSON object containing:\n- "answer": your response text\n- "confidence": number 0-100\n- "evidence": array of supporting facts\n- "alternatives": array of alternative answers`;
+      const fullPrompt = `${systemPrompt}\n\nUser: ${userMessage}\n\nYou must respond with a valid JSON object containing:\n- "answer": your response text\n- "confidence": a decimal number between 0.0 and 1.0, where 1.0 means 100% certain\n- "evidence": array of supporting facts\n- "alternatives": array of alternative answers`;
 
       // Gemini ストリーミングAPIリクエスト
       const result = await this.model.generateContentStream(fullPrompt);
@@ -132,7 +142,7 @@ export class GeminiEnforcer {
       } catch (parseError) {
         structured = {
           answer: fullContent,
-          confidence: 50,
+          confidence: 0.5,
           evidence: ['Raw response from Gemini - could not parse structured format'],
           alternatives: []
         };
@@ -144,7 +154,7 @@ export class GeminiEnforcer {
       } else if (typeof structured.answer !== 'string') {
         structured.answer = JSON.stringify(structured.answer, null, 2);
       }
-      if (typeof structured.confidence !== 'number') structured.confidence = 50;
+      if (typeof structured.confidence !== 'number') structured.confidence = 0.5;
       if (!Array.isArray(structured.evidence)) structured.evidence = [];
       structured.evidence = structured.evidence.map((e: unknown) =>
         typeof e === 'string' ? e : JSON.stringify(e)

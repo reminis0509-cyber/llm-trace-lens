@@ -29,17 +29,17 @@ export class ConfidenceValidator {
     const issues: string[] = [];
     let status: ValidationResult['status'] = 'PASS';
 
-    // High confidence (90+) with insufficient evidence (< 2 items)
-    if (response.confidence >= 90 && response.evidence.length < 2) {
+    // High confidence (0.9+) with insufficient evidence (< 2 items)
+    if (response.confidence >= 0.9 && response.evidence.length < 2) {
       issues.push(
-        `High confidence (${response.confidence}%) with insufficient evidence (${response.evidence.length} items)`
+        `High confidence (${(response.confidence * 100).toFixed(0)}%) with insufficient evidence (${response.evidence.length} items)`
       );
       status = 'WARN';
     }
 
-    // Low confidence (< 50)
-    if (response.confidence < 50) {
-      issues.push(`Low confidence (${response.confidence}%) - answer may be unreliable`);
+    // Low confidence (< 0.5)
+    if (response.confidence < 0.5) {
+      issues.push(`Low confidence (${(response.confidence * 100).toFixed(0)}%) - answer may be unreliable`);
       if (status !== 'WARN') {
         status = 'WARN';
       }
@@ -81,7 +81,7 @@ export class ConfidenceValidator {
 
     // Generate issues from risk factors
     const issues: string[] = [];
-    if (response.confidence < 50) {
+    if (response.confidence < 0.5) {
       issues.push('Low confidence response');
     }
     if (response.evidence?.length < 2) {
@@ -132,7 +132,7 @@ export class ConfidenceValidator {
     }
 
     const issues: string[] = [];
-    if (response.confidence < 50) {
+    if (response.confidence < 0.5) {
       issues.push('Low confidence response');
     }
     if (response.evidence?.length < 2) {

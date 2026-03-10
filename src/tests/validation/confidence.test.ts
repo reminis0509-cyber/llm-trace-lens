@@ -6,10 +6,10 @@ describe('ConfidenceValidator', () => {
   const validator = new ConfidenceValidator();
 
   describe('高信頼度 + 十分なエビデンス', () => {
-    it('confidence 90 + evidence 3個 → PASS', () => {
+    it('confidence 0.9 + evidence 3個 → PASS', () => {
       const response: StructuredResponse = {
         answer: 'Test answer',
-        confidence: 90,
+        confidence: 0.9,
         evidence: ['fact 1', 'fact 2', 'fact 3'],
         alternatives: []
       };
@@ -22,10 +22,10 @@ describe('ConfidenceValidator', () => {
   });
 
   describe('高信頼度 + エビデンス不足', () => {
-    it('confidence 95 + evidence 1個 → WARN', () => {
+    it('confidence 0.95 + evidence 1個 → WARN', () => {
       const response: StructuredResponse = {
         answer: 'Test answer',
-        confidence: 95,
+        confidence: 0.95,
         evidence: ['only one fact'],
         alternatives: []
       };
@@ -39,10 +39,10 @@ describe('ConfidenceValidator', () => {
   });
 
   describe('低信頼度', () => {
-    it('confidence 40 → WARN', () => {
+    it('confidence 0.4 → WARN', () => {
       const response: StructuredResponse = {
         answer: 'Test answer',
-        confidence: 40,
+        confidence: 0.4,
         evidence: ['fact 1', 'fact 2'],
         alternatives: []
       };
@@ -55,10 +55,10 @@ describe('ConfidenceValidator', () => {
   });
 
   describe('境界値テスト', () => {
-    it('confidence 50 (境界) → PASS', () => {
+    it('confidence 0.5 (境界) → PASS', () => {
       const response: StructuredResponse = {
         answer: 'Test answer',
-        confidence: 50,
+        confidence: 0.5,
         evidence: ['fact 1', 'fact 2'],
         alternatives: []
       };

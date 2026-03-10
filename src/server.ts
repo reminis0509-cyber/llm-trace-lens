@@ -43,7 +43,7 @@ function getAllowedOrigins(): string[] {
   }
   // Default: only allow localhost in development
   if (process.env.NODE_ENV !== 'production') {
-    return ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000'];
+    return ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://127.0.0.1:3000'];
   }
   // In production, require explicit configuration
   return [];

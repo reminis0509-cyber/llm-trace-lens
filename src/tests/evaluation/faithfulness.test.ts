@@ -103,20 +103,31 @@ describe('evaluateTrace function structure', () => {
     expect(typeof module.evaluateTrace).toBe('function');
   });
 
-  it('should return EvaluationResult structure without API key', async () => {
+  it('should throw when no API key is set', async () => {
+    const savedOpenAI = process.env.OPENAI_API_KEY;
+    const savedAnthropic = process.env.ANTHROPIC_API_KEY;
+    const savedProvider = process.env.EVALUATION_PROVIDER;
+
     delete process.env.OPENAI_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.EVALUATION_PROVIDER;
 
-    const { evaluateTrace } = await import('../../evaluation/index.js');
+    try {
+      const { evaluateTrace } = await import('../../evaluation/index.js');
 
-    const result = await evaluateTrace({
-      question: 'test',
-      answer: 'test',
-    });
+      await expect(
+        evaluateTrace({ question: 'test', answer: 'test' })
+      ).rejects.toThrow('OPENAI_API_KEYまたはANTHROPIC_API_KEYが必要です');
+    } finally {
+      // Restore environment variables to avoid polluting other tests
+      if (savedOpenAI !== undefined) process.env.OPENAI_API_KEY = savedOpenAI;
+      else delete process.env.OPENAI_API_KEY;
 
-    // Should return valid structure even without API key
-    expect(result).toHaveProperty('faithfulness');
-    expect(result).toHaveProperty('answerRelevance');
-    expect(result).toHaveProperty('evaluatedAt');
-    expect(result).toHaveProperty('evaluationModel');
+      if (savedAnthropic !== undefined) process.env.ANTHROPIC_API_KEY = savedAnthropic;
+      else delete process.env.ANTHROPIC_API_KEY;
+
+      if (savedProvider !== undefined) process.env.EVALUATION_PROVIDER = savedProvider;
+      else delete process.env.EVALUATION_PROVIDER;
+    }
   });
 });
