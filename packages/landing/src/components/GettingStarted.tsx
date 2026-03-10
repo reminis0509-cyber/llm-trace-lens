@@ -370,8 +370,8 @@ export default function GettingStarted() {
   ];
 
   const tabs: { key: DeploymentMethod; label: string }[] = [
-    { key: 'cloud', label: '\u2601\uFE0F \u30AF\u30E9\u30A6\u30C9\u7248' },
-    { key: 'docker', label: '\uD83D\uDC33 \u30BB\u30EB\u30D5\u30DB\u30B9\u30C8\u7248' },
+    { key: 'cloud', label: 'クラウド版' },
+    { key: 'docker', label: 'セルフホスト版' },
   ];
 
   return (
