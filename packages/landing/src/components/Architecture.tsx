@@ -1,6 +1,6 @@
 export default function Architecture() {
   return (
-    <section id="architecture" className="py-24 px-6">
+    <section id="architecture" className="py-16 sm:py-24 px-4 sm:px-6">
       <div className="section-container">
         {/* Section header */}
         <div className="text-center mb-16">
@@ -16,12 +16,12 @@ export default function Architecture() {
         </div>
 
         {/* Architecture diagram */}
-        <div className="surface-card p-6 lg:p-8">
-          <div className="grid lg:grid-cols-5 gap-6 items-center">
+        <div className="surface-card p-4 sm:p-6 lg:p-8">
+          <div className="grid lg:grid-cols-5 gap-4 lg:gap-6 items-center">
             {/* Your App */}
             <div className="text-center">
-              <div className="surface-card p-6 mb-4">
-                <svg className="w-10 h-10 mx-auto text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <div className="surface-card p-4 sm:p-6 mb-4">
+                <svg className="w-8 h-8 sm:w-10 sm:h-10 mx-auto text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                 </svg>
               </div>
@@ -30,17 +30,22 @@ export default function Architecture() {
               <p className="text-xs text-accent mt-2">+ AIエージェント</p>
             </div>
 
-            {/* Arrow */}
-            <div className="hidden lg:flex items-center justify-center">
-              <div className="w-full h-px bg-border relative">
+            {/* Arrow — horizontal on desktop, vertical on mobile */}
+            <div className="flex items-center justify-center py-2 lg:py-0">
+              {/* Vertical arrow (mobile) */}
+              <div className="lg:hidden h-8 w-px bg-border relative">
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2 h-2 border-b border-r border-text-muted rotate-45" />
+              </div>
+              {/* Horizontal arrow (desktop) */}
+              <div className="hidden lg:block w-full h-px bg-border relative">
                 <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 border-r border-t border-text-muted rotate-45" />
               </div>
             </div>
 
             {/* FujiTrace */}
             <div className="text-center">
-              <div className="bg-accent-dim border border-accent/30 rounded-card p-6 mb-4">
-                <svg className="w-10 h-10 mx-auto text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <div className="bg-accent-dim border border-accent/30 rounded-card p-4 sm:p-6 mb-4">
+                <svg className="w-8 h-8 sm:w-10 sm:h-10 mx-auto text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
@@ -49,17 +54,22 @@ export default function Architecture() {
               <p className="text-xs text-accent mt-2">+ Agentトレース</p>
             </div>
 
-            {/* Arrow */}
-            <div className="hidden lg:flex items-center justify-center">
-              <div className="w-full h-px bg-border relative">
+            {/* Arrow — horizontal on desktop, vertical on mobile */}
+            <div className="flex items-center justify-center py-2 lg:py-0">
+              {/* Vertical arrow (mobile) */}
+              <div className="lg:hidden h-8 w-px bg-border relative">
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2 h-2 border-b border-r border-text-muted rotate-45" />
+              </div>
+              {/* Horizontal arrow (desktop) */}
+              <div className="hidden lg:block w-full h-px bg-border relative">
                 <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 border-r border-t border-text-muted rotate-45" />
               </div>
             </div>
 
             {/* LLM Providers */}
             <div className="text-center">
-              <div className="surface-card p-6 mb-4">
-                <svg className="w-10 h-10 mx-auto text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <div className="surface-card p-4 sm:p-6 mb-4">
+                <svg className="w-8 h-8 sm:w-10 sm:h-10 mx-auto text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
               </div>

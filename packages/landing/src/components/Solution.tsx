@@ -18,7 +18,7 @@ const solutions = [
 
 export default function Solution() {
   return (
-    <section id="solution" className="py-24 px-6">
+    <section id="solution" className="py-16 sm:py-24 px-4 sm:px-6">
       <div className="section-container">
         {/* Section header */}
         <div className="text-center mb-16">

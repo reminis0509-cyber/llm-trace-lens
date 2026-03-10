@@ -1,6 +1,13 @@
+function handleNavigation(e: React.MouseEvent<HTMLAnchorElement>, path: string) {
+  e.preventDefault();
+  window.history.pushState({}, '', path);
+  window.dispatchEvent(new PopStateEvent('popstate'));
+  window.scrollTo(0, 0);
+}
+
 export default function Footer() {
   return (
-    <footer className="py-12 px-6 border-t border-border">
+    <footer className="py-8 sm:py-12 px-4 sm:px-6 border-t border-border">
       <div className="section-container">
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
@@ -44,8 +51,24 @@ export default function Footer() {
           <div>
             <h4 className="text-sm font-medium text-text-primary mb-3">法的情報</h4>
             <ul className="space-y-2 text-sm text-text-muted">
-              <li><a href="#" className="hover:text-text-primary transition-colors duration-120">プライバシーポリシー</a></li>
-              <li><a href="#" className="hover:text-text-primary transition-colors duration-120">利用規約</a></li>
+              <li>
+                <a
+                  href="/privacy"
+                  onClick={(e) => handleNavigation(e, '/privacy')}
+                  className="hover:text-text-primary transition-colors duration-120"
+                >
+                  プライバシーポリシー
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/terms"
+                  onClick={(e) => handleNavigation(e, '/terms')}
+                  className="hover:text-text-primary transition-colors duration-120"
+                >
+                  利用規約
+                </a>
+              </li>
               <li><a href="#" className="hover:text-text-primary transition-colors duration-120">セキュリティ</a></li>
             </ul>
           </div>

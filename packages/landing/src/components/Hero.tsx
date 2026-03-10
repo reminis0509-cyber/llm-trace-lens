@@ -1,6 +1,6 @@
 export default function Hero() {
   return (
-    <section className="min-h-screen flex items-center justify-center pt-20 pb-20 px-6">
+    <section className="min-h-screen flex items-center justify-center pt-20 pb-20 px-4 sm:px-6">
       <div className="section-container w-full">
         <div className="text-center">
           {/* Eyebrow */}
@@ -38,16 +38,17 @@ export default function Hero() {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16">
             <a
-              href="#demo"
-              className="px-6 py-3 bg-accent text-base rounded-card font-medium hover:bg-accent/90 transition-colors duration-120"
+              href="/dashboard"
+              className="w-full sm:w-auto px-6 py-3 bg-accent rounded-card font-medium hover:bg-accent/90 transition-colors duration-120 text-center"
+              style={{ color: '#0d0d0f' }}
             >
-              無料デモを試す
+              無料で試す
             </a>
             <a
-              href="#docs"
-              className="px-6 py-3 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-base-elevated transition-colors duration-120"
+              href="#demo-video"
+              className="w-full sm:w-auto px-6 py-3 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-base-elevated transition-colors duration-120 text-center"
             >
-              ドキュメントを見る
+              デモを見る
             </a>
           </div>
 

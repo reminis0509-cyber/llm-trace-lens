@@ -1,8 +1,8 @@
 export default function CTA() {
   return (
-    <section id="contact" className="py-24 px-6">
+    <section id="contact" className="py-16 sm:py-24 px-4 sm:px-6">
       <div className="section-container">
-        <div className="surface-card p-8 lg:p-12 text-center">
+        <div className="surface-card p-6 sm:p-8 lg:p-12 text-center">
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
             LLMの品質と安全性を今すぐ向上
           </h2>
@@ -13,14 +13,15 @@ export default function CTA() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <a
-              href="#demo"
-              className="px-6 py-3 bg-accent text-base rounded-card font-medium hover:bg-accent/90 transition-colors duration-120"
+              href="/dashboard"
+              className="w-full sm:w-auto px-6 py-3 bg-accent rounded-card font-medium hover:bg-accent/90 transition-colors duration-120 text-center"
+              style={{ color: '#0d0d0f' }}
             >
-              無料デモを申し込む
+              無料で始める
             </a>
             <a
               href="mailto:contact@fujitrace.com"
-              className="px-6 py-3 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-base-elevated transition-colors duration-120"
+              className="w-full sm:w-auto px-6 py-3 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-base-elevated transition-colors duration-120 text-center"
             >
               お問い合わせ
             </a>
