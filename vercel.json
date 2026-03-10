@@ -9,6 +9,7 @@
     { "source": "/health", "destination": "/api/index.ts" },
     { "source": "/terms", "destination": "/index.html" },
     { "source": "/privacy", "destination": "/index.html" },
+    { "source": "/company", "destination": "/index.html" },
     { "source": "/dashboard/(.*)", "destination": "/dashboard/index.html" },
     { "source": "/dashboard", "destination": "/dashboard/index.html" }
   ]

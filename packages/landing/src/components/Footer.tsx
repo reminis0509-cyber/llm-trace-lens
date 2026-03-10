@@ -39,11 +39,19 @@ export default function Footer() {
           <div>
             <h4 className="text-sm font-medium text-text-primary mb-3">会社情報</h4>
             <ul className="space-y-2 text-sm text-text-muted">
-              <li><a href="#" className="hover:text-text-primary transition-colors duration-120">会社概要</a></li>
-              <li><a href="#partners" className="hover:text-text-primary transition-colors duration-120">パートナープログラム</a></li>
-              <li><a href="#" className="hover:text-text-primary transition-colors duration-120">採用情報</a></li>
-              <li><a href="#" className="hover:text-text-primary transition-colors duration-120">ブログ</a></li>
-              <li><a href="#contact" className="hover:text-text-primary transition-colors duration-120">お問い合わせ</a></li>
+              <li>合同会社Reminis</li>
+              <li>〒104-0061</li>
+              <li>東京都中央区銀座一丁目22番11号</li>
+              <li>銀座大竹ビジデンス2F</li>
+              <li>
+                <a
+                  href="/company"
+                  onClick={(e) => handleNavigation(e, '/company')}
+                  className="hover:text-text-primary transition-colors duration-120"
+                >
+                  会社概要 →
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -76,7 +84,7 @@ export default function Footer() {
 
         <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-text-muted">
-            &copy; 2026 FujiTrace. All rights reserved.
+            &copy; 2026 合同会社Reminis. All rights reserved.
           </p>
           <div className="flex items-center gap-2">
             <a href="#" className="text-text-muted hover:text-text-primary transition-colors duration-120 p-2 hover:bg-base-elevated rounded-card">

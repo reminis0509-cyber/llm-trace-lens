@@ -14,6 +14,7 @@ import CTA from './components/CTA';
 import Footer from './components/Footer';
 import TermsPage from './components/TermsPage';
 import PrivacyPage from './components/PrivacyPage';
+import CompanyPage from './components/CompanyPage';
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -42,6 +43,18 @@ export default function App() {
         <Header />
         <main>
           <PrivacyPage />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (currentPath === '/company') {
+    return (
+      <div className="min-h-screen bg-base overflow-x-hidden">
+        <Header />
+        <main>
+          <CompanyPage />
         </main>
         <Footer />
       </div>
