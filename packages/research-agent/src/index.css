@@ -1,0 +1,163 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Inter', 'Noto Sans JP', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #0a0a0f;
+    color: #f4f4f5;
+    line-height: 1.6;
+  }
+
+  ::selection {
+    background: rgba(251, 146, 60, 0.2);
+    color: #f4f4f5;
+  }
+}
+
+@layer components {
+  /* Pulse animation for running steps */
+  .step-running {
+    animation: stepPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes stepPulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
+  }
+
+  /* Fade-in animation for report */
+  .fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Smooth layout transitions */
+  .layout-transition {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Markdown rendering styles */
+  .markdown-body h1 {
+    @apply text-2xl font-bold text-amber-50 mt-8 mb-4 pb-2 border-b border-zinc-700/50;
+  }
+
+  .markdown-body h2 {
+    @apply text-xl font-semibold text-amber-50 mt-6 mb-3 pb-1.5 border-b border-zinc-800/50;
+  }
+
+  .markdown-body h3 {
+    @apply text-lg font-semibold text-zinc-200 mt-5 mb-2;
+  }
+
+  .markdown-body h4 {
+    @apply text-base font-semibold text-zinc-300 mt-4 mb-2;
+  }
+
+  .markdown-body p {
+    @apply text-zinc-300 leading-relaxed mb-4;
+  }
+
+  .markdown-body ul {
+    @apply list-disc list-inside mb-4 space-y-1.5 text-zinc-300;
+  }
+
+  .markdown-body ol {
+    @apply list-decimal list-inside mb-4 space-y-1.5 text-zinc-300;
+  }
+
+  .markdown-body li {
+    @apply leading-relaxed;
+  }
+
+  .markdown-body li > ul,
+  .markdown-body li > ol {
+    @apply ml-4 mt-1;
+  }
+
+  .markdown-body blockquote {
+    @apply border-l-4 border-amber-500/40 pl-4 italic text-zinc-400 my-4;
+  }
+
+  .markdown-body code {
+    @apply bg-zinc-800 text-amber-300 px-1.5 py-0.5 rounded text-sm font-mono;
+  }
+
+  .markdown-body pre {
+    @apply bg-zinc-900 border border-zinc-700/50 rounded-lg p-4 mb-4 overflow-x-auto;
+  }
+
+  .markdown-body pre code {
+    @apply bg-transparent px-0 py-0 text-zinc-300;
+  }
+
+  .markdown-body a {
+    @apply text-amber-400 underline underline-offset-2 hover:text-amber-300 transition-colors;
+  }
+
+  .markdown-body strong {
+    @apply text-zinc-100 font-semibold;
+  }
+
+  .markdown-body em {
+    @apply text-zinc-400;
+  }
+
+  .markdown-body hr {
+    @apply border-zinc-700/50 my-6;
+  }
+
+  .markdown-body table {
+    @apply w-full border-collapse mb-4;
+  }
+
+  .markdown-body th {
+    @apply bg-zinc-800/50 text-left text-zinc-200 font-semibold px-4 py-2 border border-zinc-700/50;
+  }
+
+  .markdown-body td {
+    @apply text-zinc-300 px-4 py-2 border border-zinc-700/50;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0f;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
