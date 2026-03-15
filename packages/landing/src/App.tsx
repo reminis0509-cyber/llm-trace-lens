@@ -15,6 +15,8 @@ import Footer from './components/Footer';
 import TermsPage from './components/TermsPage';
 import PrivacyPage from './components/PrivacyPage';
 import CompanyPage from './components/CompanyPage';
+import ChatWidget from './components/ChatWidget';
+import ResearchWidget from './components/ResearchWidget';
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -25,49 +27,22 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  let pageContent: React.ReactNode;
+
   if (currentPath === '/terms') {
-    return (
-      <div className="min-h-screen bg-base overflow-x-hidden">
-        <Header />
-        <main>
-          <TermsPage />
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (currentPath === '/privacy') {
-    return (
-      <div className="min-h-screen bg-base overflow-x-hidden">
-        <Header />
-        <main>
-          <PrivacyPage />
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (currentPath === '/company') {
-    return (
-      <div className="min-h-screen bg-base overflow-x-hidden">
-        <Header />
-        <main>
-          <CompanyPage />
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-base overflow-x-hidden">
-      <Header />
-      <main>
+    pageContent = <TermsPage />;
+  } else if (currentPath === '/privacy') {
+    pageContent = <PrivacyPage />;
+  } else if (currentPath === '/company') {
+    pageContent = <CompanyPage />;
+  } else {
+    pageContent = (
+      <>
         <Hero />
         <div className="section-divider" />
         <DemoShowcase />
+        <div className="section-divider" />
+        <ResearchWidget />
         <div className="section-divider" />
         <GettingStarted />
         <div className="section-divider" />
@@ -85,8 +60,16 @@ export default function App() {
         <div className="section-divider" />
         <Pricing />
         <CTA />
-      </main>
+      </>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-base overflow-x-hidden">
+      <Header />
+      <main>{pageContent}</main>
       <Footer />
+      <ChatWidget />
     </div>
   );
 }

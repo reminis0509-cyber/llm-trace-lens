@@ -11,7 +11,7 @@ export default function Hero() {
 
           {/* Main headline */}
           <h1 className="text-display-sm md:text-display font-semibold text-text-primary mb-6">
-            LLMの真実を可視化
+            AIの真実を可視化
           </h1>
 
           {/* Subheadline */}
@@ -24,7 +24,7 @@ export default function Hero() {
           {/* Stats */}
           <div className="flex flex-wrap justify-center gap-12 mb-12">
             {[
-              { value: '3', label: 'LLMプロバイダ対応' },
+              { value: '3', label: 'AIプロバイダ対応' },
               { value: '1行', label: 'コード変更で導入' },
               { value: 'ReAct', label: 'エージェント形式対応' },
             ].map((stat) => (

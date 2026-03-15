@@ -266,7 +266,7 @@ export default function DemoShowcase() {
             DASHBOARD
           </span>
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            すべてのLLM通信を可視化
+            すべてのAI通信を可視化
           </h2>
           <p className="text-lg text-text-secondary max-w-xl mx-auto">
             プロンプト、レスポンス、信頼度、コスト &mdash; 全てのトレースをリアルタイムで確認
@@ -277,7 +277,7 @@ export default function DemoShowcase() {
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center mb-16 lg:mb-24">
           <DescriptionCard
             title="全トレースを自動記録"
-            description="LLM APIへの全リクエストを自動的にキャプチャ。プロンプト、レスポンス、信頼度スコア、レイテンシを一覧表示します。"
+            description="AI APIへの全リクエストを自動的にキャプチャ。プロンプト、レスポンス、信頼度スコア、レイテンシを一覧表示します。"
             badges={['リアルタイム更新', 'フィルタリング', 'プロバイダー別表示']}
           />
           <TraceListMockup />

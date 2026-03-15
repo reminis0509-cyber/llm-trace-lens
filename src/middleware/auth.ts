@@ -123,6 +123,8 @@ const AUTH_SKIP_PATHS = [
   '/api/setup-status',
   '/auth/',
   '/admin/', // Admin APIは独自の認証を使用
+  '/api/chatbot',
+  '/api/research',
 ];
 
 /**

@@ -46,7 +46,7 @@ export default function TermsPage() {
           {/* 前文 */}
           <div>
             <p className="text-text-secondary leading-relaxed">
-              本利用規約（以下「本規約」といいます）は、FujiTrace（運営: 個人事業）（以下「当方」といいます）が提供するLLM可観測性プラットフォーム「FujiTrace」（以下「本サービス」といいます）の利用条件を定めるものです。本サービスをご利用いただくすべてのお客様（以下「ユーザー」といいます）は、本規約に同意の上、本サービスをご利用ください。
+              本利用規約（以下「本規約」といいます）は、FujiTrace（運営: 個人事業）（以下「当方」といいます）が提供するAI可観測性プラットフォーム「FujiTrace」（以下「本サービス」といいます）の利用条件を定めるものです。本サービスをご利用いただくすべてのお客様（以下「ユーザー」といいます）は、本規約に同意の上、本サービスをご利用ください。
             </p>
           </div>
 
@@ -77,7 +77,7 @@ export default function TermsPage() {
               <p>本規約において、以下の用語は次の意味で使用します。</p>
               <ul className="list-disc list-inside space-y-2 pl-2">
                 <li>
-                  <span className="font-medium text-text-primary">「サービス」</span>：当方が提供するLLM可観測性プラットフォーム「FujiTrace」およびそれに付随する一切のサービスをいいます。
+                  <span className="font-medium text-text-primary">「サービス」</span>：当方が提供するAI可観測性プラットフォーム「FujiTrace」およびそれに付随する一切のサービスをいいます。
                 </li>
                 <li>
                   <span className="font-medium text-text-primary">「ユーザー」</span>：本サービスを利用するすべての個人または法人をいいます。
@@ -89,7 +89,7 @@ export default function TermsPage() {
                   <span className="font-medium text-text-primary">「ワークスペース」</span>：ユーザーがトレースデータを管理する単位をいいます。
                 </li>
                 <li>
-                  <span className="font-medium text-text-primary">「トレースデータ」</span>：本サービスを通じて記録されるLLM APIの呼び出し履歴（プロンプト、レスポンス、メタデータ等）をいいます。
+                  <span className="font-medium text-text-primary">「トレースデータ」</span>：本サービスを通じて記録されるAI APIの呼び出し履歴（プロンプト、レスポンス、メタデータ等）をいいます。
                 </li>
                 <li>
                   <span className="font-medium text-text-primary">「コンテンツ」</span>：ユーザーが本サービスを通じて送信、保存、または表示するデータをいいます。
@@ -166,7 +166,7 @@ export default function TermsPage() {
                 <li>他のユーザーのアカウント情報を不正に取得する行為</li>
                 <li>自己のアカウント情報を第三者と共有する行為</li>
                 <li>当方のサービスに関連して、反社会的勢力に対して直接または間接に利益を供与する行為</li>
-                <li>本サービスを利用した不正なLLM API呼び出しの中継</li>
+                <li>本サービスを利用した不正なAI API呼び出しの中継</li>
                 <li>その他、当方が不適切と判断する行為</li>
               </ul>
             </div>

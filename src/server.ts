@@ -30,6 +30,8 @@ import membersRoutes from './routes/members.js';
 import benchmarkRoutes from './routes/benchmarks.js';
 import adminDashboardRoutes from './routes/admin-dashboard.js';
 import billingRoutes from './routes/billing.js';
+import chatbotRoutes from './routes/chatbot.js';
+import researchRoutes from './routes/research.js';
 import { closeKnex } from './storage/knex-client.js';
 
 /**
@@ -187,6 +189,12 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
 
   // Register billing routes (Stripe Checkout / Portal / Webhook)
   await billingRoutes(fastify);
+
+  // Register chatbot routes (public, no auth)
+  await chatbotRoutes(fastify);
+
+  // Register research agent routes (public, SSE endpoint)
+  await researchRoutes(fastify);
 
   // Register main routes
   await registerRoutes(fastify);

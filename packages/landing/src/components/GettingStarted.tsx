@@ -243,7 +243,7 @@ function DockerEnvBlock() {
         .env.example .env{'\n'}
         {'\n'}
         <span className="text-text-muted"># .env を編集</span>{'\n'}
-        <span className="text-text-muted"># OPENAI_API_KEY=sk-xxxxx        # 検証用LLMのAPIキー</span>{'\n'}
+        <span className="text-text-muted"># OPENAI_API_KEY=sk-xxxxx        # 検証用AIのAPIキー</span>{'\n'}
         <span className="text-text-muted"># SUPABASE_URL=https://xxx.supabase.co</span>{'\n'}
         <span className="text-text-muted"># SUPABASE_ANON_KEY=eyJxxx...</span>{'\n'}
         <span className="text-text-muted"># VITE_SUPABASE_URL=https://xxx.supabase.co</span>{'\n'}
@@ -333,7 +333,7 @@ export default function GettingStarted() {
       number: 2,
       title: '\u30B3\u30FC\u30C91\u884C\u5909\u66F4',
       description:
-        '\u65E2\u5B58\u306ELLM\u547C\u3073\u51FA\u3057\u30B3\u30FC\u30C9\u306EbaseURL\u3092FujiTrace\u306B\u5411\u3051\u308B\u3060\u3051',
+        '\u65E2\u5B58\u306EAI\u547C\u3073\u51FA\u3057\u30B3\u30FC\u30C9\u306EbaseURL\u3092FujiTrace\u306B\u5411\u3051\u308B\u3060\u3051',
       content: <CloudCodeBlock />,
     },
     {
@@ -386,7 +386,7 @@ export default function GettingStarted() {
             3ステップで導入完了
           </h2>
           <p className="text-lg text-text-secondary max-w-xl mx-auto">
-            クラウド版もセルフホスト版も、わずか数分でLLMの可視化を開始
+            クラウド版もセルフホスト版も、わずか数分でAIの可視化を開始
           </p>
         </div>
 

@@ -11,7 +11,7 @@ export default function Architecture() {
             シンプルなアーキテクチャ
           </h2>
           <p className="text-lg text-text-secondary max-w-xl mx-auto">
-            OpenAI互換APIで、既存のLLMアプリケーションをそのまま接続
+            OpenAI互換APIで、既存のAIアプリケーションをそのまま接続
           </p>
         </div>
 
@@ -26,7 +26,7 @@ export default function Architecture() {
                 </svg>
               </div>
               <span className="text-sm font-medium text-text-primary">Your App</span>
-              <p className="text-xs text-text-muted mt-1">既存のLLMアプリ</p>
+              <p className="text-xs text-text-muted mt-1">既存のAIアプリ</p>
               <p className="text-xs text-accent mt-2">+ AIエージェント</p>
             </div>
 
@@ -73,7 +73,7 @@ export default function Architecture() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
               </div>
-              <span className="text-sm font-medium text-text-primary">LLM Providers</span>
+              <span className="text-sm font-medium text-text-primary">AI Providers</span>
               <p className="text-xs text-text-muted mt-1">OpenAI, Anthropic...</p>
             </div>
           </div>

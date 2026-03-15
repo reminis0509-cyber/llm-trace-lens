@@ -5,6 +5,8 @@ import { registerRoutes } from '../src/proxy/routes.js';
 import { settingsRoutes } from '../src/routes/settings.js';
 import { storageRoutes } from '../src/routes/storage.js';
 import feedbackRoutes from '../src/routes/feedback.js';
+import chatbotRoutes from '../src/routes/chatbot.js';
+import researchRoutes from '../src/routes/research.js';
 import membersRoutes from '../src/routes/members.js';
 import rbacPlugin from '../src/middleware/rbac.js';
 import { budgetGuardMiddleware } from '../src/middleware/budget-guard.js';
@@ -39,6 +41,12 @@ async function getApp() {
 
     // Register feedback routes
     await feedbackRoutes(app);
+
+    // Register chatbot routes (public, no auth)
+    await chatbotRoutes(app);
+
+    // Register research agent routes (public, SSE endpoint)
+    await researchRoutes(app);
 
     // Register main routes
     await registerRoutes(app);

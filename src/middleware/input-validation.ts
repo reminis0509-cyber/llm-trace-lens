@@ -13,7 +13,7 @@ import { validateObject, isValidWorkspaceId } from '../utils/sanitize.js';
 function excludeMessageContent(body: Record<string, unknown>): Record<string, unknown> {
   const safe: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(body)) {
-    if (key === 'messages' || key === 'agentTrace') {
+    if (key === 'messages' || key === 'agentTrace' || key === 'message' || key === 'history') {
       // Skip LLM conversation content and agent trace metadata
       continue;
     }
@@ -52,7 +52,8 @@ export async function inputValidationMiddleware(
     // messagesフィールドはLLMの会話内容であり、URL・コードスニペット等を
     // 含むのが正常なため、構造フィールドのみバリデーションする。
     const isChatCompletions = request.url.startsWith('/v1/chat/completions');
-    const bodyToValidate = isChatCompletions
+    const isChatbot = request.url.startsWith('/api/chatbot') || request.url.startsWith('/api/research');
+    const bodyToValidate = (isChatCompletions || isChatbot)
       ? excludeMessageContent(request.body as Record<string, unknown>)
       : (request.body as Record<string, unknown>);
 

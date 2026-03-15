@@ -19,7 +19,7 @@ export default function Footer() {
               <span className="text-sm font-medium text-text-primary">FujiTrace</span>
             </div>
             <p className="text-sm text-text-muted leading-relaxed">
-              LLMの可観測性・検証・<br />
+              AIの可観測性・検証・<br />
               AIエージェントトレースプラットフォーム
             </p>
           </div>

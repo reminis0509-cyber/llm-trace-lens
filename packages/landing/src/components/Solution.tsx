@@ -2,7 +2,7 @@ const solutions = [
   {
     step: '01',
     title: '構造化レスポンス強制',
-    description: '全LLM出力を標準JSON形式に変換。回答、信頼度、根拠を機械的に検証可能に。',
+    description: '全AI出力を標準JSON形式に変換。回答、信頼度、根拠を機械的に検証可能に。',
   },
   {
     step: '02',

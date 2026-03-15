@@ -73,7 +73,7 @@ export default function CompanyPage() {
                   事業内容
                 </th>
                 <td className="px-4 sm:px-6 py-4 text-sm text-text-primary">
-                  LLMオブザーバビリティプラットフォームの開発・運営
+                  AIオブザーバビリティプラットフォームの開発・運営
                 </td>
               </tr>
               <tr>

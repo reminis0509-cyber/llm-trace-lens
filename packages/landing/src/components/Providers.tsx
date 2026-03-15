@@ -37,7 +37,7 @@ export default function Providers() {
             Providers
           </span>
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            主要LLMプロバイダに対応
+            主要AIプロバイダに対応
           </h2>
           <p className="text-lg text-text-secondary max-w-xl mx-auto">
             すべてのプロバイダでストリーミング対応。統一インターフェースで管理

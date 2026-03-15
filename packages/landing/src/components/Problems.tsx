@@ -1,8 +1,8 @@
 const problems = [
   {
     title: 'ハルシネーション',
-    subtitle: 'LLMの嘘',
-    description: 'LLMは自信満々に誤った情報を生成。ビジネスでの誤情報提供は信頼性を大きく損なう。',
+    subtitle: 'AIの嘘',
+    description: 'AIは自信満々に誤った情報を生成。ビジネスでの誤情報提供は信頼性を大きく損なう。',
     borderColor: 'border-l-status-fail',
   },
   {
@@ -14,7 +14,7 @@ const problems = [
   {
     title: '機密情報の漏洩',
     subtitle: 'PII・APIキー露出',
-    description: 'クレジットカード、マイナンバー、APIキー等がLLM出力に含まれるリスク。',
+    description: 'クレジットカード、マイナンバー、APIキー等がAI出力に含まれるリスク。',
     borderColor: 'border-l-status-block',
   },
   {
@@ -35,10 +35,10 @@ export default function Problems() {
             The Challenge
           </span>
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            LLM活用における課題
+            AI活用における課題
           </h2>
           <p className="text-lg text-text-secondary max-w-xl mx-auto">
-            ビジネスでLLMを活用する際、見過ごせないリスクが存在する
+            ビジネスでAIを活用する際、見過ごせないリスクが存在する
           </p>
         </div>
 

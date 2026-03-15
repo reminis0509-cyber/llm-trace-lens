@@ -57,7 +57,7 @@ export default function Features() {
             エンタープライズ向けフル機能
           </h2>
           <p className="text-lg text-text-secondary max-w-xl mx-auto">
-            LLMの可観測性・検証・エージェントトレースに必要なすべて
+            AIの可観測性・検証・エージェントトレースに必要なすべて
           </p>
         </div>
 

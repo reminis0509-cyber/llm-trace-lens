@@ -46,7 +46,7 @@ export default function PrivacyPage() {
           {/* 前文 */}
           <div>
             <p className="text-text-secondary leading-relaxed">
-              FujiTrace（運営: 個人事業）（以下「当方」といいます）は、当方が提供するLLM可観測性プラットフォーム「FujiTrace」（以下「本サービス」といいます）における個人情報の取り扱いについて、以下のとおりプライバシーポリシー（以下「本ポリシー」といいます）を定めます。
+              FujiTrace（運営: 個人事業）（以下「当方」といいます）は、当方が提供するAI可観測性プラットフォーム「FujiTrace」（以下「本サービス」といいます）における個人情報の取り扱いについて、以下のとおりプライバシーポリシー（以下「本ポリシー」といいます）を定めます。
             </p>
           </div>
 
@@ -68,7 +68,7 @@ export default function PrivacyPage() {
                   <span className="font-medium text-text-primary">利用データ</span>：サービスの利用状況、ログイン履歴、機能利用状況等
                 </li>
                 <li>
-                  <span className="font-medium text-text-primary">LLMトレースデータ</span>：本サービスを通じて記録されるLLM APIの呼び出し履歴（プロンプト、レスポンス、トークン数、レイテンシ等のメタデータ）
+                  <span className="font-medium text-text-primary">AIトレースデータ</span>：本サービスを通じて記録されるAI APIの呼び出し履歴（プロンプト、レスポンス、トークン数、レイテンシ等のメタデータ）
                 </li>
                 <li>
                   <span className="font-medium text-text-primary">通信情報</span>：IPアドレス、ブラウザ情報、デバイス情報等
@@ -128,11 +128,11 @@ export default function PrivacyPage() {
           {/* 4. LLMトレースデータの取り扱い */}
           <article>
             <h2 className="text-xl font-semibold text-text-primary mb-4">
-              4. LLMトレースデータの取り扱い
+              4. AIトレースデータの取り扱い
             </h2>
             <div className="space-y-3 text-text-secondary leading-relaxed">
               <p>
-                本サービスの中核機能であるLLMトレースデータの取り扱いについて、以下のとおり定めます。
+                本サービスの中核機能であるAIトレースデータの取り扱いについて、以下のとおり定めます。
               </p>
               <div className="surface-card p-6 space-y-3 my-4">
                 <p>
