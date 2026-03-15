@@ -15,14 +15,18 @@ const CHART_BAR_COLOR = '#3f3f46';
 const CHART_BAR_HOVER = '#6ee7b7';
 const CHART_GRID_COLOR = 'rgba(63, 63, 70, 0.3)';
 
-export function StatsPanel() {
+interface StatsPanelProps {
+  refreshTrigger?: number;
+}
+
+export function StatsPanel({ refreshTrigger = 0 }: StatsPanelProps) {
   const [stats, setStats] = useState<ProviderStats[]>([]);
   const [traces, setTraces] = useState<Trace[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [refreshTrigger]);
 
   async function loadData() {
     setLoading(true);

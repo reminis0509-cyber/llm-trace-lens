@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Activity, Key, MessageSquare, List, BarChart3, TrendingUp, Link2, Settings as SettingsIcon, LogOut, Users, Menu, X, Building2, CreditCard, Shield } from 'lucide-react';
 import { TraceList } from '../components/TraceList';
 import { TraceDetail } from '../components/TraceDetail';
@@ -41,8 +41,14 @@ export function Dashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('apikeys');
   const [selectedTrace, setSelectedTrace] = useState<Trace | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [statsRefreshTrigger, setStatsRefreshTrigger] = useState(0);
   const { user, signOut } = useAuth();
   const { workspaceId, isSystemAdmin } = useRole();
+
+  // Callback for when TraceList receives a new real-time trace
+  const handleNewTrace = useCallback(() => {
+    setStatsRefreshTrigger((prev) => prev + 1);
+  }, []);
 
   const tabs = useMemo(() => {
     if (isSystemAdmin) {
@@ -174,6 +180,8 @@ export function Dashboard() {
                   <TraceList
                     onSelect={setSelectedTrace}
                     selectedId={selectedTrace?.id}
+                    workspaceId={workspaceId || 'default'}
+                    onNewTrace={handleNewTrace}
                   />
                 )}
               </div>
@@ -183,6 +191,8 @@ export function Dashboard() {
                   <TraceList
                     onSelect={setSelectedTrace}
                     selectedId={selectedTrace?.id}
+                    workspaceId={workspaceId || 'default'}
+                    onNewTrace={handleNewTrace}
                   />
                 </div>
                 {selectedTrace && (
@@ -200,7 +210,7 @@ export function Dashboard() {
             <div className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
-                  <StatsPanel />
+                  <StatsPanel refreshTrigger={statsRefreshTrigger} />
                 </div>
                 <div>
                   <StorageUsage />

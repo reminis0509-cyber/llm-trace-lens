@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
-import { RefreshCw, List } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { RefreshCw, List, Radio } from 'lucide-react';
 import { fetchTraces } from '../api/client';
+import { useRealtimeTraces } from '../hooks/useRealtimeTraces';
 import type { Trace, ValidationLevel } from '../types';
 
 // Helper to safely render any value as string (prevents React error #31)
@@ -15,6 +16,7 @@ interface Props {
   onSelect: (trace: Trace) => void;
   selectedId?: string;
   workspaceId?: string;
+  onNewTrace?: () => void;
 }
 
 const STATUS_BAR_STYLES: Record<ValidationLevel, string> = {
@@ -24,72 +26,21 @@ const STATUS_BAR_STYLES: Record<ValidationLevel, string> = {
   BLOCK: 'border-l-status-block',
 };
 
-export function TraceList({ onSelect, selectedId, workspaceId }: Props) {
+export function TraceList({ onSelect, selectedId, workspaceId, onNewTrace }: Props) {
   const [traces, setTraces] = useState<Trace[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
   const [providerFilter, setProviderFilter] = useState<string>('all');
-  const [nextUpdateTime, setNextUpdateTime] = useState<string>('');
-  const loadTracesRef = useRef<() => void>();
+  const [newTraceCount, setNewTraceCount] = useState(0);
+  const onNewTraceRef = useRef(onNewTrace);
 
-  // Keep loadTraces ref up to date
+  // Keep onNewTrace ref up to date
   useEffect(() => {
-    loadTracesRef.current = loadTraces;
-  });
+    onNewTraceRef.current = onNewTrace;
+  }, [onNewTrace]);
 
-  // Format time in JST
-  const formatJSTTime = (date: Date): string => {
-    return date.toLocaleTimeString('ja-JP', {
-      timeZone: 'Asia/Tokyo',
-      hour: '2-digit',
-      minute: '2-digit',
-    }) + ' JST';
-  };
-
-  // Auto-refresh at the start of each minute
-  useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout>;
-    let intervalId: ReturnType<typeof setInterval>;
-
-    const scheduleNextUpdate = () => {
-      const now = new Date();
-      const secondsUntilNextMinute = 60 - now.getSeconds();
-      const msUntilNextMinute = secondsUntilNextMinute * 1000 - now.getMilliseconds();
-
-      const nextMinute = new Date(now.getTime() + msUntilNextMinute);
-      setNextUpdateTime(formatJSTTime(nextMinute));
-
-      timeoutId = setTimeout(() => {
-        if (loadTracesRef.current) {
-          loadTracesRef.current();
-        }
-
-        intervalId = setInterval(() => {
-          if (loadTracesRef.current) {
-            loadTracesRef.current();
-          }
-          const next = new Date();
-          next.setMinutes(next.getMinutes() + 1);
-          next.setSeconds(0);
-          setNextUpdateTime(formatJSTTime(next));
-        }, 60000);
-      }, msUntilNextMinute);
-    };
-
-    scheduleNextUpdate();
-
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, []);
-
-  useEffect(() => {
-    loadTraces();
-  }, [filter, providerFilter]);
-
-  async function loadTraces() {
+  const loadTraces = useCallback(async () => {
     setLoading(true);
     try {
       const result = await fetchTraces({
@@ -104,7 +55,58 @@ export function TraceList({ onSelect, selectedId, workspaceId }: Props) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [filter, providerFilter]);
+
+  // Manual refresh: reload and reset the new trace counter
+  const handleManualRefresh = useCallback(() => {
+    setNewTraceCount(0);
+    loadTraces();
+  }, [loadTraces]);
+
+  // Handle incoming real-time trace with debouncing to prevent API flooding
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleNewTrace = useCallback(() => {
+    setNewTraceCount((prev) => prev + 1);
+    // Debounce: coalesce rapid events into a single refetch (2s window)
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      debounceTimerRef.current = null;
+      loadTraces();
+      if (onNewTraceRef.current) {
+        onNewTraceRef.current();
+      }
+    }, 2000);
+  }, [loadTraces]);
+
+  // Handle fallback polling (when Supabase is not configured)
+  const handlePoll = useCallback(() => {
+    loadTraces();
+  }, [loadTraces]);
+
+  // Subscribe to real-time trace updates
+  const { isConnected } = useRealtimeTraces({
+    workspaceId: workspaceId || 'default',
+    onNewTrace: handleNewTrace,
+    onPoll: handlePoll,
+    fallbackPollingInterval: 30000,
+    enabled: true,
+  });
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Initial load and reload on filter change
+  useEffect(() => {
+    loadTraces();
+  }, [loadTraces]);
 
   function formatTime(timestamp: string) {
     return new Date(timestamp).toLocaleString('ja-JP', {
@@ -168,15 +170,26 @@ export function TraceList({ onSelect, selectedId, workspaceId }: Props) {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            {nextUpdateTime && (
+            {isConnected ? (
+              <span className="flex items-center gap-1.5 text-xs text-status-pass font-mono">
+                <Radio className="w-3 h-3" />
+                リアルタイム
+              </span>
+            ) : (
               <span className="text-xs text-text-muted font-mono">
-                次回更新: {nextUpdateTime}
+                ポーリング (30s)
+              </span>
+            )}
+            {newTraceCount > 0 && (
+              <span className="text-xs text-accent font-mono tabular-nums">
+                +{newTraceCount} 新着
               </span>
             )}
             <button
-              onClick={loadTraces}
+              onClick={handleManualRefresh}
               className="p-2 text-text-secondary hover:text-text-primary hover:bg-base-elevated rounded-card transition-colors duration-120"
               title="更新"
+              aria-label="トレースリストを更新"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>

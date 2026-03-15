@@ -10,6 +10,17 @@ interface NewTracePayload {
   latencyMs?: number;
 }
 
+/** Validate that a broadcast payload has the expected shape */
+function isValidTracePayload(payload: unknown): payload is NewTracePayload {
+  if (payload === null || typeof payload !== 'object') return false;
+  const p = payload as Record<string, unknown>;
+  return (
+    typeof p.id === 'string' && p.id.length > 0 && p.id.length <= 256 &&
+    typeof p.model === 'string' && p.model.length <= 256 &&
+    typeof p.timestamp === 'string' && p.timestamp.length <= 64
+  );
+}
+
 interface UseRealtimeTracesOptions {
   workspaceId: string | null;
   onNewTrace?: (trace: NewTracePayload) => void;
@@ -30,10 +41,14 @@ export function useRealtimeTraces({
   enabled = true,
 }: UseRealtimeTracesOptions) {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const onNewTraceRef = useRef(onNewTrace);
   const onPollRef = useRef(onPoll);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Keep onPoll ref up to date
+  // Keep callback refs up to date without triggering re-subscription
+  useEffect(() => {
+    onNewTraceRef.current = onNewTrace;
+  }, [onNewTrace]);
   useEffect(() => {
     onPollRef.current = onPoll;
   }, [onPoll]);
@@ -56,8 +71,8 @@ export function useRealtimeTraces({
     const channel = supabase
       .channel(`workspace:${workspaceId}`)
       .on('broadcast', { event: 'new_trace' }, (message) => {
-        if (onNewTrace && message.payload) {
-          onNewTrace(message.payload as NewTracePayload);
+        if (onNewTraceRef.current && message.payload && isValidTracePayload(message.payload)) {
+          onNewTraceRef.current(message.payload);
         }
       })
       .subscribe((status) => {
@@ -66,7 +81,7 @@ export function useRealtimeTraces({
       });
 
     channelRef.current = channel;
-  }, [workspaceId, onNewTrace, enabled]);
+  }, [workspaceId, enabled]);
 
   // Setup subscription
   useEffect(() => {
