@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0a0a0f"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="peak1" x1="520" y1="140" x2="520" y2="340" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#1e40af"/>
+    </linearGradient>
+    <linearGradient id="peak2" x1="660" y1="170" x2="660" y2="340" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#93c5fd"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <linearGradient id="trace1" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0"/>
+      <stop offset="30%" stop-color="#3b82f6" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#60a5fa" stop-opacity="0.1"/>
+    </linearGradient>
+    <linearGradient id="trace2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#6366f1" stop-opacity="0"/>
+      <stop offset="40%" stop-color="#6366f1" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#818cf8" stop-opacity="0.08"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Subtle grid -->
+  <g opacity="0.03" stroke="#60a5fa" stroke-width="0.5">
+    <line x1="0" y1="126" x2="1200" y2="126"/>
+    <line x1="0" y1="252" x2="1200" y2="252"/>
+    <line x1="0" y1="378" x2="1200" y2="378"/>
+    <line x1="0" y1="504" x2="1200" y2="504"/>
+    <line x1="240" y1="0" x2="240" y2="630"/>
+    <line x1="480" y1="0" x2="480" y2="630"/>
+    <line x1="720" y1="0" x2="720" y2="630"/>
+    <line x1="960" y1="0" x2="960" y2="630"/>
+  </g>
+
+  <!-- Abstract geometric mountain mark -->
+  <!-- Left peak (taller, darker) -->
+  <path d="M530 150 L440 340 L470 340 L530 220 L590 340 L620 340 Z" fill="url(#peak1)" opacity="0.95"/>
+
+  <!-- Right peak (shorter, lighter, overlapping) -->
+  <path d="M650 185 L570 340 L600 340 L650 245 L700 340 L730 340 Z" fill="url(#peak2)" opacity="0.9"/>
+
+  <!-- Overlap intersection - blend effect -->
+  <path d="M590 340 L570 340 L590 303 Z" fill="#2563eb" opacity="0.7"/>
+
+  <!-- Subtle glow under mark -->
+  <ellipse cx="585" cy="348" rx="100" ry="6" fill="#3b82f6" opacity="0.1"/>
+
+  <!-- Trace lines -->
+  <path d="M0 400 Q150 400 250 385 T500 370 T750 380 T1000 365 L1200 370" stroke="url(#trace1)" stroke-width="1.5" fill="none"/>
+  <path d="M0 420 Q200 420 300 410 T550 400 T800 412 T1050 398 L1200 405" stroke="url(#trace2)" stroke-width="1" fill="none"/>
+
+  <!-- Small data dots -->
+  <circle cx="250" cy="385" r="2.5" fill="#60a5fa" opacity="0.5"/>
+  <circle cx="500" cy="370" r="2" fill="#60a5fa" opacity="0.6"/>
+  <circle cx="750" cy="380" r="2.5" fill="#60a5fa" opacity="0.4"/>
+  <circle cx="300" cy="410" r="2" fill="#818cf8" opacity="0.4"/>
+  <circle cx="800" cy="412" r="2" fill="#818cf8" opacity="0.35"/>
+
+  <!-- FujiTrace text -->
+  <text x="600" y="478" text-anchor="middle" font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" font-size="56" font-weight="700" fill="#f0f6ff" letter-spacing="1">
+    FujiTrace
+  </text>
+
+  <!-- Tagline -->
+  <text x="600" y="520" text-anchor="middle" font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#64748b" letter-spacing="5">
+    LLM OBSERVABILITY PLATFORM
+  </text>
+</svg>
