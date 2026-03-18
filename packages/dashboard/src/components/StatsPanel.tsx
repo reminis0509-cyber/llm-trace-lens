@@ -94,8 +94,8 @@ export function StatsPanel({ refreshTrigger = 0 }: StatsPanelProps) {
           value={
             hasData
               ? Math.round(
-                  traces.reduce((sum, t) => sum + t.validation.score, 0) /
-                    traces.length
+                  (traces.reduce((sum, t) => sum + t.validation.score, 0) /
+                    traces.length) * 100
                 )
               : 0
           }

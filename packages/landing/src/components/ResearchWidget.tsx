@@ -821,9 +821,17 @@ export default function ResearchWidget() {
   useEffect(() => {
     if (report && !prevReportRef.current) {
       setReportExpanded(true);
+      setMobileTab('report');
     }
     prevReportRef.current = report;
   }, [report]);
+
+  /* When switching to report tab on mobile, auto-expand if report exists */
+  useEffect(() => {
+    if (mobileTab === 'report' && report) {
+      setReportExpanded(true);
+    }
+  }, [mobileTab, report]);
 
   const hasStarted = steps.length > 0 || isRunning;
 

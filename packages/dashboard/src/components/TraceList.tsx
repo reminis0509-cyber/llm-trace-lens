@@ -251,7 +251,7 @@ export function TraceList({ onSelect, selectedId, workspaceId, onNewTrace }: Pro
                   {extractPromptDisplay(trace.prompt)}
                 </p>
                 <span className="text-2xl font-mono tabular-nums text-text-primary flex-shrink-0">
-                  {trace.validation.score}
+                  {Math.round(trace.validation.score * 100)}
                   <span className="text-sm text-text-muted opacity-0 group-hover:opacity-100 transition-opacity">
                     /100
                   </span>

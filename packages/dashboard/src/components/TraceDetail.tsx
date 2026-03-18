@@ -59,7 +59,7 @@ export function TraceDetail({ trace, onClose, apiKey }: Props) {
             <span className="text-sm font-medium text-text-primary">
               {trace.validation.overall}
             </span>
-            <span className="text-2xl font-mono tabular-nums text-text-primary">{trace.validation.score}</span>
+            <span className="text-2xl font-mono tabular-nums text-text-primary">{Math.round(trace.validation.score * 100)}</span>
           </div>
           <div className="space-y-2">
             {trace.validation.rules.map((rule, i) => (
