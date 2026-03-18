@@ -45,8 +45,10 @@ export default function Architecture() {
             {/* FujiTrace */}
             <div className="text-center">
               <div className="bg-accent-dim border border-accent/30 rounded-card p-4 sm:p-6 mb-4">
-                <svg className="w-8 h-8 sm:w-10 sm:h-10 mx-auto text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                <svg className="w-8 h-8 sm:w-10 sm:h-10 mx-auto" viewBox="0 0 32 32" fill="none">
+                  <path d="M11.5 8 L7 22 L9.2 22 L11.5 14.5 L13.8 22 L16 22 Z" fill="#93c5fd"/>
+                  <path d="M20 10.5 L16.2 22 L18.4 22 L20 15.5 L21.6 22 L23.8 22 Z" fill="#60a5fa"/>
+                  <path d="M16 22 L15.2 22 L16 19.2 Z" fill="#2563eb" opacity="0.7"/>
                 </svg>
               </div>
               <span className="text-sm font-medium text-text-primary">FujiTrace</span>
