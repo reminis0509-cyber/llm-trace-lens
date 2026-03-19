@@ -7,6 +7,7 @@ import Problems from './components/Problems';
 import Solution from './components/Solution';
 import Features from './components/Features';
 import Architecture from './components/Architecture';
+import EvaluationStandards from './components/EvaluationStandards';
 import Partners from './components/Partners';
 import Providers from './components/Providers';
 import Pricing from './components/Pricing';
@@ -53,6 +54,8 @@ export default function App() {
         <Features />
         <div className="section-divider" />
         <Architecture />
+        <div className="section-divider" />
+        <EvaluationStandards />
         <div className="section-divider" />
         <Partners />
         <div className="section-divider" />
