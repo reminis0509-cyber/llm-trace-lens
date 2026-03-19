@@ -547,4 +547,4 @@ Error: password authentication failed
 ## サポート
 
 問題が発生した場合は GitHub Issues で報告してください:
-https://github.com/anthropics/fujitrace/issues
+https://github.com/reminis0509-cyber/llm-trace-lens/issues

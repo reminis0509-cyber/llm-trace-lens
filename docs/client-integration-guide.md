@@ -141,8 +141,8 @@ client = OpenAI(
 | Provider | モデル名の例 | 自動検出パターン |
 |----------|-------------|-----------------|
 | OpenAI | `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo`, `o1-preview` | `gpt-*`, `o1*` |
-| Anthropic | `claude-3-5-sonnet-20241022`, `claude-3-opus-20240229` | `claude*` |
-| Google Gemini | `gemini-1.5-pro`, `gemini-1.5-flash` | `gemini*` |
+| Anthropic | `claude-opus-4-20250514`, `claude-sonnet-4-20250514`, `claude-3-5-sonnet-20241022` | `claude*` |
+| Google Gemini | `gemini-2.0-flash`, `gemini-1.5-pro`, `gemini-1.5-flash` | `gemini*` |
 
 > **注意**: プロバイダーを明示的に指定したい場合は、リクエストボディに `provider` パラメータを追加できます。
 

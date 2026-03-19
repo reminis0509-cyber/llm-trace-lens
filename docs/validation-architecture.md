@@ -2,7 +2,7 @@
 
 このドキュメントでは、fujitrace の検証（Validation）システムについて解説します。
 
-**最終更新**: 2026年2月23日（v0.5.3）
+**最終更新**: 2026年3月（v0.6.0）
 
 ---
 
@@ -596,7 +596,7 @@ A:
 | 精度 | 既知パターンのみ検出 | 文脈理解による高精度検出 |
 | 用途 | 即座のリスク検出 | 詳細な品質評価 |
 
-現在はPhase 1としてパターンベース評価を実装。Phase 2でLLM-as-Judgeを追加予定。
+パターンベース評価とLLM-as-Judge評価の両方が実装済みです。パターンベース評価は全リクエストに対して実行され、LLM-as-Judge評価はサンプリングレートに基づいて実行されます。
 
 ### Q: Secret Managerの暗号化キーはどう生成する？
 
@@ -627,6 +627,6 @@ ENABLE_API_KEY_CACHE=false
 
 ## 11. 関連ドキュメント
 
-- [DESIGN_PHILOSOPHY.md](./DESIGN_PHILOSOPHY.md) - 設計思想
-- [README.md](./README.md) - プロジェクト概要
-- [REPORT.md](./REPORT.md) - 実装状況レポート
+- [設計思想](./design-philosophy.md) - 設計思想
+- [README](../README.md) - プロジェクト概要
+- [製品概要](./product-overview.md) - 機能一覧・FAQ

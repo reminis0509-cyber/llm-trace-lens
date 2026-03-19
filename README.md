@@ -11,15 +11,15 @@ FujiTrace は、LLM の入出力をリアルタイムで監視・評価・保護
 
 ## 特徴
 
-- **1行で導入** — プロキシ型アーキテクチャ。SDKの組み込み不要、URLを変えるだけ
-- **AIエージェント対応** — ReActパターンのステップ・ツール呼び出し・判断プロセスを完全トレース
-- **LLM-as-Judge評価** — OpenAI / Claude 両対応。忠実性・回答関連性・ハルシネーション検出を自動スコアリング
-- **日本語PII検出** — マイナンバー、住所、電話番号、パスポート、保険証、免許証、郵便番号を検出・ブロック（15+パターン）
-- **マルチプロバイダー** — OpenAI、Anthropic、Google Gemini に対応（ストリーミング完全対応）
-- **プラン課金基盤** — Free / Pro / Enterprise の3段階。月次トレースカウント・自動制限
-- **ダッシュボード** — トレース一覧・統計・エージェントステップ可視化・業界ベンチマーク
-- **Webhook通知** — Slack・Teams・メール連携。ブロック・警告・コストアラート自動通知
-- **セキュリティ** — fail-closed 予算ガード、入力検証（SQLi/XSS）、CSP、RBAC、暗号化APIキー管理
+- **1行で導入** -- プロキシ型アーキテクチャ。SDKの組み込み不要、URLを変えるだけ
+- **AIエージェント対応** -- ReActパターンのステップ・ツール呼び出し・判断プロセスを完全トレース
+- **LLM-as-Judge評価** -- Faithfulness / Answer Relevance / Context Utilization / Hallucination Rate を自動スコアリング
+- **日本語PII検出** -- マイナンバー、住所、電話番号、パスポート、保険証、免許証、郵便番号を検出・ブロック（15+パターン）
+- **マルチプロバイダー** -- OpenAI、Anthropic、Google Gemini に対応（ストリーミング完全対応）
+- **5段階プラン課金** -- Free / Pro / Enterprise Standard / Plus / Premium
+- **ダッシュボード** -- トレース一覧・統計・エージェントステップ可視化・業界ベンチマーク
+- **Webhook通知** -- Slack・Teams・メール連携。ブロック・警告・コストアラート自動通知
+- **セキュリティ** -- fail-closed 予算ガード、入力検証（SQLi/XSS）、CSP、RBAC、暗号化APIキー管理
 
 ## 対応プロバイダー
 
@@ -71,61 +71,23 @@ npm run dev
 
 ## 使い方
 
-### 基本的なリクエスト
+既存のLLM APIコールのURLを FujiTrace に向けるだけ:
 
-既存のLLM APIコールのURLを `localhost:3000` に向けるだけ:
+```python
+from openai import OpenAI
 
-```bash
-curl -X POST http://localhost:3000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "provider": "openai",
-    "model": "gpt-4o",
-    "messages": [
-      {"role": "user", "content": "東京の天気を教えて"}
-    ]
-  }'
+client = OpenAI(
+    api_key="sk-your-openai-key",
+    base_url="http://localhost:3000/v1"  # この1行を追加
+)
+
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "東京の天気を教えて"}]
+)
 ```
 
-### ストリーミング
-
-```bash
-curl -N -X POST http://localhost:3000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "provider": "openai",
-    "model": "gpt-4o",
-    "stream": true,
-    "messages": [
-      {"role": "user", "content": "1から5まで数えて"}
-    ]
-  }'
-```
-
-### エージェントトレース
-
-AIエージェントの判断プロセスを構造化して記録:
-
-```bash
-curl -X POST http://localhost:3000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "provider": "openai",
-    "model": "gpt-4o",
-    "traceType": "agent",
-    "agentTrace": {
-      "goal": "売上レポートを作成する",
-      "steps": [],
-      "status": "in_progress",
-      "stepCount": 0,
-      "toolCallCount": 0,
-      "totalDurationMs": 0
-    },
-    "messages": [
-      {"role": "user", "content": "先月の売上データを集計して"}
-    ]
-  }'
-```
+詳しくは [クライアント接続ガイド](docs/client-integration-guide.md) を参照してください。
 
 ## アーキテクチャ
 
@@ -141,70 +103,33 @@ curl -X POST http://localhost:3000/v1/chat/completions \
                     └── ダッシュボード表示
 ```
 
-## ダッシュボード
+## プラン
 
-React製のダッシュボードUIで、以下を可視化:
+| | Free | Pro | Enterprise |
+|---|---|---|---|
+| 月額 | 無料 | ¥9,800 | ¥25,000〜 |
+| 月間トレース | 5,000 | 50,000 | 100,000〜無制限 |
+| LLM-as-Judge | - | 月1,000回 | 月3,000回〜無制限 |
+| データ保持 | 7日 | 90日 | 180日〜無制限 |
+| ワークスペース | 1 | 3 | 無制限 |
+| メンバー | 2名 | 10名 | 無制限 |
+| SSO | - | - | Plus以上 |
+| SLA | - | 99.5% | 99.5%〜99.95% |
 
-- **トレース一覧** — フィルタ・検索・詳細表示。評価バッジ付き
-- **エージェントステップフロー** — ReActパターンの思考→行動→観察を図式表示
-- **統計パネル** — プロバイダー別・モデル別の利用統計
-- **コスト分析** — モデル別コスト・月次推移・予算消化率
-- **業界ベンチマーク** — 匿名化された業界平均との比較（Enterprise）
-- **メンバー管理** — ワークスペースへの招待・ロール設定
-- **連携設定** — Slack / Teams / Email のWebhook設定
+Enterprise は年契約のみ（Standard / Plus / Premium の3段階）。
+OSSセルフホスト版は全機能無料で利用可能です。
 
-## 環境変数
+## ドキュメント
 
-```bash
-# データベース（PostgreSQL推奨）
-DATABASE_TYPE=postgres          # postgres / kv / sqlite
-DATABASE_URL=postgresql://user:password@localhost:5432/fujitrace
-
-# プロバイダーAPIキー（使用するものだけ設定）
-OPENAI_API_KEY=sk-your-api-key
-ANTHROPIC_API_KEY=your-anthropic-key
-GOOGLE_API_KEY=your-google-key
-
-# サーバー設定
-PORT=3000
-LOG_LEVEL=info
-
-# 認証（オプション）
-ENABLE_AUTH=false
-API_KEYS=your-secret-key-1,your-secret-key-2
-ADMIN_API_KEY=your-admin-key    # /admin ルートの認証
-
-# OAuth/SSO（オプション）
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-
-# LLM-as-Judge評価（オプション）
-ENABLE_EVALUATION=true
-EVALUATION_MODEL=gpt-4o-mini
-EVALUATION_PROVIDER=openai        # openai or anthropic
-EVALUATION_SAMPLING_RATE=1.0      # 0.0〜1.0
-EVALUATION_TIMEOUT_MS=5000
-
-# 予算管理（オプション）
-BUDGET_LIMIT=100                  # USD
-BUDGET_WARN_THRESHOLD=0.9         # 90%で警告
-
-# Webhook通知（オプション）
-WEBHOOK_ENABLED=true
-WEBHOOK_URL=https://hooks.slack.com/services/xxx
-```
-
-全ての設定項目は [`.env.example`](.env.example) を参照してください。
-
-## ストレージ
-
-| ストレージ | 用途 | 設定 |
-|-----------|------|------|
-| **PostgreSQL** | 本番環境推奨 | `DATABASE_TYPE=postgres` |
-| **SQLite** | ローカル開発 | `DATABASE_TYPE=sqlite` |
-| **Vercel KV** | 開発・プロトタイピング | `DATABASE_TYPE=kv` |
-
-> 本番環境では必ずPostgreSQLを使用してください。
+| ドキュメント | 内容 |
+|------------|------|
+| [製品概要](docs/product-overview.md) | 機能一覧・FAQ・詳細仕様 |
+| [設計思想](docs/design-philosophy.md) | 3つの設計原則 |
+| [検証アーキテクチャ](docs/validation-architecture.md) | バリデーション・PII検出の技術詳細 |
+| [クライアント接続ガイド](docs/client-integration-guide.md) | SDK別の導入手順・フレームワーク別ガイド |
+| [デプロイガイド](docs/deployment-guide.md) | PostgreSQL本番環境のセットアップ |
+| [料金モデル](docs/pricing-model.md) | 5段階プラン設計・コスト構造 |
+| [GTM戦略](docs/strategy-2026.md) | 市場分析・競合分析・Go-to-Market戦略 |
 
 ## テスト
 
@@ -216,20 +141,7 @@ npm test
 npm run test:coverage
 ```
 
-## プラン
-
-| | Free | Pro | Enterprise |
-|---|---|---|---|
-| 月額 | 無料 | ¥9,800 | お問い合わせ |
-| 月間トレース | 5,000 | 50,000 | 無制限 |
-| LLM-as-Judge | - | 月1,000回 | 無制限 |
-| データ保持 | 7日 | 90日 | 365日 |
-| ワークスペース | 1 | 3 | 無制限 |
-| メンバー | 2名 | 10名 | 無制限 |
-| SSO | - | - | 対応 |
-| SLA | - | 99.5% | 99.9% |
-
-※ OSSセルフホスト版は全機能無料で利用可能です。
+142テストケース（バリデーション、評価、ミドルウェア、ストレージ）。
 
 ## セキュリティ
 
@@ -237,9 +149,19 @@ npm run test:coverage
 - **入力検証**: SQLインジェクション・XSSパターンを検出・拒否
 - **CSP**: Content Security Policy で `unsafe-inline` 排除
 - **RBAC**: ワークスペース単位のロールベースアクセス制御（owner / admin / member）
-- **暗号化APIキー管理**: プロバイダーAPIキーをAES暗号化で保存・ローテーション対応
+- **暗号化APIキー管理**: プロバイダーAPIキーをAES-256-GCM暗号化で保存・ローテーション対応
 - **日本語PII検出**: マイナンバー、住所、電話番号、パスポート、保険証、免許証、郵便番号（15+パターン）
 - **タイミングセーフ認証**: SHA-256ベースのAPIキー比較でタイミング攻撃を防止
+
+## 技術スタック
+
+- **Backend**: Fastify 5 + TypeScript (ESM)
+- **Frontend**: React 18 + Vite + TailwindCSS + Recharts
+- **Landing Page**: React 18 + Vite + Three.js
+- **Database**: PostgreSQL (本番) / SQLite (開発)
+- **Auth**: Supabase, Google OAuth, Azure AD
+- **Payments**: Stripe
+- **Testing**: Vitest (142テストケース)
 
 ## ライセンス
 
