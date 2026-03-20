@@ -9,6 +9,65 @@ import { listWorkspaces, getWorkspace } from '../kv/client.js';
 import { getWorkspacePlan, updateWorkspacePlan } from '../plans/storage.js';
 import { getUsageStats } from '../plans/usage.js';
 import { PLANS, type PlanType, getEffectiveLimits } from '../plans/index.js';
+import { getKnex } from '../storage/knex-client.js';
+import { kv } from '@vercel/kv';
+import { getWorkspaceKey } from '../storage/models.js';
+
+/** Workspace status derived from plan state */
+type WorkspaceStatus = 'trial' | 'active' | 'expired' | 'free';
+
+/** Member info returned by admin API */
+interface WorkspaceMemberInfo {
+  email: string;
+  role: string;
+}
+
+/**
+ * Determine workspace status from plan data
+ */
+function deriveWorkspaceStatus(
+  planType: PlanType,
+  expiresAt: string | undefined,
+  subscriptionId: string | undefined,
+  trialStartedAt: string | undefined
+): WorkspaceStatus {
+  if (planType === 'free' && !expiresAt) {
+    return 'free';
+  }
+
+  if (expiresAt) {
+    const expiryDate = new Date(expiresAt);
+    const now = new Date();
+
+    if (expiryDate < now) {
+      return 'expired';
+    }
+
+    // Has future expiry with trialStartedAt and no subscription = trial
+    if (trialStartedAt && !subscriptionId) {
+      return 'trial';
+    }
+  }
+
+  // Paid plan (has subscription or no expiry on non-free plan)
+  if (planType !== 'free') {
+    return 'active';
+  }
+
+  return 'free';
+}
+
+/**
+ * Calculate remaining trial days (returns null if not a trial)
+ */
+function calculateTrialDaysRemaining(expiresAt: string | undefined): number | null {
+  if (!expiresAt) return null;
+  const now = new Date();
+  const expiry = new Date(expiresAt);
+  const diffMs = expiry.getTime() - now.getTime();
+  if (diffMs <= 0) return 0;
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+}
 
 /**
  * システム管理者メールアドレスリストを取得
@@ -99,6 +158,7 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
 
     try {
       const workspaceIds = await listWorkspaces();
+      const db = getKnex();
       const workspaces = [];
 
       for (const wsId of workspaceIds) {
@@ -110,10 +170,42 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
 
         const limits = getEffectiveLimits(plan);
 
+        // Fetch members from DB
+        let members: WorkspaceMemberInfo[] = [];
+        try {
+          const rows: Array<{ email: string; role: string }> = await db('workspace_users')
+            .select('email', 'role')
+            .where('workspace_id', wsId);
+          members = rows.map(r => ({ email: r.email, role: r.role }));
+        } catch {
+          // workspace_users table may not exist yet — return empty
+        }
+
+        // Fetch companyName from KV workspace info
+        let companyName: string | null = null;
+        try {
+          const wsInfo = await kv.get<Record<string, unknown>>(getWorkspaceKey(wsId, 'info'));
+          if (wsInfo && typeof wsInfo.companyName === 'string') {
+            companyName = wsInfo.companyName;
+          }
+        } catch {
+          // KV not available
+        }
+
+        const status = deriveWorkspaceStatus(
+          plan.planType,
+          plan.expiresAt,
+          plan.subscriptionId,
+          plan.trialStartedAt
+        );
+
         workspaces.push({
           id: wsId,
           name: workspace?.name || wsId,
+          companyName,
           createdAt: workspace?.created_at || null,
+          status,
+          trialDaysRemaining: calculateTrialDaysRemaining(plan.expiresAt),
           plan: {
             type: plan.planType,
             startedAt: plan.startedAt,
@@ -129,6 +221,7 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
             evaluationCount: usage.evaluationCount,
             month: usage.month,
           },
+          members,
         });
       }
 
@@ -236,6 +329,55 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
     } catch (error) {
       console.error('[AdminDashboard] プラン変更失敗:', error);
       return reply.code(500).send({ error: 'プラン変更に失敗しました' });
+    }
+  });
+
+  /**
+   * PUT /api/admin/workspaces/:id/company
+   * Update company name for a workspace
+   *
+   * Request body: { companyName: string }
+   * Response: { success: true, companyName: string }
+   */
+  fastify.put<{
+    Params: { id: string };
+    Body: { companyName: string };
+  }>('/api/admin/workspaces/:id/company', async (request, reply) => {
+    const userEmail = request.headers['x-user-email'] as string | undefined;
+    if (!isSystemAdmin(userEmail)) {
+      return reply.code(403).send({ error: '管理者権限が必要です' });
+    }
+
+    const { id } = request.params;
+    const { companyName } = request.body;
+
+    if (!companyName || typeof companyName !== 'string' || companyName.trim().length === 0) {
+      return reply.code(400).send({
+        error: '会社名を入力してください',
+      });
+    }
+
+    try {
+      const workspace = await getWorkspace(id);
+      if (!workspace) {
+        return reply.code(404).send({ error: 'ワークスペースが見つかりません' });
+      }
+
+      // Update workspace info in KV with companyName
+      const wsInfo = await kv.get<Record<string, unknown>>(getWorkspaceKey(id, 'info'));
+      const updatedInfo = {
+        ...wsInfo,
+        companyName: companyName.trim(),
+      };
+      await kv.set(getWorkspaceKey(id, 'info'), updatedInfo);
+
+      return reply.send({
+        success: true,
+        companyName: companyName.trim(),
+      });
+    } catch (error) {
+      console.error('[AdminDashboard] 会社名更新失敗:', error);
+      return reply.code(500).send({ error: '会社名の更新に失敗しました' });
     }
   });
 }

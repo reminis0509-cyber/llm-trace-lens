@@ -3,6 +3,11 @@ import { RoleProvider } from './contexts/RoleContext';
 import { Auth } from './pages/Auth';
 import { Dashboard } from './pages/Dashboard';
 import { InviteAccept } from './pages/InviteAccept';
+import { AdminRoute } from './pages/AdminRoute';
+
+function isAdminPath(path: string): boolean {
+  return path.startsWith('/dashboard/admin') || path.startsWith('/admin');
+}
 
 function AppContent() {
   const { user, loading, error } = useAuth();
@@ -51,6 +56,15 @@ function AppContent() {
   // Get workspace ID from URL query params or default
   const params = new URLSearchParams(window.location.search);
   const workspaceId = params.get('workspace') || 'default';
+
+  // Direct admin route: /dashboard/admin or /admin (dev)
+  if (isAdminPath(path)) {
+    return (
+      <RoleProvider initialWorkspaceId={workspaceId}>
+        <AdminRoute />
+      </RoleProvider>
+    );
+  }
 
   return (
     <RoleProvider initialWorkspaceId={workspaceId}>

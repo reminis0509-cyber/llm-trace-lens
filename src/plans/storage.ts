@@ -71,6 +71,7 @@ export async function updateWorkspacePlan(
     subscriptionId?: string;
     expiresAt?: string;
     customLimits?: WorkspacePlan['customLimits'];
+    trialStartedAt?: string;
   }
 ): Promise<WorkspacePlan> {
   const existing = await getWorkspacePlan(workspaceId);
@@ -82,6 +83,7 @@ export async function updateWorkspacePlan(
     subscriptionId: options?.subscriptionId || existing.subscriptionId,
     expiresAt: options?.expiresAt,
     customLimits: options?.customLimits,
+    trialStartedAt: options?.trialStartedAt || existing.trialStartedAt,
   };
 
   await saveWorkspacePlan(updated);

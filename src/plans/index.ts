@@ -124,6 +124,8 @@ export interface WorkspacePlan {
   subscriptionId?: string;
   /** カスタム制限値（Enterprise向けオーバーライド） */
   customLimits?: Partial<PlanLimits>;
+  /** トライアル開始日 */
+  trialStartedAt?: string;
 }
 
 /**

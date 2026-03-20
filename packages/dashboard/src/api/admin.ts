@@ -25,10 +25,21 @@ export interface AdminOverviewStats {
   totalTraces: number;
 }
 
+export type WorkspaceStatus = 'trial' | 'active' | 'expired' | 'free';
+
+export interface WorkspaceMember {
+  email: string;
+  role: string;
+}
+
 export interface AdminWorkspace {
   id: string;
   name: string;
+  companyName?: string;
   createdAt: string | null;
+  status: WorkspaceStatus;
+  trialDaysRemaining: number | null;
+  members: WorkspaceMember[];
   plan: {
     type: string;
     startedAt: string;
@@ -121,6 +132,24 @@ export const adminApi = {
     if (!res.ok) {
       const error = await res.json().catch(() => ({ error: 'Request failed' }));
       throw new Error(error.message || error.error || 'ワークスペース詳細の取得に失敗しました');
+    }
+    return res.json();
+  },
+
+  /**
+   * Update workspace company name
+   */
+  updateCompanyName: async (workspaceId: string, companyName: string): Promise<{ message: string }> => {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE}/api/admin/workspaces/${workspaceId}/company`, {
+      method: 'PUT',
+      headers,
+      credentials: 'include',
+      body: JSON.stringify({ companyName }),
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.message || error.error || '会社名の更新に失敗しました');
     }
     return res.json();
   },

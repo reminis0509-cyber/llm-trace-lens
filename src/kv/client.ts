@@ -450,6 +450,8 @@ import {
   getWorkspaceFeedbackIndexKey,
 } from '../storage/models.js';
 
+import { updateWorkspacePlan } from '../plans/storage.js';
+
 const DEFAULT_WORKSPACE_ID = 'default';
 
 /**
@@ -470,10 +472,17 @@ export async function getWorkspaceFromApiKey(apiKey: string): Promise<string | n
   }
 }
 
+/** Trial duration in days */
+const TRIAL_DURATION_DAYS = 30;
+
 /**
  * Create a new workspace
+ * Automatically starts a 30-day Pro trial (no credit card required)
  */
-export async function createWorkspace(name: string): Promise<Workspace> {
+export async function createWorkspace(
+  name: string,
+  options?: { companyName?: string }
+): Promise<Workspace> {
   const workspace: Workspace = {
     id: generateSecureId('ws'),
     name,
@@ -481,9 +490,25 @@ export async function createWorkspace(name: string): Promise<Workspace> {
   };
 
   if (isKVAvailable()) {
-    await kv.set(getWorkspaceKey(workspace.id, 'info'), workspace);
+    const workspaceInfo: Record<string, unknown> = {
+      ...workspace,
+    };
+    if (options?.companyName) {
+      workspaceInfo.companyName = options.companyName;
+    }
+    await kv.set(getWorkspaceKey(workspace.id, 'info'), workspaceInfo);
     await kv.sadd('workspaces:list', workspace.id);
   }
+
+  // Auto-start 30-day Pro trial
+  const now = new Date();
+  const trialExpiresAt = new Date(now);
+  trialExpiresAt.setDate(trialExpiresAt.getDate() + TRIAL_DURATION_DAYS);
+
+  await updateWorkspacePlan(workspace.id, 'pro', {
+    expiresAt: trialExpiresAt.toISOString(),
+    trialStartedAt: now.toISOString(),
+  });
 
   return workspace;
 }

@@ -3,7 +3,7 @@
  * プランの月間トレース数制限を強制
  */
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { getWorkspacePlan } from '../plans/storage.js';
+import { getWorkspacePlan, updateWorkspacePlan } from '../plans/storage.js';
 import { getUsageStats, incrementTraceCount } from '../plans/usage.js';
 import { getEffectiveLimits, getPlanNameJa } from '../plans/index.js';
 
@@ -42,6 +42,40 @@ export async function planGuardMiddleware(
 
     // プラン期限チェック
     if (plan.expiresAt && new Date(plan.expiresAt) < new Date()) {
+      if (!plan.subscriptionId) {
+        // Trial expired (no Stripe subscription) — auto-downgrade to Free
+        await updateWorkspacePlan(workspaceId, 'free');
+        reply.header('X-Plan-Downgraded', 'true');
+        // Update plan variable for subsequent limit checks
+        const downgradedPlan = await getWorkspacePlan(workspaceId);
+        const downgradedLimits = getEffectiveLimits(downgradedPlan);
+        const downgradedUsage = await getUsageStats(workspaceId);
+
+        // Check Free plan limits after downgrade
+        if (downgradedUsage.traceCount >= downgradedLimits.monthlyTraces) {
+          const planName = getPlanNameJa(downgradedPlan.planType);
+          reply.header('X-Plan-Type', downgradedPlan.planType);
+          reply.header('X-Usage-Traces', downgradedUsage.traceCount.toString());
+          reply.header('X-Limit-Traces', downgradedLimits.monthlyTraces.toString());
+
+          return reply.code(429).send({
+            error: 'Plan Limit Exceeded',
+            message: `トライアル期間が終了し、${planName}プランに移行しました。月間トレース上限（${downgradedLimits.monthlyTraces.toLocaleString()}件）に達しています。プランをアップグレードしてください。`,
+            usage: {
+              current: downgradedUsage.traceCount,
+              limit: downgradedLimits.monthlyTraces,
+              month: downgradedUsage.month,
+            },
+            plan: { type: downgradedPlan.planType, name: planName },
+            upgrade: { recommended: 'pro', priceMonthly: 9800 },
+          });
+        }
+
+        // Continue with Free plan limits (don't block the request)
+        return;
+      }
+
+      // Paid subscription expired — block with 402
       return reply.code(402).send({
         error: 'Payment Required',
         message: 'プランの契約期間が終了しました。更新してください。',
