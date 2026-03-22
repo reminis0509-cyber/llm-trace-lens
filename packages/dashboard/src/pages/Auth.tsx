@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Activity } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export function Auth() {
@@ -54,7 +53,11 @@ export function Auth() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-accent-cyan to-accent-emerald flex items-center justify-center">
-            <Activity className="w-8 h-8 text-navy-900" />
+            <svg className="w-8 h-8" viewBox="0 0 32 32" fill="none">
+              <path d="M11.5 8 L7 22 L9.2 22 L11.5 14.5 L13.8 22 L16 22 Z" fill="#93c5fd"/>
+              <path d="M20 10.5 L16.2 22 L18.4 22 L20 15.5 L21.6 22 L23.8 22 Z" fill="#60a5fa"/>
+              <path d="M16 22 L15.2 22 L16 19.2 Z" fill="#2563eb" opacity="0.7"/>
+            </svg>
           </div>
           <h1 className="text-2xl font-bold text-gray-100 tracking-wide">FujiTrace</h1>
           <p className="text-gray-400 mt-2">
