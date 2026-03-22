@@ -13,6 +13,11 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
     headers['X-User-Email'] = session.user.email || '';
   }
 
+  const adminToken = sessionStorage.getItem('fujitrace_admin_token');
+  if (adminToken) {
+    headers['Authorization'] = `Bearer ${adminToken}`;
+  }
+
   return headers;
 }
 
@@ -72,6 +77,30 @@ export interface AdminWorkspaceDetail extends AdminWorkspace {
 // ---- Admin API ----
 
 export const adminApi = {
+  /**
+   * Login with email and password
+   */
+  login: async (email: string, password: string): Promise<{ success: boolean; token: string }> => {
+    const res = await fetch(`${API_BASE}/api/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || 'ログインに失敗しました');
+    }
+    return res.json();
+  },
+
+  /**
+   * Logout admin session
+   */
+  logout: () => {
+    sessionStorage.removeItem('fujitrace_admin_token');
+  },
+
   /**
    * Check if current user is system admin
    */

@@ -71,9 +71,21 @@ export function RoleProvider({ children, initialWorkspaceId }: RoleProviderProps
       return;
     }
 
-    adminApi.checkAdmin()
-      .then(data => setIsSystemAdmin(data.isAdmin))
-      .catch(() => setIsSystemAdmin(false));
+    const adminToken = sessionStorage.getItem('fujitrace_admin_token');
+    if (adminToken) {
+      // Token exists, validate it
+      adminApi.checkAdmin()
+        .then(data => setIsSystemAdmin(data.isAdmin))
+        .catch(() => {
+          sessionStorage.removeItem('fujitrace_admin_token');
+          setIsSystemAdmin(false);
+        });
+    } else {
+      // Fall back to existing check
+      adminApi.checkAdmin()
+        .then(data => setIsSystemAdmin(data.isAdmin))
+        .catch(() => setIsSystemAdmin(false));
+    }
   }, [user]);
 
   // Fetch role when workspace or user changes
