@@ -20,7 +20,7 @@ export default async function benchmarkRoutes(fastify: FastifyInstance) {
    * ベンチマーク比較データを取得
    */
   fastify.get('/api/benchmark', async (request: FastifyRequest, reply: FastifyReply) => {
-    const workspaceId = (request.headers['x-workspace-id'] as string) || 'default';
+    const workspaceId = (request as unknown as { workspace?: { workspaceId?: string } }).workspace?.workspaceId || 'default';
     const { period } = request.query as { period?: string };
 
     try {
@@ -51,7 +51,7 @@ export default async function benchmarkRoutes(fastify: FastifyInstance) {
    * 現在の業種設定を取得
    */
   fastify.get('/api/benchmark/industry', async (request: FastifyRequest) => {
-    const workspaceId = (request.headers['x-workspace-id'] as string) || 'default';
+    const workspaceId = (request as unknown as { workspace?: { workspaceId?: string } }).workspace?.workspaceId || 'default';
     const industry = await getWorkspaceIndustry(workspaceId);
 
     return {
@@ -69,7 +69,7 @@ export default async function benchmarkRoutes(fastify: FastifyInstance) {
    * 業種を設定
    */
   fastify.post('/api/benchmark/industry', async (request: FastifyRequest, reply: FastifyReply) => {
-    const workspaceId = (request.headers['x-workspace-id'] as string) || 'default';
+    const workspaceId = (request as unknown as { workspace?: { workspaceId?: string } }).workspace?.workspaceId || 'default';
     const body = request.body as { industry: string };
 
     if (!body.industry || !(body.industry in INDUSTRY_LABELS)) {
@@ -100,7 +100,7 @@ export default async function benchmarkRoutes(fastify: FastifyInstance) {
    * ベンチマークメトリクスを再計算（管理者向け）
    */
   fastify.post('/api/benchmark/refresh', async (request: FastifyRequest, reply: FastifyReply) => {
-    const workspaceId = (request.headers['x-workspace-id'] as string) || 'default';
+    const workspaceId = (request as unknown as { workspace?: { workspaceId?: string } }).workspace?.workspaceId || 'default';
     const { period } = request.body as { period?: string };
 
     const targetPeriod = period || getCurrentPeriod();

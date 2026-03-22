@@ -55,6 +55,9 @@ CREATE TABLE IF NOT EXISTS traces_v2 (
   provider TEXT NOT NULL,
   model TEXT NOT NULL,
 
+  -- Multi-tenant isolation
+  workspace_id TEXT NOT NULL DEFAULT 'default',
+
   -- Request
   prompt TEXT NOT NULL,
 
@@ -83,3 +86,4 @@ CREATE TABLE IF NOT EXISTS traces_v2 (
 CREATE INDEX IF NOT EXISTS idx_traces_v2_timestamp ON traces_v2(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_traces_v2_provider ON traces_v2(provider);
 CREATE INDEX IF NOT EXISTS idx_traces_v2_validation_overall ON traces_v2(validation_overall);
+CREATE INDEX IF NOT EXISTS idx_traces_v2_workspace_id ON traces_v2(workspace_id);

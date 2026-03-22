@@ -6,7 +6,7 @@
  *   1. Token-based: POST /api/admin/login でトークンを取得し、Authorization: Bearer <token> ヘッダーで認証
  *   2. Email-based (後方互換): ADMIN_EMAILS 環境変数に含まれるメールアドレスで認証
  */
-import { randomUUID } from 'crypto';
+import { randomUUID, timingSafeEqual } from 'crypto';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { listWorkspaces, getWorkspace } from '../kv/client.js';
 import { getWorkspacePlan, updateWorkspacePlan } from '../plans/storage.js';
@@ -126,9 +126,11 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
 
     const { email, password } = request.body;
 
+    const passwordMatch = adminPassword.length === password.length &&
+      timingSafeEqual(Buffer.from(password), Buffer.from(adminPassword));
     if (
       adminEmails.includes(email.toLowerCase()) &&
-      password === adminPassword
+      passwordMatch
     ) {
       const token = randomUUID();
       adminTokens.add(token);
@@ -147,14 +149,7 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
     if (isValidAdminToken(request)) {
       return reply.send({ isAdmin: true });
     }
-
-    const userEmail = request.headers['x-user-email'] as string | undefined;
-
-    if (!userEmail || !isSystemAdmin(userEmail)) {
-      return reply.send({ isAdmin: false });
-    }
-
-    return reply.send({ isAdmin: true, email: userEmail });
+    return reply.send({ isAdmin: false });
   });
 
   /**
@@ -162,8 +157,7 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
    * 全体統計（ワークスペース数、プラン分布、推定MRR）
    */
   fastify.get('/api/admin/stats/overview', async (request: FastifyRequest, reply: FastifyReply) => {
-    const userEmail = request.headers['x-user-email'] as string | undefined;
-    if (!isValidAdminToken(request) && !isSystemAdmin(userEmail)) {
+    if (!isValidAdminToken(request)) {
       return reply.code(403).send({ error: '管理者権限が必要です' });
     }
 
@@ -205,8 +199,7 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
    * ワークスペース一覧（プラン・使用量付き）
    */
   fastify.get('/api/admin/workspaces', async (request: FastifyRequest, reply: FastifyReply) => {
-    const userEmail = request.headers['x-user-email'] as string | undefined;
-    if (!isValidAdminToken(request) && !isSystemAdmin(userEmail)) {
+    if (!isValidAdminToken(request)) {
       return reply.code(403).send({ error: '管理者権限が必要です' });
     }
 
@@ -291,8 +284,7 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
    * ワークスペース詳細
    */
   fastify.get<{ Params: { id: string } }>('/api/admin/workspaces/:id', async (request, reply) => {
-    const userEmail = request.headers['x-user-email'] as string | undefined;
-    if (!isValidAdminToken(request) && !isSystemAdmin(userEmail)) {
+    if (!isValidAdminToken(request)) {
       return reply.code(403).send({ error: '管理者権限が必要です' });
     }
 
@@ -353,8 +345,7 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
       customLimits?: Record<string, unknown>;
     };
   }>('/api/admin/workspaces/:id/plan', async (request, reply) => {
-    const userEmail = request.headers['x-user-email'] as string | undefined;
-    if (!isValidAdminToken(request) && !isSystemAdmin(userEmail)) {
+    if (!isValidAdminToken(request)) {
       return reply.code(403).send({ error: '管理者権限が必要です' });
     }
 
@@ -374,7 +365,7 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
         customLimits: customLimits as Record<string, number | boolean>,
       });
 
-      console.log(`[AdminDashboard] プラン変更: workspace=${id}, plan=${planType}, by=${userEmail}`);
+      fastify.log.info(`[AdminDashboard] プラン変更: workspace=${id}, plan=${planType}`);
 
       return reply.send({
         message: `プランを${planType}に変更しました`,
@@ -397,8 +388,7 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
     Params: { id: string };
     Body: { companyName: string };
   }>('/api/admin/workspaces/:id/company', async (request, reply) => {
-    const userEmail = request.headers['x-user-email'] as string | undefined;
-    if (!isValidAdminToken(request) && !isSystemAdmin(userEmail)) {
+    if (!isValidAdminToken(request)) {
       return reply.code(403).send({ error: '管理者権限が必要です' });
     }
 

@@ -39,7 +39,7 @@ export async function feedbackRoutes(fastify: FastifyInstance): Promise<void> {
     }
 
     // Attach workspaceId to request
-    (request as any).workspaceId = workspaceId;
+    (request as unknown as { workspaceId?: string }).workspaceId = workspaceId;
   });
 
   /**
@@ -58,7 +58,10 @@ export async function feedbackRoutes(fastify: FastifyInstance): Promise<void> {
   ) => {
     const { id: traceId } = request.params;
     const { feedbackType, reason } = request.body;
-    const workspaceId = (request as any).workspaceId;
+    const workspaceId = (request as unknown as { workspaceId?: string }).workspaceId;
+    if (!workspaceId) {
+      return reply.code(401).send({ error: 'Workspace not authenticated' });
+    }
 
     // Validate feedbackType
     const validTypes = ['false_positive', 'false_negative', 'correct'];
@@ -107,13 +110,18 @@ export async function feedbackRoutes(fastify: FastifyInstance): Promise<void> {
     reply: FastifyReply
   ) => {
     const { id: traceId } = request.params;
+    const workspaceId = (request as unknown as { workspaceId?: string }).workspaceId;
 
     try {
       const feedbacks = await getFeedbackByTrace(traceId);
+      // Filter to only return feedback belonging to the authenticated workspace
+      const filteredFeedbacks = workspaceId
+        ? feedbacks.filter((f: TraceFeedback) => f.workspaceId === workspaceId)
+        : [];
       return reply.send({
         success: true,
         traceId,
-        feedbacks,
+        feedbacks: filteredFeedbacks,
       });
     } catch (error) {
       console.error('Failed to get feedback:', error);
@@ -132,7 +140,10 @@ export async function feedbackRoutes(fastify: FastifyInstance): Promise<void> {
     request: FastifyRequest,
     reply: FastifyReply
   ) => {
-    const workspaceId = (request as any).workspaceId;
+    const workspaceId = (request as unknown as { workspaceId?: string }).workspaceId;
+    if (!workspaceId) {
+      return reply.code(401).send({ error: 'Workspace not authenticated' });
+    }
 
     try {
       const stats = await getFeedbackStats(workspaceId);
@@ -160,7 +171,10 @@ export async function feedbackRoutes(fastify: FastifyInstance): Promise<void> {
     }>,
     reply: FastifyReply
   ) => {
-    const workspaceId = (request as any).workspaceId;
+    const workspaceId = (request as unknown as { workspaceId?: string }).workspaceId;
+    if (!workspaceId) {
+      return reply.code(401).send({ error: 'Workspace not authenticated' });
+    }
     const limit = parseInt(request.query.limit || '50', 10);
     const offset = parseInt(request.query.offset || '0', 10);
 
@@ -195,7 +209,10 @@ export async function feedbackRoutes(fastify: FastifyInstance): Promise<void> {
     }>,
     reply: FastifyReply
   ) => {
-    const workspaceId = (request as any).workspaceId;
+    const workspaceId = (request as unknown as { workspaceId?: string }).workspaceId;
+    if (!workspaceId) {
+      return reply.code(401).send({ error: 'Workspace not authenticated' });
+    }
     const feedbackType = request.query.type || 'false_positive';
     const limit = parseInt(request.query.limit || '100', 10);
 
@@ -257,10 +274,16 @@ export async function feedbackRoutes(fastify: FastifyInstance): Promise<void> {
     reply: FastifyReply
   ) => {
     const { id } = request.params;
+    const workspaceId = (request as unknown as { workspaceId?: string }).workspaceId;
 
     try {
       const feedback = await getFeedback(id);
       if (!feedback) {
+        return reply.code(404).send({ error: 'Feedback not found' });
+      }
+
+      // Verify workspace ownership
+      if (workspaceId && feedback.workspaceId !== workspaceId) {
         return reply.code(404).send({ error: 'Feedback not found' });
       }
 

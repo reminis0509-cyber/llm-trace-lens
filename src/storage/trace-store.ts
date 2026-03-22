@@ -7,6 +7,7 @@ export interface TraceRecord {
   timestamp: string;
   provider: string;
   model: string;
+  workspaceId?: string;
   prompt: string;
   structuredResponse: {
     answer: string;
@@ -59,6 +60,7 @@ export class TraceStore {
       const stmt = db.prepare(`
         INSERT INTO traces_v2 (
           id, timestamp, provider, model,
+          workspace_id,
           prompt, answer, confidence,
           evidence, alternatives,
           validation_confidence_status, validation_confidence_issues,
@@ -67,6 +69,7 @@ export class TraceStore {
           latency_ms, internal_trace
         ) VALUES (
           ?, ?, ?, ?,
+          ?,
           ?, ?, ?,
           ?, ?,
           ?, ?,
@@ -81,6 +84,7 @@ export class TraceStore {
         trace.timestamp,
         trace.provider,
         trace.model,
+        trace.workspaceId || 'default',
         trace.prompt,
         trace.structuredResponse.answer,
         trace.structuredResponse.confidence,

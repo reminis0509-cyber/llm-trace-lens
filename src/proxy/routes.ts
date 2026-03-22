@@ -313,12 +313,14 @@ export async function registerRoutes(server: FastifyInstance) {
           };
         }
       } catch (error) {
-        console.error('Failed to get traces from KV, falling back to SQLite:', error);
+        request.log.error({ error }, 'Failed to get traces from KV, falling back to SQLite');
       }
     }
 
     // Fallback to SQLite
+    const workspaceIdForDb = (request as unknown as { workspace?: { workspaceId?: string } }).workspace?.workspaceId || 'default';
     const result = traceRepo.findAll({
+      workspaceId: workspaceIdForDb,
       limit,
       offset,
       validationLevel: query.level,
@@ -331,7 +333,30 @@ export async function registerRoutes(server: FastifyInstance) {
 
   // 単一トレース取得
   server.get<{ Params: { id: string } }>('/v1/traces/:id', async (request, reply) => {
-    const trace = traceRepo.findById(request.params.id);
+    const workspaceId = (request as unknown as { workspace?: { workspaceId?: string } }).workspace?.workspaceId || 'default';
+
+    // Try KV first if available (for Vercel/production)
+    if (isKVAvailable()) {
+      try {
+        const kvTrace = await getKVTraceById(request.params.id);
+        if (kvTrace) {
+          // Verify workspace ownership for KV traces
+          const traceWorkspaceId = (kvTrace as Record<string, unknown>).workspaceId as string | undefined;
+          if (traceWorkspaceId && traceWorkspaceId === workspaceId) {
+            return kvTraceToTrace(kvTrace as Record<string, unknown>);
+          }
+          // Workspace mismatch: treat as not found
+          return reply.code(404).send({
+            error: 'Trace not found',
+          });
+        }
+      } catch (error) {
+        request.log.error({ error }, 'Failed to get trace from KV, falling back to SQLite');
+      }
+    }
+
+    // Fallback to SQLite with workspace isolation
+    const trace = traceRepo.findById(request.params.id, workspaceId);
 
     if (!trace) {
       return reply.code(404).send({
@@ -357,12 +382,13 @@ export async function registerRoutes(server: FastifyInstance) {
           return { stats };
         }
       } catch (error) {
-        console.error('Failed to get stats from KV, falling back to SQLite:', error);
+        request.log.error({ error }, 'Failed to get stats from KV, falling back to SQLite');
       }
     }
 
     // Fallback to SQLite
-    const stats = traceRepo.getStats();
+    const workspaceIdForStats = (request as unknown as { workspace?: { workspaceId?: string } }).workspace?.workspaceId || 'default';
+    const stats = traceRepo.getStats(workspaceIdForStats);
     return { stats };
   });
 }

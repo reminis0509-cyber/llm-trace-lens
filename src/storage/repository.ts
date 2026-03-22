@@ -32,6 +32,7 @@ export interface TraceQuery {
   validationLevel?: string;
   fromDate?: string;
   toDate?: string;
+  workspaceId?: string;
 }
 
 export interface TraceListResult {
@@ -104,8 +105,9 @@ export class TraceRepository {
 
   /**
    * IDでトレースを取得 (traces_v2 table)
+   * workspaceId が指定された場合、そのワークスペースに属するトレースのみ返す
    */
-  findById(id: string): Trace | null {
+  findById(id: string, workspaceId?: string): Trace | null {
     // SQLite is not available in Vercel environment
     if (!isSQLiteAvailable()) {
       return null;
@@ -113,9 +115,16 @@ export class TraceRepository {
 
     const db = getDatabase();
 
-    const row = db
-      .prepare('SELECT * FROM traces_v2 WHERE id = ?')
-      .get(id) as TraceRowV2 | undefined;
+    let row: TraceRowV2 | undefined;
+    if (workspaceId) {
+      row = db
+        .prepare('SELECT * FROM traces_v2 WHERE id = ? AND workspace_id = ?')
+        .get(id, workspaceId) as TraceRowV2 | undefined;
+    } else {
+      row = db
+        .prepare('SELECT * FROM traces_v2 WHERE id = ?')
+        .get(id) as TraceRowV2 | undefined;
+    }
 
     if (!row) return null;
 
@@ -144,6 +153,10 @@ export class TraceRepository {
     const conditions: string[] = [];
     const params: unknown[] = [];
 
+    if (query.workspaceId) {
+      conditions.push('workspace_id = ?');
+      params.push(query.workspaceId);
+    }
     if (query.provider) {
       conditions.push('provider = ?');
       params.push(query.provider);
@@ -194,14 +207,18 @@ export class TraceRepository {
 
   /**
    * プロバイダ別の統計を取得 (traces_v2 table)
+   * workspaceId が指定された場合、そのワークスペースのトレースのみ集計する
    */
-  getStats(): ProviderStats[] {
+  getStats(workspaceId?: string): ProviderStats[] {
     // SQLite is not available in Vercel environment
     if (!isSQLiteAvailable()) {
       return [];
     }
 
     const db = getDatabase();
+
+    const whereClause = workspaceId ? 'WHERE workspace_id = ?' : '';
+    const queryParams: unknown[] = workspaceId ? [workspaceId] : [];
 
     const rows = db
       .prepare(
@@ -213,11 +230,12 @@ export class TraceRepository {
         AVG(confidence) as avg_score,
         AVG(latency_ms) as avg_latency
       FROM traces_v2
+      ${whereClause}
       GROUP BY provider, model
       ORDER BY count DESC
     `
       )
-      .all() as ProviderStatsRowV2[];
+      .all(...queryParams) as ProviderStatsRowV2[];
 
     return rows.map((row) => ({
       provider: row.provider as LLMProvider,
@@ -357,6 +375,7 @@ interface TraceRowV2 {
   timestamp: string;
   provider: string;
   model: string;
+  workspace_id: string;
   prompt: string;
   answer: string;
   confidence: number;

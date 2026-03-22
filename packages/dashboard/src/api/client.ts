@@ -26,25 +26,37 @@ export async function fetchTraces(params: {
   level?: string;
   provider?: string;
 }): Promise<TraceListResponse> {
+  const headers = await getAuthHeaders();
   const searchParams = new URLSearchParams();
   if (params.limit) searchParams.set('limit', String(params.limit));
   if (params.offset) searchParams.set('offset', String(params.offset));
   if (params.level) searchParams.set('level', params.level);
   if (params.provider) searchParams.set('provider', params.provider);
 
-  const response = await fetch(`${API_BASE}/v1/traces?${searchParams}`);
+  const response = await fetch(`${API_BASE}/v1/traces?${searchParams}`, {
+    headers,
+    credentials: 'include',
+  });
   if (!response.ok) throw new Error('Failed to fetch traces');
   return response.json();
 }
 
 export async function fetchTrace(id: string): Promise<Trace> {
-  const response = await fetch(`${API_BASE}/v1/traces/${id}`);
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_BASE}/v1/traces/${id}`, {
+    headers,
+    credentials: 'include',
+  });
   if (!response.ok) throw new Error('Failed to fetch trace');
   return response.json();
 }
 
 export async function fetchStats(): Promise<StatsResponse> {
-  const response = await fetch(`${API_BASE}/v1/stats`);
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_BASE}/v1/stats`, {
+    headers,
+    credentials: 'include',
+  });
   if (!response.ok) throw new Error('Failed to fetch stats');
   return response.json();
 }
