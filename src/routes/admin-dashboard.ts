@@ -117,17 +117,17 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
   fastify.post<{
     Body: { email: string; password: string };
   }>('/api/admin/login', async (request: FastifyRequest<{ Body: { email: string; password: string } }>, reply: FastifyReply) => {
-    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminEmails = getAdminEmails();
     const adminPassword = process.env.ADMIN_PASSWORD;
 
-    if (!adminEmail || !adminPassword) {
+    if (adminEmails.length === 0 || !adminPassword) {
       return reply.code(500).send({ error: '管理者設定が構成されていません' });
     }
 
     const { email, password } = request.body;
 
     if (
-      email.toLowerCase() === adminEmail.toLowerCase() &&
+      adminEmails.includes(email.toLowerCase()) &&
       password === adminPassword
     ) {
       const token = randomUUID();

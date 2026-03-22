@@ -8,6 +8,7 @@ import feedbackRoutes from '../src/routes/feedback.js';
 import chatbotRoutes from '../src/routes/chatbot.js';
 import researchRoutes from '../src/routes/research.js';
 import membersRoutes from '../src/routes/members.js';
+import adminDashboardRoutes from '../src/routes/admin-dashboard.js';
 import rbacPlugin from '../src/middleware/rbac.js';
 import { budgetGuardMiddleware } from '../src/middleware/budget-guard.js';
 
@@ -32,6 +33,9 @@ async function getApp() {
 
     // Register member management routes
     await membersRoutes(app);
+
+    // Register admin dashboard routes
+    await adminDashboardRoutes(app);
 
     // Register settings routes
     await settingsRoutes(app);
