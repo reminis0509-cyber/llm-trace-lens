@@ -16,6 +16,7 @@ import Footer from './components/Footer';
 import TermsPage from './components/TermsPage';
 import PrivacyPage from './components/PrivacyPage';
 import CompanyPage from './components/CompanyPage';
+import SalesPage from './components/SalesPage';
 import ChatWidget from './components/ChatWidget';
 import ResearchWidget from './components/ResearchWidget';
 
@@ -36,6 +37,8 @@ export default function App() {
     pageContent = <PrivacyPage />;
   } else if (currentPath === '/company') {
     pageContent = <CompanyPage />;
+  } else if (currentPath === '/sales') {
+    pageContent = <SalesPage />;
   } else {
     pageContent = (
       <>
