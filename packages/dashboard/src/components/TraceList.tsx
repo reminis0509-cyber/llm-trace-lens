@@ -238,7 +238,7 @@ export function TraceList({ onSelect, selectedId, workspaceId, onNewTrace }: Pro
               key={trace.id}
               onClick={() => onSelect(trace)}
               className={`group px-6 py-4 cursor-pointer border-b border-border-subtle border-l-[3px] transition-colors duration-120 ${
-                STATUS_BAR_STYLES[trace.validation.overall]
+                STATUS_BAR_STYLES[trace.validation?.overall ?? 'PASS']
               } ${
                 selectedId === trace.id
                   ? 'bg-accent-dim'
@@ -251,7 +251,7 @@ export function TraceList({ onSelect, selectedId, workspaceId, onNewTrace }: Pro
                   {extractPromptDisplay(trace.prompt)}
                 </p>
                 <span className="text-2xl font-mono tabular-nums text-text-primary flex-shrink-0">
-                  {Math.round(trace.validation.score * 100)}
+                  {Math.round((trace.validation?.score ?? 0) * 100)}
                   <span className="text-sm text-text-muted opacity-0 group-hover:opacity-100 transition-opacity">
                     /100
                   </span>
@@ -259,12 +259,12 @@ export function TraceList({ onSelect, selectedId, workspaceId, onNewTrace }: Pro
               </div>
 
               <p className="text-sm text-text-secondary font-medium line-clamp-1 mb-3">
-                {safeString(trace.structured.answer)}
+                {safeString(trace.structured?.answer)}
               </p>
 
               <div className="flex flex-wrap items-center gap-4 text-xs text-text-muted font-mono tabular-nums">
-                <span>信頼度 {(trace.structured.confidence * 100).toFixed(0)}%</span>
-                <span>根拠 {trace.structured.evidence.length}</span>
+                <span>信頼度 {((trace.structured?.confidence ?? 0) * 100).toFixed(0)}%</span>
+                <span>根拠 {trace.structured?.evidence?.length ?? 0}</span>
                 {trace.agentTrace && (
                   <>
                     <span>{trace.agentTrace.stepCount} ステップ</span>

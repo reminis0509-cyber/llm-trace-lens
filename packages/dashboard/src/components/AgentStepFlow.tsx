@@ -60,7 +60,7 @@ export function AgentStepFlow({ agentTrace }: Props) {
       <div className="flex flex-wrap gap-4 text-sm text-gray-600 pt-4 border-t border-gray-200">
         <span>
           <span className="font-medium">実行時間:</span>{' '}
-          {agentTrace.totalDurationMs.toLocaleString()}ms
+          {(agentTrace.totalDurationMs ?? 0).toLocaleString()}ms
         </span>
         <span>
           <span className="font-medium">ステップ数:</span> {agentTrace.stepCount}

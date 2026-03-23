@@ -23,8 +23,9 @@ interface PlanDefinition {
 
 interface PlanInfo {
   plan: {
-    workspaceId: string;
-    planType: string;
+    workspaceId?: string;
+    planType?: string;
+    type?: string;
     startedAt: string;
     expiresAt?: string;
   };
@@ -196,14 +197,20 @@ export function PlanUsage() {
   if (error) {
     return (
       <div className="surface-card p-6">
-        <p className="text-status-fail text-sm">{error}</p>
+        <div className="flex items-center gap-3 mb-2">
+          <h2 className="text-lg font-medium text-text-primary">{'\u30d7\u30e9\u30f3'}</h2>
+        </div>
+        <p className="text-status-warn text-sm">{error}</p>
+        <p className="text-xs text-text-muted mt-2">{'\u30da\u30fc\u30b8\u3092\u518d\u8aad\u307f\u8fbc\u307f\u3057\u3066\u304f\u3060\u3055\u3044\u3002\u554f\u984c\u304c\u7d9a\u304f\u5834\u5408\u306f\u30b5\u30dd\u30fc\u30c8\u306b\u304a\u554f\u3044\u5408\u308f\u305b\u304f\u3060\u3055\u3044\u3002'}</p>
       </div>
     );
   }
 
   if (!currentPlan) return null;
 
-  const { plan, limits, usage } = currentPlan;
+  const { plan: rawPlan, limits, usage } = currentPlan;
+  // API returns plan.type, frontend expects plan.planType — normalize
+  const plan = { ...rawPlan, planType: rawPlan.planType || rawPlan.type || 'free' };
   const tracePercentage = limits.monthlyTraces === Infinity ? 0 : Math.min(100, (usage.traceCount / limits.monthlyTraces) * 100);
   const evalPercentage = limits.monthlyEvaluations === Infinity ? 0 :
     limits.monthlyEvaluations === 0 ? 0 : Math.min(100, (usage.evaluationCount / limits.monthlyEvaluations) * 100);

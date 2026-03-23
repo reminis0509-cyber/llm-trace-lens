@@ -54,15 +54,15 @@ export function TraceDetail({ trace, onClose, apiKey }: Props) {
       {/* Content */}
       <div className="px-6 py-4 space-y-6 max-h-[calc(100vh-180px)] lg:max-h-[calc(100vh-200px)] overflow-y-auto">
         {/* Validation Summary */}
-        <div className={`p-4 rounded-card bg-base border-l-[3px] ${STATUS_BAR_STYLES[trace.validation.overall]}`}>
+        <div className={`p-4 rounded-card bg-base border-l-[3px] ${STATUS_BAR_STYLES[trace.validation?.overall ?? 'PASS']}`}>
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-text-primary">
-              {trace.validation.overall}
+              {trace.validation?.overall ?? 'N/A'}
             </span>
-            <span className="text-2xl font-mono tabular-nums text-text-primary">{Math.round(trace.validation.score * 100)}</span>
+            <span className="text-2xl font-mono tabular-nums text-text-primary">{Math.round((trace.validation?.score ?? 0) * 100)}</span>
           </div>
           <div className="space-y-2">
-            {trace.validation.rules.map((rule, i) => (
+            {(trace.validation?.rules ?? []).map((rule, i) => (
               <div key={i} className="flex items-center gap-2 text-sm">
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${
@@ -89,33 +89,33 @@ export function TraceDetail({ trace, onClose, apiKey }: Props) {
 
         {/* Structured Response */}
         <Section title="回答">
-          <p className="text-sm text-text-primary whitespace-pre-wrap">{safeString(trace.structured.answer)}</p>
+          <p className="text-sm text-text-primary whitespace-pre-wrap">{safeString(trace.structured?.answer)}</p>
         </Section>
 
-        <Section title={`信頼度: ${(trace.structured.confidence * 100).toFixed(0)}%`}>
+        <Section title={`信頼度: ${((trace.structured?.confidence ?? 0) * 100).toFixed(0)}%`}>
           <div className="w-full bg-base-elevated rounded-full h-2">
             <div
               className={`h-2 rounded-full transition-all duration-300 ${
-                trace.structured.confidence >= 0.8
+                (trace.structured?.confidence ?? 0) >= 0.8
                   ? 'bg-status-pass'
-                  : trace.structured.confidence >= 0.5
+                  : (trace.structured?.confidence ?? 0) >= 0.5
                     ? 'bg-status-warn'
                     : 'bg-status-fail'
               }`}
-              style={{ width: `${trace.structured.confidence * 100}%` }}
+              style={{ width: `${(trace.structured?.confidence ?? 0) * 100}%` }}
             />
           </div>
         </Section>
 
         <Section title="思考プロセス">
           <p className="text-sm text-text-secondary whitespace-pre-wrap">
-            {safeString(trace.structured.thinking)}
+            {safeString(trace.structured?.thinking)}
           </p>
         </Section>
 
-        <Section title={`根拠 (${trace.structured.evidence?.length || 0})`}>
+        <Section title={`根拠 (${trace.structured?.evidence?.length || 0})`}>
           <ul className="space-y-2">
-            {(trace.structured.evidence || []).map((item, i) => (
+            {(trace.structured?.evidence || []).map((item, i) => (
               <li key={i} className="flex gap-2 text-sm">
                 <span className="text-status-pass">+</span>
                 <span className="text-text-secondary">{safeString(item)}</span>
@@ -124,9 +124,9 @@ export function TraceDetail({ trace, onClose, apiKey }: Props) {
           </ul>
         </Section>
 
-        <Section title={`リスク (${trace.structured.risks?.length || 0})`}>
+        <Section title={`リスク (${trace.structured?.risks?.length || 0})`}>
           <ul className="space-y-2">
-            {(trace.structured.risks || []).map((item, i) => (
+            {(trace.structured?.risks || []).map((item, i) => (
               <li key={i} className="flex gap-2 text-sm">
                 <span className="text-status-warn">!</span>
                 <span className="text-text-secondary">{safeString(item)}</span>
