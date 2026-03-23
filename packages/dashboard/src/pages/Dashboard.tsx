@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Key, MessageSquare, List, BarChart3, TrendingUp, Link2, Settings as SettingsIcon, LogOut, Users, Menu, X, Building2, CreditCard, Shield } from 'lucide-react';
+import { Key, MessageSquare, List, BarChart3, TrendingUp, Link2, Settings as SettingsIcon, LogOut, Users, Menu, X, Building2, Shield } from 'lucide-react';
 import { TraceList } from '../components/TraceList';
 import { TraceDetail } from '../components/TraceDetail';
 import { StatsPanel } from '../components/StatsPanel';
@@ -11,14 +11,13 @@ import { ApiKeys } from './ApiKeys';
 import { Playground } from './Playground';
 import { Members } from './Members';
 import { Benchmark } from './Benchmark';
-import { PlanUsage } from './PlanUsage';
 import { AdminDashboard } from './AdminDashboard';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useAuth } from '../contexts/AuthContext';
 import { useRole } from '../contexts/RoleContext';
 import type { Trace } from '../types';
 
-type Tab = 'traces' | 'stats' | 'analytics' | 'benchmark' | 'integrations' | 'settings' | 'apikeys' | 'playground' | 'members' | 'plan' | 'admin';
+type Tab = 'traces' | 'stats' | 'analytics' | 'benchmark' | 'integrations' | 'settings' | 'apikeys' | 'playground' | 'members' | 'admin';
 
 const baseTabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'apikeys', label: 'APIキー', icon: <Key className="w-4 h-4" strokeWidth={1.5} /> },
@@ -29,7 +28,6 @@ const baseTabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'benchmark', label: 'ベンチマーク', icon: <Building2 className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'integrations', label: '連携', icon: <Link2 className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'members', label: 'メンバー', icon: <Users className="w-4 h-4" strokeWidth={1.5} /> },
-  { id: 'plan', label: 'プラン', icon: <CreditCard className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'settings', label: '設定', icon: <SettingsIcon className="w-4 h-4" strokeWidth={1.5} /> },
 ];
 
@@ -241,7 +239,6 @@ export function Dashboard() {
               onBack={() => setActiveTab('traces')}
             />
           )}
-          {activeTab === 'plan' && <PlanUsage />}
           {activeTab === 'admin' && isSystemAdmin && <AdminDashboard />}
         </ErrorBoundary>
       </main>

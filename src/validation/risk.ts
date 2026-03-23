@@ -275,18 +275,61 @@ export class RiskScanner {
       severity: 'WARN',
       description: 'Japanese address (住所)',
     },
+    // Japanese name with context (漢字氏名) -> WARN
+    {
+      pattern: /(?:氏名|名前|フルネーム|姓名|お名前)[\s:：は]+([一-龥ぁ-んァ-ヶ]{1,5}[\s　]+[一-龥ぁ-んァ-ヶ]{1,5})/,
+      name: 'japanese_name',
+      severity: 'WARN',
+      description: 'Japanese name (氏名)',
+    },
+    // Katakana name with context (カタカナ氏名) -> WARN
+    {
+      pattern: /(?:氏名|名前|フルネーム|フリガナ|ふりがな|カナ)[\s:：は]+([ァ-ヶー]{2,10}[\s　]+[ァ-ヶー]{2,10})/,
+      name: 'katakana_name',
+      severity: 'WARN',
+      description: 'Japanese name in katakana (カタカナ氏名)',
+    },
+    // Residence card number with context (在留カード番号) -> BLOCK
+    {
+      pattern: /(?:在留カード|residence\s?card)[\s:：は]*([A-Z]{2}\d{8}[A-Z])/i,
+      name: 'residence_card',
+      severity: 'BLOCK',
+      description: 'Residence card number (在留カード番号)',
+    },
+    // Pension number with context (年金番号) -> BLOCK
+    {
+      pattern: /(?:年金番号|基礎年金|pension)[\s:：は]*(\d{4}[-\s]?\d{6})/i,
+      name: 'pension_number',
+      severity: 'BLOCK',
+      description: 'Pension number (年金番号)',
+    },
   ];
+
+  /**
+   * Normalize full-width digits (０-９), full-width hyphen (−), and
+   * full-width space (　) to their half-width equivalents so that
+   * all existing numeric patterns match full-width input.
+   */
+  private normalizeFullWidth(text: string): string {
+    return text
+      .replace(/[０-９]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xFFF0))
+      .replace(/[−]/g, '-')
+      .replace(/[　]/g, ' ');
+  }
 
   scan(response: StructuredResponse): ScanResult {
     const issues: string[] = [];
     let status: ScanResult['status'] = 'PASS';
 
     // Combine all text fields for scanning
-    const allText = [
+    const rawText = [
       response.answer,
       ...response.evidence,
       ...response.alternatives,
     ].join(' ');
+
+    // Normalize full-width digits/hyphens/spaces for pattern matching
+    const allText = this.normalizeFullWidth(rawText);
 
     // Check BLOCK patterns
     for (const { pattern, name } of this.BLOCK_PATTERNS) {

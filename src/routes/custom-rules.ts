@@ -5,6 +5,8 @@ import {
   removeCustomPattern,
   getWorkspaceFromApiKey
 } from '../kv/client.js';
+import { getWorkspacePlan } from '../plans/storage.js';
+import { getEffectiveLimits } from '../plans/index.js';
 
 interface AddPatternBody {
   pattern: string;
@@ -185,6 +187,25 @@ export default async function customRulesRoutes(fastify: FastifyInstance): Promi
         }
 
         const workspaceId = await getWorkspaceIdFromRequest(request);
+
+        // Plan-based limit check
+        const plan = await getWorkspacePlan(workspaceId);
+        const limits = getEffectiveLimits(plan);
+        const existingPatterns = await getCustomPatterns(workspaceId);
+        const currentCount = existingPatterns.length;
+        const limit = limits.customPiiRuleLimit;
+
+        // limit === -1 means unlimited; otherwise enforce the cap
+        if (limit !== -1 && currentCount >= limit) {
+          return reply.code(403).send({
+            success: false,
+            error: 'Custom PII rule limit reached',
+            message: `現在のプランではカスタムPIIルールを${limit}件まで設定できます。上位プランへのアップグレードをご検討ください。`,
+            currentCount,
+            limit,
+          });
+        }
+
         await addCustomPattern(workspaceId, pattern);
 
         return reply.send({

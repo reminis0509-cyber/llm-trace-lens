@@ -20,6 +20,8 @@ export interface PlanLimits {
   retentionDays: number;
   /** カスタムバリデーションルール */
   customRules: boolean;
+  /** カスタムPIIルール上限数 (-1 = unlimited) */
+  customPiiRuleLimit: number;
   /** LLM-as-Judge 月間評価回数 */
   monthlyEvaluations: number;
   /** SSO対応 */
@@ -53,6 +55,7 @@ export const PLANS: Record<PlanType, PlanDefinition> = {
       maxMembers: 2,
       retentionDays: 7,
       customRules: false,
+      customPiiRuleLimit: 0,
       monthlyEvaluations: 0,
       sso: false,
       sla: null,
@@ -70,6 +73,7 @@ export const PLANS: Record<PlanType, PlanDefinition> = {
       maxMembers: 10,
       retentionDays: 90,
       customRules: true,
+      customPiiRuleLimit: 5,
       monthlyEvaluations: 1000,
       sso: false,
       sla: 99.5,
@@ -87,6 +91,7 @@ export const PLANS: Record<PlanType, PlanDefinition> = {
       maxMembers: Infinity,
       retentionDays: 365,
       customRules: true,
+      customPiiRuleLimit: -1,
       monthlyEvaluations: Infinity,
       sso: true,
       sla: 99.9,

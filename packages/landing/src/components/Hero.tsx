@@ -16,17 +16,17 @@ export default function Hero() {
 
           {/* Subheadline */}
           <p className="text-lg text-text-secondary max-w-2xl mx-auto mb-12">
-            嘘、自信過剰、機密漏洩を検出。
+            マイナンバー、住所、電話番号 — 日本語の個人情報を自動検出・遮断。
             <br className="hidden sm:block" />
-            AIエージェントの意思決定プロセスまで完全トレース。
+            セキュリティ専任者がいなくても、AI利用の安全性を確保。
           </p>
 
           {/* Stats */}
           <div className="flex flex-wrap justify-center gap-12 mb-12">
             {[
-              { value: '3', label: 'AIプロバイダ対応' },
+              { value: '15+', label: '日本語PIIパターン' },
               { value: '1行', label: 'コード変更で導入' },
-              { value: 'ReAct', label: 'エージェント形式対応' },
+              { value: '0件', label: '競合の日本語PII対応' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-3xl font-mono tabular-nums text-text-primary mb-1">{stat.value}</div>

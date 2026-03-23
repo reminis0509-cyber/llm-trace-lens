@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CreditCard, Database, Users, Shield, Clock, CheckCircle2, ArrowUpRight, Mail, Settings, Loader2 } from 'lucide-react';
+import { CreditCard, Database, Users, Shield, Clock, CheckCircle2, ArrowUpRight, Mail, Settings, Loader2, AlertTriangle, Calendar } from 'lucide-react';
 import { billingApi, type BillingStatus } from '../api/billing';
 
 interface PlanLimits {
@@ -67,6 +67,41 @@ function getUsageTextColor(percentage: number): string {
   if (percentage >= 90) return 'text-status-fail';
   if (percentage >= 70) return 'text-status-warn';
   return 'text-status-pass';
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}/${m}/${day}`;
+}
+
+type PlanStatus = 'trial' | 'paid' | 'expired' | 'free';
+
+function computePlanStatus(planType: string, expiresAt?: string, subscriptionId?: string): PlanStatus {
+  if (planType === 'free') return 'free';
+  if (expiresAt) {
+    const remaining = Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    if (remaining <= 0) return 'expired';
+    if (!subscriptionId) return 'trial';
+  }
+  if (planType === 'pro' || planType === 'enterprise') return 'paid';
+  return 'free';
+}
+
+function getTrialRemainingDays(expiresAt: string): number {
+  return Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+}
+
+function getTrialProgressPercent(startedAt: string, expiresAt: string): number {
+  const start = new Date(startedAt).getTime();
+  const end = new Date(expiresAt).getTime();
+  const now = Date.now();
+  const total = end - start;
+  if (total <= 0) return 100;
+  const elapsed = now - start;
+  return Math.min(100, Math.max(0, (elapsed / total) * 100));
 }
 
 function getPlanBadgeColor(planType: string): string {
@@ -249,6 +284,104 @@ export function PlanUsage() {
             )}
           </div>
         </div>
+
+        {/* Subscription Status */}
+        {(() => {
+          const subscriptionId = billingStatus?.hasCustomer ? 'active' : undefined;
+          const status = computePlanStatus(plan.planType, plan.expiresAt, subscriptionId);
+          const remainingDays = plan.expiresAt ? getTrialRemainingDays(plan.expiresAt) : null;
+          const trialProgress = (plan.expiresAt && plan.startedAt)
+            ? getTrialProgressPercent(plan.startedAt, plan.expiresAt)
+            : null;
+
+          return (
+            <div className="mb-6 space-y-3">
+              {/* Status row with dates */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+                {/* Status badge */}
+                {status === 'trial' && remainingDays !== null && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border bg-accent/10 text-accent border-accent/30 font-medium">
+                    <Clock className="w-3.5 h-3.5" strokeWidth={1.5} />
+                    {'\u30c8\u30e9\u30a4\u30a2\u30eb\u4e2d'}
+                    <span className="text-text-muted font-normal ml-1">
+                      {'\u6b8b\u308a'}{remainingDays}{'\u65e5'}
+                    </span>
+                  </span>
+                )}
+                {status === 'paid' && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border bg-status-pass/10 text-status-pass border-status-pass/30 font-medium">
+                    <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+                    {'\u6709\u6599\u5951\u7d04'}
+                  </span>
+                )}
+                {status === 'expired' && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border bg-status-fail/10 text-status-fail border-status-fail/30 font-medium">
+                    <AlertTriangle className="w-3.5 h-3.5" strokeWidth={1.5} />
+                    {'\u671f\u9650\u5207\u308c'}
+                  </span>
+                )}
+                {status === 'free' && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border bg-base-elevated text-text-muted border-border font-medium">
+                    {'\u7121\u6599\u30d7\u30e9\u30f3'}
+                  </span>
+                )}
+
+                {/* Key dates */}
+                <span className="inline-flex items-center gap-1 text-text-muted">
+                  <Calendar className="w-3 h-3" strokeWidth={1.5} />
+                  {'\u958b\u59cb\u65e5'}: {formatDate(plan.startedAt)}
+                </span>
+                {plan.expiresAt && (
+                  <span className="inline-flex items-center gap-1 text-text-muted">
+                    <Clock className="w-3 h-3" strokeWidth={1.5} />
+                    {'\u6709\u52b9\u671f\u9650'}: {formatDate(plan.expiresAt)}
+                  </span>
+                )}
+              </div>
+
+              {/* Trial progress bar */}
+              {status === 'trial' && trialProgress !== null && (
+                <div>
+                  <div className="h-1.5 bg-base-elevated rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-accent/60 transition-all duration-500"
+                      style={{ width: `${trialProgress}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-text-muted mt-1 text-right">
+                    {'\u30c8\u30e9\u30a4\u30a2\u30eb\u671f\u9593\u306e'}{Math.round(trialProgress)}%{'\u304c\u7d4c\u904e'}
+                  </p>
+                </div>
+              )}
+
+              {/* Trial urgency warnings */}
+              {status === 'trial' && remainingDays !== null && remainingDays <= 7 && remainingDays > 3 && (
+                <div className="flex items-start gap-2 px-3 py-2 rounded-card bg-status-warn/10 border border-status-warn/20">
+                  <AlertTriangle className="w-4 h-4 text-status-warn flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+                  <p className="text-xs text-status-warn">
+                    {'\u30c8\u30e9\u30a4\u30a2\u30eb\u7d42\u4e86\u307e\u3067\u3042\u3068'}{remainingDays}{'\u65e5\u3002Pro\u30d7\u30e9\u30f3\u3078\u306e\u79fb\u884c\u3092\u3054\u691c\u8a0e\u304f\u3060\u3055\u3044\u3002'}
+                  </p>
+                </div>
+              )}
+              {status === 'trial' && remainingDays !== null && remainingDays <= 3 && remainingDays > 0 && (
+                <div className="flex items-start gap-2 px-3 py-2 rounded-card bg-status-fail/10 border border-status-fail/20">
+                  <AlertTriangle className="w-4 h-4 text-status-fail flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+                  <p className="text-xs text-status-fail">
+                    {'\u30c8\u30e9\u30a4\u30a2\u30eb\u304c\u9593\u3082\u306a\u304f\u7d42\u4e86\u3057\u307e\u3059\u3002'}
+                  </p>
+                </div>
+              )}
+              {status === 'expired' && (
+                <div className="flex items-start gap-2 px-3 py-2 rounded-card bg-status-fail/10 border border-status-fail/20">
+                  <AlertTriangle className="w-4 h-4 text-status-fail flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+                  <p className="text-xs text-status-fail">
+                    {'\u30c8\u30e9\u30a4\u30a2\u30eb\u304c\u7d42\u4e86\u3057\u307e\u3057\u305f\u3002\u7121\u6599\u30d7\u30e9\u30f3\u306b\u79fb\u884c\u3055\u308c\u3066\u3044\u307e\u3059\u3002'}
+                  </p>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Usage Bars */}
         <div className="space-y-4">

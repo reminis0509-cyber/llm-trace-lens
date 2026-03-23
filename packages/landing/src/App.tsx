@@ -19,6 +19,7 @@ import CompanyPage from './components/CompanyPage';
 import SalesPage from './components/SalesPage';
 import ChatWidget from './components/ChatWidget';
 import ResearchWidget from './components/ResearchWidget';
+import PiiDetection from './components/PiiDetection';
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -43,6 +44,8 @@ export default function App() {
     pageContent = (
       <>
         <Hero />
+        <div className="section-divider" />
+        <PiiDetection />
         <div className="section-divider" />
         <DemoShowcase />
         <div className="section-divider" />

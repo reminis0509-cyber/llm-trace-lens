@@ -323,6 +323,91 @@ describe('Japanese PII Detection', () => {
     });
   });
 
+  describe('Full-width number support (全角数字)', () => {
+    test('detects full-width phone number with context', () => {
+      const result = scanner.scan({
+        answer: '電話番号は ０３−１２３４−５６７８',
+        confidence: 0.9,
+        evidence: [],
+        alternatives: [],
+      });
+      expect(result.status).toBe('WARN');
+      expect(result.issues).toContainEqual(expect.stringMatching(/phone/i));
+    });
+
+    test('detects full-width mobile phone number', () => {
+      const result = scanner.scan({
+        answer: '０９０−１２３４−５６７８',
+        confidence: 0.9,
+        evidence: [],
+        alternatives: [],
+      });
+      expect(result.status).toBe('WARN');
+      expect(result.issues).toContainEqual(expect.stringMatching(/mobile|phone/i));
+    });
+
+    test('detects full-width My Number with context', () => {
+      const result = scanner.scan({
+        answer: 'マイナンバー １２３４ ５６７８ ９０１２',
+        confidence: 0.9,
+        evidence: [],
+        alternatives: [],
+      });
+      expect(result.status).toBe('BLOCK');
+      expect(result.issues).toContainEqual(expect.stringMatching(/My Number|マイナンバー/i));
+    });
+  });
+
+  describe('Japanese name detection (氏名)', () => {
+    test('detects Japanese name with context label', () => {
+      const result = scanner.scan({
+        answer: '氏名: 山田 太郎',
+        confidence: 0.9,
+        evidence: [],
+        alternatives: [],
+      });
+      expect(result.status).toBe('WARN');
+      expect(result.issues).toContainEqual(expect.stringMatching(/Japanese name|氏名/i));
+    });
+
+    test('detects katakana name with furigana context', () => {
+      const result = scanner.scan({
+        answer: 'フリガナ: ヤマダ タロウ',
+        confidence: 0.9,
+        evidence: [],
+        alternatives: [],
+      });
+      expect(result.status).toBe('WARN');
+      expect(result.issues).toContainEqual(expect.stringMatching(/katakana|カタカナ/i));
+    });
+  });
+
+  describe('Residence card number detection (在留カード)', () => {
+    test('blocks residence card number with context', () => {
+      const result = scanner.scan({
+        answer: '在留カード番号: AB12345678C',
+        confidence: 0.9,
+        evidence: [],
+        alternatives: [],
+      });
+      expect(result.status).toBe('BLOCK');
+      expect(result.issues).toContainEqual(expect.stringMatching(/Residence card|在留カード/i));
+    });
+  });
+
+  describe('Pension number detection (年金番号)', () => {
+    test('blocks pension number with context', () => {
+      const result = scanner.scan({
+        answer: '基礎年金番号: 1234-567890',
+        confidence: 0.9,
+        evidence: [],
+        alternatives: [],
+      });
+      expect(result.status).toBe('BLOCK');
+      expect(result.issues).toContainEqual(expect.stringMatching(/Pension|年金/i));
+    });
+  });
+
   describe('No PII detection', () => {
     test('passes clean Japanese text', () => {
       const result = scanner.scan({
@@ -343,6 +428,17 @@ describe('Japanese PII Detection', () => {
         alternatives: [],
       });
       expect(result.status).toBe('PASS');
+    });
+
+    test('passes clean Japanese text without PII', () => {
+      const result = scanner.scan({
+        answer: '東京の天気は晴れです',
+        confidence: 0.9,
+        evidence: [],
+        alternatives: [],
+      });
+      expect(result.status).toBe('PASS');
+      expect(result.issues.length).toBe(0);
     });
   });
 });

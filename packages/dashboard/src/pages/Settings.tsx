@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, DollarSign, Bell, Webhook } from 'lucide-react';
+import { PlanUsage } from './PlanUsage';
 
 interface CostData {
   stats: {
@@ -156,6 +157,9 @@ export function Settings({ onBack }: SettingsProps) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Plan & Usage */}
+      <PlanUsage />
+
       {/* Cost Overview */}
       {costData && costData.stats && (
         <div className="gradient-border p-6">
