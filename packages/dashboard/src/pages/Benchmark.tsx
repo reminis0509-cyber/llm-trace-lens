@@ -331,7 +331,7 @@ export function Benchmark({ apiKey }: Props) {
         <div className="divide-y divide-border">
           <MetricRow
             label="トレース数"
-            myValue={workspace.traceCount.toLocaleString()}
+            myValue={(workspace.traceCount ?? 0).toLocaleString()}
             industryValue={null}
           />
           <MetricRow
@@ -351,8 +351,8 @@ export function Benchmark({ apiKey }: Props) {
           />
           <MetricRow
             label="平均トークン/リクエスト"
-            myValue={Math.round(workspace.avgTokensPerRequest).toLocaleString()}
-            industryValue={industry ? Math.round(industry.avgTokensPerRequest).toLocaleString() : null}
+            myValue={Math.round(workspace.avgTokensPerRequest ?? 0).toLocaleString()}
+            industryValue={industry ? Math.round(industry.avgTokensPerRequest ?? 0).toLocaleString() : null}
           />
           <MetricRow
             label="毒性検出率"

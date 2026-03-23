@@ -7,6 +7,38 @@ import { PLANS, type PlanType, getPlanNameJa, getEffectiveLimits } from '../plan
 import { getWorkspacePlan, updateWorkspacePlan } from '../plans/storage.js';
 import { getUsageStats, getUsageStatsForMonth } from '../plans/usage.js';
 import { cleanupExpiredTraces } from '../plans/retention.js';
+import { getKnex } from '../storage/knex-client.js';
+
+/**
+ * Resolve workspaceId from request context.
+ * Priority: request.workspace (API key auth) > user email lookup (dashboard auth) > 'default'
+ */
+async function resolveWorkspaceId(request: FastifyRequest): Promise<string> {
+  // 1. Already resolved by auth middleware (API key auth)
+  if (request.workspace?.workspaceId) {
+    return request.workspace.workspaceId;
+  }
+
+  // 2. Resolve from authenticated user's email (dashboard / Supabase auth)
+  const userEmail = request.user?.email;
+  if (userEmail) {
+    try {
+      const db = getKnex();
+      const membership = await db('workspace_users')
+        .where({ email: userEmail.toLowerCase() })
+        .orderBy('created_at', 'asc')
+        .first();
+      if (membership?.workspace_id) {
+        return membership.workspace_id as string;
+      }
+    } catch {
+      // DB lookup failed — fall through to default
+    }
+  }
+
+  // 3. Fallback
+  return 'default';
+}
 
 export default async function planRoutes(fastify: FastifyInstance) {
   /**
@@ -28,7 +60,7 @@ export default async function planRoutes(fastify: FastifyInstance) {
    * GET /api/plan - 現在のワークスペースのプラン情報と使用量を取得
    */
   fastify.get('/api/plan', async (request: FastifyRequest) => {
-    const workspaceId = request.workspace?.workspaceId || 'default';
+    const workspaceId = await resolveWorkspaceId(request);
     const plan = await getWorkspacePlan(workspaceId);
     const limits = getEffectiveLimits(plan);
     const usage = await getUsageStats(workspaceId);
@@ -58,7 +90,7 @@ export default async function planRoutes(fastify: FastifyInstance) {
    * GET /api/plan/usage/:month - 指定月の使用量を取得
    */
   fastify.get<{ Params: { month: string } }>('/api/plan/usage/:month', async (request) => {
-    const workspaceId = request.workspace?.workspaceId || 'default';
+    const workspaceId = await resolveWorkspaceId(request);
     const { month } = request.params;
 
     // YYYY-MM 形式チェック

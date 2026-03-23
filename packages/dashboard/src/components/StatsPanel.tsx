@@ -235,7 +235,7 @@ export function StatsPanel({ refreshTrigger = 0 }: StatsPanelProps) {
                     <td className="py-3 px-4 text-right font-mono text-sm tabular-nums text-text-primary">{stat.avgScore}</td>
                     <td className="py-3 px-4 text-right font-mono text-sm tabular-nums text-text-secondary">{stat.avgLatency}ms</td>
                     <td className="py-3 px-4 text-right font-mono text-sm tabular-nums text-text-secondary">
-                      {stat.totalTokens.toLocaleString()}
+                      {(stat.totalTokens ?? 0).toLocaleString()}
                     </td>
                   </tr>
                 ))}

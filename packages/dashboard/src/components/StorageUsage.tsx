@@ -92,7 +92,7 @@ export function StorageUsage() {
 
         <div className="flex justify-between text-sm">
           <span className="text-text-muted font-mono tabular-nums">
-            {currentCount.toLocaleString()} / {maxCount.toLocaleString()} traces
+            {(currentCount ?? 0).toLocaleString()} / {(maxCount ?? 0).toLocaleString()} traces
           </span>
           <span className={`font-mono tabular-nums ${
             isCritical

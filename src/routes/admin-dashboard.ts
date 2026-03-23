@@ -16,8 +16,21 @@ import { getKnex } from '../storage/knex-client.js';
 import { kv } from '@vercel/kv';
 import { getWorkspaceKey } from '../storage/models.js';
 
-/** In-memory store for valid admin session tokens */
+/** In-memory store for valid admin session tokens (fallback when KV is unavailable) */
 const adminTokens = new Set<string>();
+
+/** TTL for admin tokens in KV: 24 hours (seconds) */
+const ADMIN_TOKEN_TTL_SECONDS = 86400;
+
+/** Admin token KV key prefix */
+const ADMIN_TOKEN_PREFIX = 'admin_token:';
+
+/** Check if KV is available for admin token storage */
+function isAdminKVAvailable(): boolean {
+  const hasUrl = !!(process.env.KV_REST_API_URL || process.env.KV_URL);
+  const hasToken = !!process.env.KV_REST_API_TOKEN;
+  return hasUrl && hasToken;
+}
 
 /** Workspace status derived from plan state */
 type WorkspaceStatus = 'trial' | 'active' | 'expired' | 'free';
@@ -95,12 +108,43 @@ function isSystemAdmin(email: string | undefined): boolean {
 }
 
 /**
- * Check whether the request carries a valid admin Bearer token.
+ * Store an admin token in KV (with in-memory fallback).
  */
-function isValidAdminToken(request: FastifyRequest): boolean {
+async function storeAdminToken(token: string, email: string): Promise<void> {
+  // Always store in memory as fallback
+  adminTokens.add(token);
+
+  if (isAdminKVAvailable()) {
+    try {
+      await kv.set(`${ADMIN_TOKEN_PREFIX}${token}`, { email, createdAt: new Date().toISOString() }, { ex: ADMIN_TOKEN_TTL_SECONDS });
+    } catch (error) {
+      // KV write failed — in-memory fallback is already set
+      console.error('[AdminDashboard] Failed to store admin token in KV:', error);
+    }
+  }
+}
+
+/**
+ * Check whether the request carries a valid admin Bearer token.
+ * Checks KV first (for serverless persistence), then falls back to in-memory Set.
+ */
+async function isValidAdminToken(request: FastifyRequest): Promise<boolean> {
   const authHeader = request.headers['authorization'];
   if (!authHeader || !authHeader.startsWith('Bearer ')) return false;
   const token = authHeader.slice(7);
+
+  // Check KV first (works across serverless invocations)
+  if (isAdminKVAvailable()) {
+    try {
+      const stored = await kv.get<{ email: string; createdAt: string }>(`${ADMIN_TOKEN_PREFIX}${token}`);
+      if (stored) return true;
+    } catch (error) {
+      // KV read failed — fall through to in-memory check
+      console.error('[AdminDashboard] Failed to check admin token in KV:', error);
+    }
+  }
+
+  // Fallback to in-memory (works in development / single-instance)
   return adminTokens.has(token);
 }
 
@@ -133,7 +177,7 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
       passwordMatch
     ) {
       const token = randomUUID();
-      adminTokens.add(token);
+      await storeAdminToken(token, email);
       return reply.send({ success: true, token });
     }
 
@@ -146,7 +190,7 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
    * Token-based auth (Authorization: Bearer) を優先し、従来のメールベース認証にフォールバック
    */
   fastify.get('/api/admin/check', async (request: FastifyRequest, reply: FastifyReply) => {
-    if (isValidAdminToken(request)) {
+    if (await isValidAdminToken(request)) {
       return reply.send({ isAdmin: true });
     }
     return reply.send({ isAdmin: false });
@@ -157,7 +201,7 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
    * 全体統計（ワークスペース数、プラン分布、推定MRR）
    */
   fastify.get('/api/admin/stats/overview', async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!isValidAdminToken(request)) {
+    if (!await isValidAdminToken(request)) {
       return reply.code(403).send({ error: '管理者権限が必要です' });
     }
 
@@ -199,7 +243,7 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
    * ワークスペース一覧（プラン・使用量付き）
    */
   fastify.get('/api/admin/workspaces', async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!isValidAdminToken(request)) {
+    if (!await isValidAdminToken(request)) {
       return reply.code(403).send({ error: '管理者権限が必要です' });
     }
 
@@ -284,7 +328,7 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
    * ワークスペース詳細
    */
   fastify.get<{ Params: { id: string } }>('/api/admin/workspaces/:id', async (request, reply) => {
-    if (!isValidAdminToken(request)) {
+    if (!await isValidAdminToken(request)) {
       return reply.code(403).send({ error: '管理者権限が必要です' });
     }
 
@@ -345,7 +389,7 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
       customLimits?: Record<string, unknown>;
     };
   }>('/api/admin/workspaces/:id/plan', async (request, reply) => {
-    if (!isValidAdminToken(request)) {
+    if (!await isValidAdminToken(request)) {
       return reply.code(403).send({ error: '管理者権限が必要です' });
     }
 
@@ -388,7 +432,7 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
     Params: { id: string };
     Body: { companyName: string };
   }>('/api/admin/workspaces/:id/company', async (request, reply) => {
-    if (!isValidAdminToken(request)) {
+    if (!await isValidAdminToken(request)) {
       return reply.code(403).send({ error: '管理者権限が必要です' });
     }
 
