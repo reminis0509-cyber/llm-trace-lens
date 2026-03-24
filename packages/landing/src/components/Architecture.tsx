@@ -5,7 +5,7 @@ export default function Architecture() {
         {/* Section header */}
         <div className="text-center mb-16">
           <span className="inline-block px-3 py-1.5 text-xs text-text-muted label-spacing uppercase surface-card mb-6">
-            Architecture
+            仕組み
           </span>
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
             シンプルなアーキテクチャ
@@ -52,8 +52,8 @@ export default function Architecture() {
                 </svg>
               </div>
               <span className="text-sm font-medium text-text-primary">FujiTrace</span>
-              <p className="text-xs text-text-muted mt-1">検証 + 可観測性</p>
-              <p className="text-xs text-accent mt-2">+ Agentトレース</p>
+              <p className="text-xs text-text-muted mt-1">検証 + AI監視</p>
+              <p className="text-xs text-accent mt-2">+ AIエージェント行動記録</p>
             </div>
 
             {/* Arrow — horizontal on desktop, vertical on mobile */}

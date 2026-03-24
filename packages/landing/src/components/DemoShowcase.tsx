@@ -263,22 +263,22 @@ export default function DemoShowcase() {
         {/* Section header */}
         <div className="text-center mb-16">
           <span className="inline-block px-3 py-1.5 text-xs text-text-muted label-spacing uppercase surface-card mb-6">
-            DASHBOARD
+            管理画面
           </span>
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            すべてのAI通信を可視化
+            AI通信の全記録をリアルタイムで確認
           </h2>
           <p className="text-lg text-text-secondary max-w-xl mx-auto">
-            プロンプト、レスポンス、信頼度、コスト &mdash; 全てのトレースをリアルタイムで確認
+            AIへの入力・出力、信頼度スコア、コスト -- 全ての通信ログをリアルタイムで確認できます
           </p>
         </div>
 
         {/* Showcase Item 1: Trace List — description left, mockup right */}
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center mb-16 lg:mb-24">
           <DescriptionCard
-            title="全トレースを自動記録"
-            description="AI APIへの全リクエストを自動的にキャプチャ。プロンプト、レスポンス、信頼度スコア、レイテンシを一覧表示します。"
-            badges={['リアルタイム更新', 'フィルタリング', 'プロバイダー別表示']}
+            title="AIの全通信を自動記録"
+            description="AI APIへの全通信を自動的に記録。入力内容、出力内容、信頼度スコア、応答時間を一覧表示します。"
+            badges={['リアルタイム更新', '条件絞り込み', 'プロバイダー別表示']}
           />
           <TraceListMockup />
         </div>
@@ -291,8 +291,8 @@ export default function DemoShowcase() {
           <div className="order-1 lg:order-2">
             <DescriptionCard
               title="AI回答の品質を自動検証"
-              description="各トレースに対して信頼度スコア、根拠の有無、リスク要因を自動で分析。ハルシネーションや機密情報漏洩を即座に検出します。"
-              badges={['信頼度スコアリング', 'PII検出', 'リスク分析']}
+              description="各通信記録に対して信頼度スコア、根拠の有無、リスク要因を自動で分析。ハルシネーションや機密情報の漏洩を即座に検出します。"
+              badges={['信頼度スコアリング', '機密情報検知', 'リスク分析']}
             />
           </div>
         </div>
@@ -301,7 +301,7 @@ export default function DemoShowcase() {
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           <DescriptionCard
             title="使用状況を一目で把握"
-            description="トレース数、平均スコア、合格率、レイテンシをリアルタイムで集計。プロバイダー別の比較分析でコスト最適化に貢献します。"
+            description="通信件数、平均スコア、合格率、応答速度をリアルタイムで集計。プロバイダー別の比較分析でコスト最適化に貢献します。"
             badges={['リアルタイム集計', 'プロバイダー比較', 'コスト追跡']}
           />
           <StatsDashboardMockup />

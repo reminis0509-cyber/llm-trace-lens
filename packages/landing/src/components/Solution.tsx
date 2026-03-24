@@ -1,18 +1,18 @@
 const solutions = [
   {
     step: '01',
-    title: '構造化レスポンス強制',
-    description: '全AI出力を標準JSON形式に変換。回答、信頼度、根拠を機械的に検証可能に。',
+    title: 'AIの全通信を可視化',
+    description: 'LLMへの入出力を自動で記録。回答内容、信頼度、根拠の有無を一覧で確認でき、ハルシネーションを即座に発見できます。',
   },
   {
     step: '02',
-    title: '多層検証エンジン',
-    description: '信頼度検証、PII検出、リスクスコアリングの3段階で評価。PASS/WARN/BLOCKで即座に判定。',
+    title: '個人情報・機密データの自動検知',
+    description: 'マイナンバー、住所、電話番号など15種類以上の日本語の機密情報を自動検出・遮断。設定不要で導入した瞬間から保護を開始します。',
   },
   {
     step: '03',
-    title: 'Agent意思決定トレース',
-    description: 'ReAct形式でThought→Action→Tool Call→Observationの全ステップを記録・可視化。',
+    title: 'コストとAIエージェントの完全管理',
+    description: 'モデル別のコストをリアルタイムで可視化。さらにAIエージェントの思考・行動・結果の全ステップを記録し、判断過程を追跡可能にします。',
   },
 ];
 
@@ -23,14 +23,14 @@ export default function Solution() {
         {/* Section header */}
         <div className="text-center mb-16">
           <span className="inline-block px-3 py-1.5 text-xs text-text-muted label-spacing uppercase surface-card mb-6">
-            The Solution
+            解決策
           </span>
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            FujiTrace が解決
+            FujiTrace が解決します
           </h2>
           <p className="text-lg text-text-secondary max-w-xl mx-auto">
-            プロキシ型アーキテクチャで、既存システムを変更せずに
-            可観測性・検証・エージェントトレース機能を追加
+            既存のAIアプリケーションのコードを1行変更するだけで、
+            AI通信の可視化・検証・保護機能を追加できます
           </p>
         </div>
 
@@ -51,8 +51,8 @@ export default function Solution() {
         <div className="surface-card overflow-hidden">
           <div className="px-6 py-4 border-b border-border flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="text-xs text-text-muted label-spacing uppercase">Agent Trace</span>
-              <span className="text-xs text-text-muted">ReAct形式</span>
+              <span className="text-xs text-text-muted label-spacing uppercase">AIエージェント行動記録</span>
+              <span className="text-xs text-text-muted">思考・行動・観察の全ステップ</span>
             </div>
             <span className="text-xs text-status-pass font-mono">COMPLETED</span>
           </div>
@@ -64,7 +64,7 @@ export default function Solution() {
                 T
               </div>
               <div className="flex-1 p-3 rounded-card bg-base border-l-2 border-l-status-block">
-                <div className="text-xs text-text-muted mb-1 label-spacing uppercase">Thought</div>
+                <div className="text-xs text-text-muted mb-1 label-spacing uppercase">思考</div>
                 <p className="text-sm text-text-secondary">"最新のAIニュースを検索する必要がある"</p>
               </div>
             </div>
@@ -75,10 +75,10 @@ export default function Solution() {
                 A
               </div>
               <div className="flex-1 p-3 rounded-card bg-base border-l-2 border-l-status-warn">
-                <div className="text-xs text-text-muted mb-1 label-spacing uppercase">Action</div>
+                <div className="text-xs text-text-muted mb-1 label-spacing uppercase">行動</div>
                 <p className="text-sm text-text-secondary font-mono">
                   web_search({"{"}"query": "latest AI news 2024"{"}"})
-                  <span className="text-text-muted ml-2">→ 1,250ms</span>
+                  <span className="text-text-muted ml-2">-- 1,250ms</span>
                 </p>
               </div>
             </div>
@@ -89,7 +89,7 @@ export default function Solution() {
                 O
               </div>
               <div className="flex-1 p-3 rounded-card bg-base border-l-2 border-l-status-pass">
-                <div className="text-xs text-text-muted mb-1 label-spacing uppercase">Observation</div>
+                <div className="text-xs text-text-muted mb-1 label-spacing uppercase">観察結果</div>
                 <p className="text-sm text-text-secondary">"5件の関連記事を発見。トップ記事: GPT-5の噂..."</p>
               </div>
             </div>
@@ -97,19 +97,19 @@ export default function Solution() {
 
           <div className="px-6 py-4 border-t border-border flex flex-wrap gap-6 text-sm">
             <div>
-              <span className="text-text-muted">Total Steps:</span>
+              <span className="text-text-muted">総ステップ数:</span>
               <span className="text-text-primary font-mono tabular-nums ml-2">3</span>
             </div>
             <div>
-              <span className="text-text-muted">Tool Calls:</span>
+              <span className="text-text-muted">外部ツール呼び出し:</span>
               <span className="text-text-primary font-mono tabular-nums ml-2">5</span>
             </div>
             <div>
-              <span className="text-text-muted">Duration:</span>
+              <span className="text-text-muted">処理時間:</span>
               <span className="text-text-primary font-mono tabular-nums ml-2">4.2s</span>
             </div>
             <div>
-              <span className="text-text-muted">Confidence:</span>
+              <span className="text-text-muted">信頼度:</span>
               <span className="text-status-pass font-mono tabular-nums ml-2">92%</span>
             </div>
           </div>

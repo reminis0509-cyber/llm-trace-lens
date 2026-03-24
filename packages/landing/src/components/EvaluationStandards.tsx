@@ -43,8 +43,8 @@ const evaluationAxes: EvaluationAxis[] = [
   {
     titleJa: '安全性',
     titleEn: 'Safety',
-    method: 'PII検出エンジン + 有害出力フィルタ',
-    metrics: '個人情報漏洩検出率、有害コンテンツブロック率',
+    method: '機密情報検知エンジン + 有害出力フィルタ',
+    metrics: '個人情報漏洩の検出率、有害コンテンツの遮断率',
     borderColor: 'border-l-status-block',
     label: '05',
   },
@@ -57,7 +57,7 @@ export default function EvaluationStandards() {
         {/* Section header */}
         <div className="text-center mb-16">
           <span className="inline-block px-3 py-1.5 text-xs text-text-muted label-spacing uppercase surface-card mb-6">
-            Evaluation Standards
+            品質評価基準
           </span>
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
             評価基準
@@ -93,7 +93,7 @@ export default function EvaluationStandards() {
               <div className="space-y-3">
                 <div>
                   <div className="text-xs text-text-muted label-spacing uppercase mb-1">
-                    Measurement
+                    測定方法
                   </div>
                   <p className="text-sm text-text-secondary">{axis.method}</p>
                 </div>

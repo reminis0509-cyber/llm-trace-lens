@@ -1,45 +1,45 @@
 const features = [
   {
-    title: '日本語PII検出',
-    description: 'マイナンバー、住所、電話番号、パスポート、保険証、免許証を自動検出・ブロック。',
+    title: '日本語の機密情報を自動検知',
+    description: 'マイナンバー、住所、電話番号、パスポート、保険証、免許証など15種類以上を自動検出・遮断。',
     borderColor: 'border-l-status-block',
     isNew: true,
   },
   {
-    title: 'LLM-as-Judge評価',
-    description: 'OpenAI・Claude 両対応。回答の忠実性・関連性を自動スコアリング。',
+    title: 'AIによる回答品質の自動評価',
+    description: 'OpenAI・Anthropic両対応。回答の正確性・関連性をAIが自動でスコアリングします。',
     borderColor: 'border-l-violet-400',
     isNew: true,
   },
   {
-    title: 'Agentトレース',
-    description: 'ReActパターンの思考・行動・観察を構造化して完全可視化。',
+    title: 'AIエージェントの行動記録',
+    description: 'AIエージェントの思考・行動・観察結果を構造化して完全に可視化します。',
     borderColor: 'border-l-status-pass',
     isNew: true,
   },
   {
-    title: '信頼度検証',
-    description: '信頼度スコアと根拠の数を照合。自信過剰な回答を自動検出。',
+    title: 'ハルシネーション検出',
+    description: '信頼度スコアと根拠の数を照合。自信過剰な回答や事実と異なる出力を自動検出します。',
     borderColor: 'border-l-accent',
   },
   {
     title: 'コスト・予算管理',
-    description: 'モデル別コストをリアルタイム計算。fail-closed予算ガードで超過を防止。',
+    description: 'モデル別コストをリアルタイム計算。予算上限の設定により、コスト超過を自動で防止します。',
     borderColor: 'border-l-status-fail',
   },
   {
-    title: 'リスクスコアリング',
-    description: '4要素の加重平均で0-100のリスクスコアを算出。SQLi・XSSも検出。',
+    title: 'セキュリティリスク分析',
+    description: '4要素の加重平均で0-100のリスクスコアを算出。インジェクション攻撃も検出します。',
     borderColor: 'border-l-status-warn',
   },
   {
-    title: 'マルチプロバイダー',
-    description: 'OpenAI、Anthropic、Gemini に対応。URL変更だけで導入。',
+    title: '複数AIプロバイダー対応',
+    description: 'OpenAI、Anthropic、Google Gemini に対応。接続先URLの変更だけで導入できます。',
     borderColor: 'border-l-blue-400',
   },
   {
-    title: 'プラン課金基盤',
-    description: 'Free / Pro / Enterprise Standard〜Premium の5段階。月次トレースカウント・自動制限。',
+    title: '柔軟な料金プラン',
+    description: '無料プランから大規模企業向けまで5段階。月間の通信記録数に応じた従量課金です。',
     borderColor: 'border-l-amber-400',
   },
 ];
@@ -51,13 +51,13 @@ export default function Features() {
         {/* Section header */}
         <div className="text-center mb-16">
           <span className="inline-block px-3 py-1.5 text-xs text-text-muted label-spacing uppercase surface-card mb-6">
-            Features
+            機能一覧
           </span>
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            エンタープライズ向けフル機能
+            AI監視に必要な全機能を搭載
           </h2>
           <p className="text-lg text-text-secondary max-w-xl mx-auto">
-            AIの可観測性・検証・エージェントトレースに必要なすべて
+            AIの可視化・品質検証・セキュリティ保護をワンストップで提供
           </p>
         </div>
 

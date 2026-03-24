@@ -6,50 +6,78 @@ export default function Hero() {
           {/* Eyebrow */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 surface-card text-sm mb-8">
             <span className="w-1.5 h-1.5 bg-accent rounded-full" />
-            <span className="text-text-muted">AIエージェント意思決定トレース対応</span>
+            <span className="text-text-muted">日本初のLLM特化型AI監視プラットフォーム</span>
           </div>
 
           {/* Main headline */}
           <h1 className="text-display-sm md:text-display font-semibold text-text-primary mb-6">
-            AIの真実を可視化
+            生成AIのリスク、
+            <br className="hidden sm:block" />
+            放置していませんか？
           </h1>
 
           {/* Subheadline */}
-          <p className="text-lg text-text-secondary max-w-2xl mx-auto mb-12">
-            マイナンバー、住所、電話番号 — 日本語の個人情報を自動検出・遮断。
+          <p className="text-lg text-text-secondary max-w-2xl mx-auto mb-8">
+            ハルシネーション、情報漏洩、コスト超過 --
             <br className="hidden sm:block" />
-            セキュリティ専任者がいなくても、AI利用の安全性を確保。
+            LLMの全通信を可視化・監視・保護する国産プラットフォーム。
           </p>
 
-          {/* Stats */}
-          <div className="flex flex-wrap justify-center gap-12 mb-12">
+          {/* Trust badges */}
+          <div className="flex flex-wrap justify-center gap-4 mb-10">
             {[
-              { value: '15+', label: '日本語PIIパターン' },
-              { value: '1行', label: 'コード変更で導入' },
-              { value: '0件', label: '競合の日本語PII対応' },
-            ].map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-3xl font-mono tabular-nums text-text-primary mb-1">{stat.value}</div>
-                <div className="text-xs text-text-muted label-spacing uppercase">{stat.label}</div>
+              '30日間無料トライアル',
+              'クレジットカード不要',
+              '1行のコード変更で導入',
+            ].map((badge) => (
+              <div key={badge} className="flex items-center gap-1.5 text-sm text-text-secondary">
+                <svg className="w-4 h-4 text-status-pass flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span>{badge}</span>
               </div>
             ))}
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
             <a
               href="/dashboard"
-              className="w-full sm:w-auto px-6 py-3 bg-accent rounded-card font-medium hover:bg-accent/90 transition-colors duration-120 text-center"
+              className="w-full sm:w-auto px-8 py-4 bg-accent rounded-card text-base font-semibold hover:bg-accent/90 transition-colors duration-120 text-center"
               style={{ color: '#0d0d0f' }}
             >
-              無料で試す
+              30日間無料で試す
             </a>
             <a
-              href="#demo-video"
-              className="w-full sm:w-auto px-6 py-3 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-base-elevated transition-colors duration-120 text-center"
+              href="#demo-showcase"
+              className="w-full sm:w-auto px-6 py-4 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-base-elevated transition-colors duration-120 text-center"
             >
-              デモを見る
+              製品画面を見る
             </a>
+          </div>
+
+          {/* Stats */}
+          <div className="flex flex-wrap justify-center gap-12 mb-12">
+            {[
+              { value: '15+', label: '機密情報の検知パターン' },
+              { value: '1行', label: 'コード変更で導入完了' },
+              { value: '3社', label: '対応AIプロバイダー' },
+            ].map((stat) => (
+              <div key={stat.label} className="text-center">
+                <div className="text-3xl font-mono tabular-nums text-text-primary mb-1">{stat.value}</div>
+                <div className="text-xs text-text-muted label-spacing">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Supported providers */}
+          <div className="flex items-center justify-center gap-6 text-text-muted mb-16">
+            <span className="text-xs">対応プロバイダー:</span>
+            <div className="flex items-center gap-4">
+              {['OpenAI', 'Anthropic', 'Google Gemini'].map((name) => (
+                <span key={name} className="text-xs font-mono text-text-secondary">{name}</span>
+              ))}
+            </div>
           </div>
 
           {/* Code preview */}

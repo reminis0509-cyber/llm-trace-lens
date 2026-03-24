@@ -34,7 +34,7 @@ export default function Providers() {
       <div className="section-container">
         <div className="text-center mb-16">
           <span className="inline-block px-3 py-1.5 text-xs text-text-muted label-spacing uppercase surface-card mb-6">
-            Providers
+            対応プロバイダー
           </span>
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
             主要AIプロバイダに対応

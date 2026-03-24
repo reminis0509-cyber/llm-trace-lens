@@ -20,6 +20,7 @@ import SalesPage from './components/SalesPage';
 import ChatWidget from './components/ChatWidget';
 import ResearchWidget from './components/ResearchWidget';
 import PiiDetection from './components/PiiDetection';
+import MidPageCTA from './components/MidPageCTA';
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -43,31 +44,62 @@ export default function App() {
   } else {
     pageContent = (
       <>
+        {/* 1. Hero: 課題提起 + 解決策 + CTA */}
         <Hero />
         <div className="section-divider" />
-        <PiiDetection />
-        <div className="section-divider" />
-        <DemoShowcase />
-        <div className="section-divider" />
-        <ResearchWidget />
-        <div className="section-divider" />
-        <GettingStarted />
-        <div className="section-divider" />
+
+        {/* 2. 課題セクション: ペルソナの悩みに共感 */}
         <Problems />
         <div className="section-divider" />
+
+        {/* 3. 解決セクション: FujiTraceの3つの価値 */}
         <Solution />
         <div className="section-divider" />
+
+        {/* 4. 中間CTA: 課題→解決を読んだ後のアクション誘導 */}
+        <MidPageCTA />
+        <div className="section-divider" />
+
+        {/* 5. 機密情報検知: コア機能の詳細 */}
+        <PiiDetection />
+        <div className="section-divider" />
+
+        {/* 6. 製品画面デモ: 実際の画面イメージ */}
+        <DemoShowcase />
+        <div className="section-divider" />
+
+        {/* 7. 機能一覧 */}
         <Features />
         <div className="section-divider" />
+
+        {/* 8. 導入方法 */}
+        <GettingStarted />
+        <div className="section-divider" />
+
+        {/* 9. アーキテクチャ */}
         <Architecture />
         <div className="section-divider" />
+
+        {/* 10. 評価基準 */}
         <EvaluationStandards />
         <div className="section-divider" />
-        <Partners />
-        <div className="section-divider" />
+
+        {/* 11. 対応プロバイダー */}
         <Providers />
         <div className="section-divider" />
+
+        {/* 12. 料金 */}
         <Pricing />
+
+        {/* 13. パートナー */}
+        <div className="section-divider" />
+        <Partners />
+
+        {/* 14. リサーチウィジェット */}
+        <div className="section-divider" />
+        <ResearchWidget />
+
+        {/* 15. 最終CTA */}
         <CTA />
       </>
     );

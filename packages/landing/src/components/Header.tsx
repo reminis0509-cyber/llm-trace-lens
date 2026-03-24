@@ -24,12 +24,11 @@ export default function Header() {
 
   const navItems = [
     { label: '課題', href: '#problems' },
-    { label: 'ソリューション', href: '#solution' },
+    { label: '解決策', href: '#solution' },
     { label: '機能', href: '#features' },
-    { label: 'Agent対応', href: '#architecture' },
+    { label: '導入方法', href: '#getting-started' },
     { label: '料金', href: '#pricing' },
-    { label: 'パートナー', href: '#partners' },
-    { label: 'お問い合わせ', href: '#contact' },
+    { label: '無料トライアル', href: '#contact' },
   ];
 
   return (
@@ -75,7 +74,7 @@ export default function Header() {
                 className="px-4 py-2 bg-accent text-base-dark rounded-card text-sm font-semibold hover:bg-accent/90 transition-colors duration-120"
                 style={{ color: '#0d0d0f' }}
               >
-                無料で始める
+                30日間無料で試す
               </a>
             </div>
 
@@ -129,7 +128,7 @@ export default function Header() {
                 style={{ color: '#0d0d0f' }}
                 onClick={() => setIsMenuOpen(false)}
               >
-                無料で始める
+                30日間無料で試す
               </a>
             </div>
           </nav>

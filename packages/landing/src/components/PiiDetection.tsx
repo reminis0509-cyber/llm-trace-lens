@@ -30,7 +30,7 @@ interface ComparisonRow {
 
 const comparisonData: ComparisonRow[] = [
   {
-    label: '日本語PIIパターン',
+    label: '日本語の機密情報検知',
     fujitrace: '15+種類 組み込み',
     datadog: '対応なし',
     langfuse: '対応なし',
@@ -56,15 +56,15 @@ export default function PiiDetection() {
         {/* Section header */}
         <div className="text-center mb-16">
           <span className="inline-block px-3 py-1.5 text-xs text-status-block label-spacing uppercase surface-card mb-6">
-            Core Feature
+            主要機能
           </span>
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            日本語PII自動検出
+            日本語の機密情報を自動検知・遮断
           </h2>
           <p className="text-lg text-text-secondary max-w-2xl mx-auto">
             設定不要。LLMの入出力に含まれる個人情報を自動で検出・遮断。
             <br className="hidden sm:block" />
-            セキュリティエンジニアがいなくても、導入した瞬間から機密情報を保護。
+            セキュリティエンジニアがいなくても、導入した瞬間から機密情報を保護します。
           </p>
         </div>
 
@@ -73,7 +73,7 @@ export default function PiiDetection() {
           <div className="px-6 py-4 border-b border-border flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="w-2 h-2 rounded-full bg-status-block animate-pulse" />
-              <span className="text-xs text-text-muted label-spacing uppercase">PII Detection Engine</span>
+              <span className="text-xs text-text-muted label-spacing uppercase">機密情報検知エンジン</span>
             </div>
             <span className="text-xs text-status-block font-mono">BLOCKED</span>
           </div>
@@ -117,7 +117,7 @@ export default function PiiDetection() {
         {/* PII patterns grid */}
         <div className="mb-16">
           <h3 className="text-base font-medium text-text-primary mb-6 text-center">
-            検出対応パターン — <span className="text-accent font-mono">15+種類</span>
+            検出対応パターン -- <span className="text-accent font-mono">15+種類</span>
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {piiPatterns.map((pattern) => (
@@ -135,7 +135,7 @@ export default function PiiDetection() {
         {/* Competitor comparison */}
         <div className="mb-12">
           <h3 className="text-base font-medium text-text-primary mb-6 text-center">
-            競合との比較
+            海外製品との比較
           </h3>
           <div className="surface-card overflow-hidden">
             {/* Table header */}
@@ -184,10 +184,10 @@ export default function PiiDetection() {
             className="inline-flex px-6 py-3 bg-accent rounded-card font-medium hover:bg-accent/90 transition-colors duration-120"
             style={{ color: '#0d0d0f' }}
           >
-            無料で始める
+            30日間無料で試す
           </a>
           <p className="text-sm text-text-muted mt-3">
-            Pro機能を30日間無料で体験
+            全機能を30日間無料で体験できます
           </p>
         </div>
       </div>

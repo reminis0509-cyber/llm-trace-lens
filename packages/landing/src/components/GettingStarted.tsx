@@ -380,7 +380,7 @@ export default function GettingStarted() {
         {/* Section header */}
         <div className="text-center mb-12">
           <span className="inline-block px-3 py-1.5 text-xs text-text-muted label-spacing uppercase surface-card mb-6">
-            GETTING STARTED
+            導入方法
           </span>
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
             3ステップで導入完了
@@ -423,7 +423,7 @@ export default function GettingStarted() {
             className="inline-flex px-6 py-3 bg-accent rounded-card font-medium hover:bg-accent/90 transition-colors duration-120"
             style={{ color: '#0d0d0f' }}
           >
-            無料で始める →
+            30日間無料で試す
           </a>
         </div>
       </div>
