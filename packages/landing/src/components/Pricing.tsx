@@ -106,10 +106,10 @@ export default function Pricing() {
             Pricing
           </span>
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            シンプルな料金プラン
+            AIガバナンスへの投資を最適化する料金プラン
           </h2>
           <p className="text-lg text-text-secondary max-w-xl mx-auto">
-            チームの規模に合わせて最適なプランをお選びください。
+            スモールスタートからエンタープライズ規模まで、事業フェーズに合わせてスケール。
             <br className="hidden sm:block" />
             すべてのEnterpriseプランは年次契約です。
           </p>

@@ -56,15 +56,15 @@ export default function PiiDetection() {
         {/* Section header */}
         <div className="text-center mb-16">
           <span className="inline-block px-3 py-1.5 text-xs text-status-block label-spacing uppercase surface-card mb-6">
-            主要機能
+            データ保護
           </span>
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            日本語の機密情報を自動検知・遮断
+            企業の機密情報を、AIから自動で守る
           </h2>
           <p className="text-lg text-text-secondary max-w-2xl mx-auto">
-            設定不要。LLMの入出力に含まれる個人情報を自動で検出・遮断。
+            設定不要。AIの入出力に含まれる個人情報・機密データを自動で検出・遮断。
             <br className="hidden sm:block" />
-            セキュリティエンジニアがいなくても、導入した瞬間から機密情報を保護します。
+            セキュリティ専任者がいなくても、導入した瞬間から企業データを保護します。
           </p>
         </div>
 
@@ -135,8 +135,12 @@ export default function PiiDetection() {
         {/* Competitor comparison */}
         <div className="mb-12">
           <h3 className="text-base font-medium text-text-primary mb-6 text-center">
-            海外製品との比較
+            なぜ国産プラットフォームを選ぶべきか
           </h3>
+          <p className="text-base text-text-secondary max-w-2xl mx-auto text-center mb-8">
+            日本企業特有の規制・機密情報に対応し、データ主権を守りながら、
+            海外ツールでは実現できない安心と説明責任を提供します。
+          </p>
           <div className="surface-card overflow-hidden">
             {/* Table header */}
             <div className="grid grid-cols-4 gap-0 border-b border-border">

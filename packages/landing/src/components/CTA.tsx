@@ -4,12 +4,12 @@ export default function CTA() {
       <div className="section-container">
         <div className="surface-card p-6 sm:p-8 lg:p-12 text-center">
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            まずは30日間、無料でお試しください
+            AIガバナンスの第一歩を、今日から
           </h2>
           <p className="text-lg text-text-secondary mb-4 max-w-xl mx-auto">
             クレジットカード不要で全機能をご利用いただけます。
             <br className="hidden sm:block" />
-            AI通信の可視化・機密情報保護を今日から始められます。
+            生成AIを安心して事業の武器にする環境を、30日間無料で体験してください。
           </p>
           <div className="flex flex-wrap justify-center gap-4 mb-8 text-sm text-text-muted">
             <span className="flex items-center gap-1.5">
@@ -28,7 +28,7 @@ export default function CTA() {
               <svg className="w-4 h-4 text-status-pass" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
-              1行のコード変更で導入
+              最短即日で導入完了
             </span>
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">

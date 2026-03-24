@@ -8,10 +8,10 @@ export default function Architecture() {
             仕組み
           </span>
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            シンプルなアーキテクチャ
+            シンプルな仕組みで、確実にAIを保護
           </h2>
           <p className="text-lg text-text-secondary max-w-xl mx-auto">
-            OpenAI互換APIで、既存のAIアプリケーションをそのまま接続
+            既存のAIアプリケーションに影響を与えず、全通信を安全に監視・保護します
           </p>
         </div>
 

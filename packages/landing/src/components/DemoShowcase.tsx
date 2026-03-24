@@ -266,18 +266,18 @@ export default function DemoShowcase() {
             管理画面
           </span>
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            AI通信の全記録をリアルタイムで確認
+            経営に必要なAI透明性を、リアルタイムで
           </h2>
           <p className="text-lg text-text-secondary max-w-xl mx-auto">
-            AIへの入力・出力、信頼度スコア、コスト -- 全ての通信ログをリアルタイムで確認できます
+            AIへの入力・出力、品質スコア、コスト -- 経営判断に必要な全データをリアルタイムで把握できます
           </p>
         </div>
 
         {/* Showcase Item 1: Trace List — description left, mockup right */}
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center mb-16 lg:mb-24">
           <DescriptionCard
-            title="AIの全通信を自動記録"
-            description="AI APIへの全通信を自動的に記録。入力内容、出力内容、信頼度スコア、応答時間を一覧表示します。"
+            title="AIの全通信を自動記録・監視"
+            description="AI APIへの全通信を自動的に記録。入力内容、出力内容、品質スコア、応答時間を一覧で把握。問題の早期発見を支援します。"
             badges={['リアルタイム更新', '条件絞り込み', 'プロバイダー別表示']}
           />
           <TraceListMockup />
@@ -290,8 +290,8 @@ export default function DemoShowcase() {
           </div>
           <div className="order-1 lg:order-2">
             <DescriptionCard
-              title="AI回答の品質を自動検証"
-              description="各通信記録に対して信頼度スコア、根拠の有無、リスク要因を自動で分析。ハルシネーションや機密情報の漏洩を即座に検出します。"
+              title="AI回答の品質と安全性を自動検証"
+              description="各通信に対して品質スコア、根拠の有無、リスク要因を自動分析。ハルシネーションや機密情報の漏洩をリアルタイムで検出します。"
               badges={['信頼度スコアリング', '機密情報検知', 'リスク分析']}
             />
           </div>
@@ -300,8 +300,8 @@ export default function DemoShowcase() {
         {/* Showcase Item 3: Stats Dashboard — description left, mockup right */}
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           <DescriptionCard
-            title="使用状況を一目で把握"
-            description="通信件数、平均スコア、合格率、応答速度をリアルタイムで集計。プロバイダー別の比較分析でコスト最適化に貢献します。"
+            title="AI投資の全体像を一目で把握"
+            description="利用件数、品質スコア、合格率、応答速度をリアルタイムで集計。AI投資のROIを定量的に評価し、コスト最適化を支援します。"
             badges={['リアルタイム集計', 'プロバイダー比較', 'コスト追跡']}
           />
           <StatsDashboardMockup />

@@ -383,10 +383,10 @@ export default function GettingStarted() {
             導入方法
           </span>
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            3ステップで導入完了
+            最短即日、3ステップで導入完了
           </h2>
           <p className="text-lg text-text-secondary max-w-xl mx-auto">
-            クラウド版もセルフホスト版も、わずか数分でAIの可視化を開始
+            クラウド版もセルフホスト版も、わずか数分でAIガバナンスの運用を開始
           </p>
         </div>
 

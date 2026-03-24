@@ -60,12 +60,12 @@ export default function EvaluationStandards() {
             品質評価基準
           </span>
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            評価基準
+            AI品質を定量化し、経営判断の根拠に
           </h2>
           <p className="text-lg text-text-secondary max-w-2xl mx-auto">
-            FujiTraceはAI品質を5つの軸で定量評価します。
+            FujiTraceはAI品質を5つの軸で定量評価。
             <br className="hidden sm:block" />
-            評価基準を公開し、第三者としての透明性を担保します。
+            評価基準を公開し、透明性のあるAIガバナンスを実現します。
           </p>
         </div>
 

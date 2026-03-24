@@ -6,21 +6,21 @@ export default function Hero() {
           {/* Eyebrow */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 surface-card text-sm mb-8">
             <span className="w-1.5 h-1.5 bg-accent rounded-full" />
-            <span className="text-text-muted">日本初のLLM特化型AI監視プラットフォーム</span>
+            <span className="text-text-muted">国産AIガバナンスプラットフォーム</span>
           </div>
 
           {/* Main headline */}
           <h1 className="text-display-sm md:text-display font-semibold text-text-primary mb-6">
-            生成AIのリスク、
+            生成AIを、
             <br className="hidden sm:block" />
-            放置していませんか？
+            安心して事業の武器に。
           </h1>
 
           {/* Subheadline */}
           <p className="text-lg text-text-secondary max-w-2xl mx-auto mb-8">
-            ハルシネーション、情報漏洩、コスト超過 --
+            情報漏洩・ハルシネーション・コスト超過 --
             <br className="hidden sm:block" />
-            LLMの全通信を可視化・監視・保護する国産プラットフォーム。
+            AIのリスクを可視化・制御し、経営判断に必要な透明性を提供します。
           </p>
 
           {/* Trust badges */}
@@ -28,7 +28,7 @@ export default function Hero() {
             {[
               '30日間無料トライアル',
               'クレジットカード不要',
-              '1行のコード変更で導入',
+              '最短当日で導入完了',
             ].map((badge) => (
               <div key={badge} className="flex items-center gap-1.5 text-sm text-text-secondary">
                 <svg className="w-4 h-4 text-status-pass flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -49,62 +49,25 @@ export default function Hero() {
               30日間無料で試す
             </a>
             <a
-              href="#demo-showcase"
+              href="#contact"
               className="w-full sm:w-auto px-6 py-4 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-base-elevated transition-colors duration-120 text-center"
             >
-              製品画面を見る
+              導入のご相談
             </a>
           </div>
 
           {/* Stats */}
           <div className="flex flex-wrap justify-center gap-12 mb-12">
             {[
-              { value: '15+', label: '機密情報の検知パターン' },
-              { value: '1行', label: 'コード変更で導入完了' },
-              { value: '3社', label: '対応AIプロバイダー' },
+              { value: '15+', label: '日本語機密情報の自動保護' },
+              { value: '即日', label: '導入完了までの最短期間' },
+              { value: '24/7', label: 'AI通信の自動監視' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-3xl font-mono tabular-nums text-text-primary mb-1">{stat.value}</div>
                 <div className="text-xs text-text-muted label-spacing">{stat.label}</div>
               </div>
             ))}
-          </div>
-
-          {/* Supported providers */}
-          <div className="flex items-center justify-center gap-6 text-text-muted mb-16">
-            <span className="text-xs">対応プロバイダー:</span>
-            <div className="flex items-center gap-4">
-              {['OpenAI', 'Anthropic', 'Google Gemini'].map((name) => (
-                <span key={name} className="text-xs font-mono text-text-secondary">{name}</span>
-              ))}
-            </div>
-          </div>
-
-          {/* Code preview */}
-          <div className="max-w-2xl mx-auto">
-            <div className="surface-card overflow-hidden">
-              <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-status-fail/60" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-status-warn/60" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-status-pass/60" />
-                </div>
-                <span className="text-xs text-text-muted font-mono">1行の変更で導入</span>
-              </div>
-              <pre className="p-4 text-sm overflow-x-auto text-left font-mono">
-                <code>
-                  <span className="text-text-muted">// Before</span>
-                  {'\n'}
-                  <span className="text-text-muted line-through">const client = new OpenAI({'{'} baseURL: "https://api.openai.com/v1" {'}'});</span>
-                  {'\n\n'}
-                  <span className="text-text-muted">// After</span>
-                  {'\n'}
-                  <span className="text-text-secondary">const client = new OpenAI({'{'} baseURL: "</span>
-                  <span className="text-accent">https://your-fujitrace.example.com/v1</span>
-                  <span className="text-text-secondary">" {'}'});</span>
-                </code>
-              </pre>
-            </div>
           </div>
 
           {/* Scroll indicator */}

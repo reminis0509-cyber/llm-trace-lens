@@ -1,22 +1,22 @@
 const problems = [
   {
-    title: 'ハルシネーション（AIの誤情報生成）',
-    description: 'AIが自信満々に誤った情報を生成。顧客対応や社内報告で誤情報が拡散すれば、企業の信頼を大きく損なうリスクがあります。',
+    title: 'AIの誤情報が企業の信頼を毀損する',
+    description: 'AIが自信満々に生成した誤情報が顧客対応や意思決定に使われれば、企業ブランドと顧客からの信頼を大きく損ないます。',
     borderColor: 'border-l-status-fail',
   },
   {
-    title: '個人情報・機密データの漏洩',
-    description: 'マイナンバー、顧客の住所、クレジットカード番号がAIの出力に含まれてしまう。情報漏洩は法的リスクに直結します。',
+    title: '情報漏洩が法的リスクに直結する',
+    description: 'マイナンバーや顧客情報がAIの出力に含まれてしまう。一度の漏洩が訴訟・行政処分・ブランド毀損につながります。',
     borderColor: 'border-l-status-block',
   },
   {
-    title: 'AI利用コストの不透明さ',
-    description: 'どの部署が、どのモデルに、いくら使っているか把握できない。気づいたときには予算を大幅に超過していた、という事態が起こり得ます。',
+    title: 'AI投資のROIが見えない',
+    description: 'どの部署が、どのAIに、いくら使っているか把握できない。経営会議でAI投資の妥当性を説明できますか？',
     borderColor: 'border-l-status-warn',
   },
   {
-    title: 'AIエージェントの判断がブラックボックス',
-    description: 'AIエージェントが何を考え、なぜその行動を取ったのか追跡できない。問題発生時の原因究明が困難になります。',
+    title: 'AIの判断過程を説明できない',
+    description: 'AIエージェントの意思決定がブラックボックス。問題発生時に取締役会や監査で説明責任を果たせません。',
     borderColor: 'border-l-accent',
   },
 ];
@@ -31,10 +31,10 @@ export default function Problems() {
             課題
           </span>
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            こんな課題はありませんか？
+            AI活用を阻む、経営リスクの正体
           </h2>
           <p className="text-lg text-text-secondary max-w-xl mx-auto">
-            生成AIを業務に導入したいが、リスク管理に不安を感じている経営者・技術責任者の方へ
+            生成AIを事業に導入したいCEOの方へ。以下のリスクが、AI戦略の推進を妨げていませんか？
           </p>
         </div>
 

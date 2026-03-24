@@ -17,6 +17,7 @@ import TermsPage from './components/TermsPage';
 import PrivacyPage from './components/PrivacyPage';
 import CompanyPage from './components/CompanyPage';
 import SalesPage from './components/SalesPage';
+import ForEngineersPage from './components/ForEngineersPage';
 import ChatWidget from './components/ChatWidget';
 import ResearchWidget from './components/ResearchWidget';
 import PiiDetection from './components/PiiDetection';
@@ -41,6 +42,8 @@ export default function App() {
     pageContent = <CompanyPage />;
   } else if (currentPath === '/sales') {
     pageContent = <SalesPage />;
+  } else if (currentPath === '/for-engineers') {
+    pageContent = <ForEngineersPage />;
   } else {
     pageContent = (
       <>

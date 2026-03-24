@@ -5,10 +5,10 @@ export default function MidPageCTA() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 surface-card p-6 sm:p-8">
           <div>
             <h3 className="text-lg font-semibold text-text-primary mb-1">
-              AIの安全な運用を今日から始めませんか？
+              AIガバナンスの構築を、今日から始めませんか？
             </h3>
             <p className="text-sm text-text-secondary">
-              30日間の無料トライアルで、全機能をお試しいただけます。クレジットカード不要。
+              30日間の無料トライアルで、AI通信の完全な可視化と保護を体験できます。クレジットカード不要。
             </p>
           </div>
           <a
