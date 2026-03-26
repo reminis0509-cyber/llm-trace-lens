@@ -19,24 +19,29 @@ import type { Trace } from '../types';
 
 type Tab = 'traces' | 'stats' | 'analytics' | 'benchmark' | 'integrations' | 'settings' | 'apikeys' | 'playground' | 'members' | 'admin';
 
-const baseTabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: 'apikeys', label: 'APIキー', icon: <Key className="w-4 h-4" strokeWidth={1.5} /> },
-  { id: 'playground', label: 'API接続テスト', icon: <MessageSquare className="w-4 h-4" strokeWidth={1.5} /> },
+type TabItem = { id: Tab; label: string; icon: React.ReactNode };
+
+const mainTabs: TabItem[] = [
   { id: 'traces', label: 'トレース', icon: <List className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'stats', label: '統計', icon: <BarChart3 className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'analytics', label: '分析', icon: <TrendingUp className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'benchmark', label: 'ベンチマーク', icon: <Building2 className="w-4 h-4" strokeWidth={1.5} /> },
+];
+
+const settingsTabs: TabItem[] = [
+  { id: 'apikeys', label: 'APIキー', icon: <Key className="w-4 h-4" strokeWidth={1.5} /> },
+  { id: 'playground', label: 'API接続テスト', icon: <MessageSquare className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'integrations', label: '連携', icon: <Link2 className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'members', label: 'メンバー', icon: <Users className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'settings', label: '設定', icon: <SettingsIcon className="w-4 h-4" strokeWidth={1.5} /> },
 ];
 
-const adminTab: { id: Tab; label: string; icon: React.ReactNode } = {
+const adminTab: TabItem = {
   id: 'admin', label: '管理', icon: <Shield className="w-4 h-4" strokeWidth={1.5} />,
 };
 
 export function Dashboard() {
-  const [activeTab, setActiveTab] = useState<Tab>('apikeys');
+  const [activeTab, setActiveTab] = useState<Tab>('traces');
   const [selectedTrace, setSelectedTrace] = useState<Trace | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [statsRefreshTrigger, setStatsRefreshTrigger] = useState(0);
@@ -48,15 +53,8 @@ export function Dashboard() {
     setStatsRefreshTrigger((prev) => prev + 1);
   }, []);
 
-  const tabs = useMemo(() => {
-    if (isSystemAdmin) {
-      // Insert admin tab before settings
-      const settingsIndex = baseTabs.findIndex(t => t.id === 'settings');
-      const result = [...baseTabs];
-      result.splice(settingsIndex, 0, adminTab);
-      return result;
-    }
-    return baseTabs;
+  const adminTabs = useMemo(() => {
+    return isSystemAdmin ? [adminTab] : [];
   }, [isSystemAdmin]);
 
   const handleSignOut = async () => {
@@ -84,7 +82,42 @@ export function Dashboard() {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center h-full">
-            {tabs.map((tab) => (
+            {mainTabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`relative h-full px-4 text-nav flex items-center gap-2 transition-colors duration-120 ${
+                  activeTab === tab.id
+                    ? 'text-text-primary'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                {tab.icon}
+                <span className="hidden xl:inline">{tab.label}</span>
+                {activeTab === tab.id && (
+                  <span className="absolute bottom-0 left-0 right-0 h-px bg-text-primary" />
+                )}
+              </button>
+            ))}
+            <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+            {settingsTabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`relative h-full px-4 text-nav flex items-center gap-2 transition-colors duration-120 ${
+                  activeTab === tab.id
+                    ? 'text-text-primary'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                {tab.icon}
+                <span className="hidden xl:inline">{tab.label}</span>
+                {activeTab === tab.id && (
+                  <span className="absolute bottom-0 left-0 right-0 h-px bg-text-primary" />
+                )}
+              </button>
+            ))}
+            {adminTabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
@@ -128,7 +161,38 @@ export function Dashboard() {
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-border bg-base-surface">
             <nav className="px-4 py-2 space-y-1">
-              {tabs.map((tab) => (
+              {mainTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabChange(tab.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-card transition-colors duration-120 ${
+                    activeTab === tab.id
+                      ? 'text-text-primary bg-base-elevated'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-base-elevated'
+                  }`}
+                >
+                  {tab.icon}
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+              <div className="pt-2 mt-2 border-t border-border">
+                <span className="block px-3 pb-1 text-xs text-zinc-500">設定</span>
+                {settingsTabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-card transition-colors duration-120 ${
+                      activeTab === tab.id
+                        ? 'text-text-primary bg-base-elevated'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-base-elevated'
+                    }`}
+                  >
+                    {tab.icon}
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
+              </div>
+              {adminTabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}

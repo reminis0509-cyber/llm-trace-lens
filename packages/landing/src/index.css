@@ -40,9 +40,9 @@ body {
     @apply max-w-5xl mx-auto px-6;
   }
 
-  /* Feature card with left border */
+  /* Feature card */
   .feature-card {
-    @apply bg-base-surface border border-border rounded-card p-6 border-l-2;
+    @apply bg-base-surface border border-border rounded-card p-6;
   }
 
   /* Pricing card */
