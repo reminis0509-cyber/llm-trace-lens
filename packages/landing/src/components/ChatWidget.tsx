@@ -79,10 +79,10 @@ function SendIcon() {
 
 function LoadingDots() {
   return (
-    <div className="mr-12 bg-[#18181b] border border-[#27272a] rounded-lg p-3 flex items-center gap-1">
-      <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#a1a1aa] animate-[dotPulse_1.4s_ease-in-out_0s_infinite]" />
-      <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#a1a1aa] animate-[dotPulse_1.4s_ease-in-out_0.2s_infinite]" />
-      <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#a1a1aa] animate-[dotPulse_1.4s_ease-in-out_0.4s_infinite]" />
+    <div className="mr-12 bg-base-surface border border-border rounded-lg p-3 flex items-center gap-1">
+      <span className="inline-block w-1.5 h-1.5 rounded-full bg-text-muted animate-[dotPulse_1.4s_ease-in-out_0s_infinite]" />
+      <span className="inline-block w-1.5 h-1.5 rounded-full bg-text-muted animate-[dotPulse_1.4s_ease-in-out_0.2s_infinite]" />
+      <span className="inline-block w-1.5 h-1.5 rounded-full bg-text-muted animate-[dotPulse_1.4s_ease-in-out_0.4s_infinite]" />
       <style>{`
         @keyframes dotPulse {
           0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
@@ -204,7 +204,7 @@ export default function ChatWidget() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-[#60a5fa] hover:bg-[#3b82f6] transition-colors flex items-center justify-center cursor-pointer shadow-lg text-white"
+          className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-accent hover:bg-accent-hover transition-colors flex items-center justify-center cursor-pointer shadow-lg text-white"
           aria-label="チャットを開く"
         >
           <ChatBubbleIcon />
@@ -214,18 +214,18 @@ export default function ChatWidget() {
       {/* Chat window */}
       {isOpen && (
         <div
-          className="fixed bottom-20 right-6 z-50 w-[calc(100vw-2rem)] sm:w-[360px] max-h-[500px] flex flex-col bg-[#111113] border border-[#27272a] rounded-lg shadow-2xl overflow-hidden"
+          className="fixed bottom-20 right-6 z-50 w-[calc(100vw-2rem)] sm:w-[360px] max-h-[500px] flex flex-col bg-white border border-border rounded-lg shadow-2xl overflow-hidden"
           role="dialog"
           aria-label="FujiTrace サポートチャット"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 h-12 border-b border-[#27272a] bg-[#18181b] flex-shrink-0">
-            <span className="text-sm font-medium text-[#f4f4f5]">
+          <div className="flex items-center justify-between px-4 h-12 border-b border-border bg-base-surface flex-shrink-0">
+            <span className="text-sm font-medium text-text-primary">
               FujiTrace サポート
             </span>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors"
+              className="text-text-muted hover:text-text-primary transition-colors"
               aria-label="チャットを閉じる"
             >
               <CloseIcon />
@@ -235,8 +235,8 @@ export default function ChatWidget() {
           {/* Messages area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[350px]">
             {/* Welcome message */}
-            <div className="mr-12 bg-[#18181b] border border-[#27272a] rounded-lg p-3">
-              <p className="text-sm text-[#f4f4f5]">{WELCOME_MESSAGE}</p>
+            <div className="mr-12 bg-base-surface border border-border rounded-lg p-3">
+              <p className="text-sm text-text-primary">{WELCOME_MESSAGE}</p>
             </div>
 
             {/* Suggestions */}
@@ -246,7 +246,7 @@ export default function ChatWidget() {
                   <button
                     key={suggestion}
                     onClick={() => handleSend(suggestion)}
-                    className="px-3 py-1.5 text-xs border border-[#27272a] rounded-full text-[#a1a1aa] hover:text-[#f4f4f5] hover:border-[#60a5fa]/50 cursor-pointer transition-colors"
+                    className="px-3 py-1.5 text-xs border border-border rounded-full text-text-muted hover:text-text-primary hover:border-accent/50 cursor-pointer transition-colors"
                   >
                     {suggestion}
                   </button>
@@ -258,14 +258,14 @@ export default function ChatWidget() {
             {messages.map((msg) => (
               <div key={msg.id}>
                 {msg.role === 'user' ? (
-                  <div className="ml-12 bg-[#60a5fa]/10 border border-[#60a5fa]/20 rounded-lg p-3">
-                    <p className="text-sm text-[#f4f4f5]">{msg.content}</p>
+                  <div className="ml-12 bg-accent/5 border border-accent/15 rounded-lg p-3">
+                    <p className="text-sm text-text-primary">{msg.content}</p>
                   </div>
                 ) : (
-                  <div className="mr-12 bg-[#18181b] border border-[#27272a] rounded-lg p-3">
-                    <p className="text-sm text-[#f4f4f5]">{msg.content}</p>
+                  <div className="mr-12 bg-base-surface border border-border rounded-lg p-3">
+                    <p className="text-sm text-text-primary">{msg.content}</p>
                     {msg.source && (
-                      <p className="text-[10px] text-[#a1a1aa] mt-1">
+                      <p className="text-[10px] text-text-muted mt-1">
                         {msg.source === 'faq' ? 'FAQ' : 'AI'}
                       </p>
                     )}
@@ -281,7 +281,7 @@ export default function ChatWidget() {
           </div>
 
           {/* Input area */}
-          <div className="border-t border-[#27272a] p-3 flex gap-2 flex-shrink-0">
+          <div className="border-t border-border p-3 flex gap-2 flex-shrink-0">
             <input
               ref={inputRef}
               type="text"
@@ -289,13 +289,13 @@ export default function ChatWidget() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="質問を入力..."
-              className="flex-1 bg-[#0d0d0f] border border-[#27272a] rounded-lg px-3 py-2 text-sm text-[#f4f4f5] placeholder-[#52525b] focus:outline-none focus:border-[#60a5fa]/50"
+              className="flex-1 bg-white border border-border rounded-lg px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50"
               aria-label="メッセージ入力"
             />
             <button
               onClick={() => handleSend()}
               disabled={!input.trim() || isLoading}
-              className="text-[#60a5fa] disabled:text-[#52525b] transition-colors flex-shrink-0 p-1"
+              className="text-accent disabled:text-text-muted transition-colors flex-shrink-0 p-1"
               aria-label="送信"
             >
               <SendIcon />

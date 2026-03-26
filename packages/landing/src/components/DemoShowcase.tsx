@@ -6,7 +6,6 @@ interface TraceItem {
   prompt: string;
   confidence: number;
   detail: string;
-  borderColor: string;
 }
 
 interface StatItem {
@@ -20,19 +19,16 @@ const traceItems: TraceItem[] = [
     prompt: 'PIIってなんですか？わかりやすく...',
     confidence: 95,
     detail: '根拠 3 / 8720ms',
-    borderColor: 'border-l-status-pass',
   },
   {
     prompt: '株式会社サンプルテックの営業担当...',
     confidence: 95,
     detail: '見積書生成',
-    borderColor: 'border-l-status-warn',
   },
   {
     prompt: 'Hello, connection test',
     confidence: 100,
     detail: '1968ms / トークン 162',
-    borderColor: 'border-l-status-pass',
   },
 ];
 
@@ -54,7 +50,7 @@ function BadgePill({ label }: FeatureBadge) {
 function ConfidenceBar({ value }: { value: number }) {
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 bg-base rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-base-elevated rounded-full overflow-hidden">
         <div
           className="h-full bg-status-pass rounded-full"
           style={{ width: `${value}%` }}
@@ -104,7 +100,7 @@ function TraceListMockup() {
       {/* Trace items */}
       <div className="divide-y divide-border">
         {traceItems.map((item, i) => (
-          <div key={i} className={`px-4 py-3 border-l-2 ${item.borderColor}`}>
+          <div key={i} className="px-4 py-3 border-l-2 border-l-border">
             <div className="flex items-start justify-between gap-2 mb-1.5">
               <p className="text-sm text-text-primary truncate flex-1">{item.prompt}</p>
               <span className="text-xs font-mono tabular-nums text-status-pass whitespace-nowrap">
@@ -163,7 +159,7 @@ function TraceDetailMockup() {
             { label: 'レイテンシ', value: '1968ms' },
             { label: 'トークン', value: '162' },
           ].map((meta) => (
-            <div key={meta.label} className="p-2 rounded-card bg-base">
+            <div key={meta.label} className="p-2 rounded-card bg-base-elevated">
               <p className="text-[10px] text-text-muted mb-0.5">{meta.label}</p>
               <p className="text-xs font-mono text-text-primary">{meta.value}</p>
             </div>
@@ -187,7 +183,7 @@ function StatsDashboardMockup() {
         {/* 4-stat grid */}
         <div className="grid grid-cols-2 gap-3">
           {statsItems.map((stat) => (
-            <div key={stat.label} className="p-3 rounded-card bg-base border border-border-subtle">
+            <div key={stat.label} className="p-3 rounded-card bg-base-elevated border border-border-subtle">
               <p className="text-[10px] text-text-muted mb-1">{stat.label}</p>
               <p className="text-lg font-mono tabular-nums text-text-primary">
                 {stat.value}
@@ -211,7 +207,7 @@ function StatsDashboardMockup() {
         </div>
 
         {/* Provider stats */}
-        <div className="rounded-card bg-base border border-border-subtle overflow-hidden">
+        <div className="rounded-card bg-base-elevated border border-border-subtle overflow-hidden">
           <div className="px-3 py-2 border-b border-border-subtle">
             <p className="text-[10px] text-text-muted label-spacing uppercase">プロバイダー別</p>
           </div>

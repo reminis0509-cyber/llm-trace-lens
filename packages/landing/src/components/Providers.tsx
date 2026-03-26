@@ -58,7 +58,7 @@ export default function Providers() {
                 {provider.models.map((model, i) => (
                   <span
                     key={i}
-                    className="px-2 py-0.5 bg-base text-text-muted text-xs rounded border border-border-subtle"
+                    className="px-2 py-0.5 bg-base-elevated text-text-muted text-xs rounded border border-border-subtle"
                   >
                     {model}
                   </span>

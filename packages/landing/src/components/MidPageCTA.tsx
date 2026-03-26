@@ -5,7 +5,7 @@ export default function MidPageCTA() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 surface-card p-6 sm:p-8">
           <div>
             <h3 className="text-lg font-semibold text-text-primary mb-1">
-              AIガバナンスの構築を、今日から始めませんか？
+              AI事故が起きる前に、ガバナンス体制を整えませんか？
             </h3>
             <p className="text-sm text-text-secondary">
               30日間の無料トライアルで、AI通信の完全な可視化と保護を体験できます。クレジットカード不要。
@@ -13,8 +13,7 @@ export default function MidPageCTA() {
           </div>
           <a
             href="/dashboard"
-            className="w-full sm:w-auto px-6 py-3 bg-accent rounded-card font-medium hover:bg-accent/90 transition-colors duration-120 text-center flex-shrink-0"
-            style={{ color: '#0d0d0f' }}
+            className="w-full sm:w-auto px-6 py-3 bg-accent text-white rounded-card font-medium hover:bg-accent-hover transition-colors duration-120 text-center flex-shrink-0"
           >
             まずは無料トライアル
           </a>

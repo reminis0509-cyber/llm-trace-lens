@@ -288,8 +288,7 @@ function StepTimeline({ steps }: StepTimelineProps) {
             {/* Number circle and vertical line */}
             <div className="flex flex-col items-center shrink-0">
               <div
-                className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-sm font-bold shrink-0"
-                style={{ color: '#0d0d0f' }}
+                className="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center text-sm font-bold shrink-0"
                 aria-hidden="true"
               >
                 {step.number}
@@ -400,10 +399,9 @@ export default function GettingStarted() {
               aria-controls={`method-panel-${key}`}
               className={
                 method === key
-                  ? 'px-5 py-2.5 text-sm font-medium rounded-card bg-accent transition-colors duration-120 cursor-pointer'
+                  ? 'px-5 py-2.5 text-sm font-medium rounded-card bg-accent text-white transition-colors duration-120 cursor-pointer'
                   : 'px-5 py-2.5 text-sm font-medium rounded-card border border-border text-text-secondary hover:text-text-primary hover:border-border transition-colors duration-120 cursor-pointer'
               }
-              style={method === key ? { color: '#0d0d0f' } : undefined}
               onClick={() => setMethod(key)}
             >
               {label}
@@ -420,8 +418,7 @@ export default function GettingStarted() {
         <div className="text-center mt-12">
           <a
             href="/dashboard"
-            className="inline-flex px-6 py-3 bg-accent rounded-card font-medium hover:bg-accent/90 transition-colors duration-120"
-            style={{ color: '#0d0d0f' }}
+            className="inline-flex px-6 py-3 bg-accent text-white rounded-card font-medium hover:bg-accent/90 transition-colors duration-120"
           >
             30日間無料で試す
           </a>

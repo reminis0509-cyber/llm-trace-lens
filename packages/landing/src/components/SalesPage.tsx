@@ -27,25 +27,21 @@ const challenges = [
     title: 'ハルシネーション検出',
     description:
       'LLMの回答品質を継続的に監視しないと、誤情報がエンドユーザーに届くリスク',
-    borderColor: 'border-l-status-fail',
   },
   {
     title: 'コスト可視化の欠如',
     description:
       'どのプロンプトがコストを消費しているか把握できず、予算超過のリスク',
-    borderColor: 'border-l-status-warn',
   },
   {
     title: '日本語PII漏洩',
     description:
       '海外ツールでは日本語の個人情報（住所、電話番号、マイナンバー等）を検出できない',
-    borderColor: 'border-l-status-block',
   },
   {
     title: '監査証跡の不在',
     description:
       '金融・医療・法務など規制産業では、LLM利用の記録と追跡が必須',
-    borderColor: 'border-l-accent',
   },
 ];
 
@@ -53,33 +49,27 @@ const features = [
   {
     title: 'リアルタイムトレース',
     description: '全LLMコールのレイテンシ、トークン数、コストを自動記録',
-    borderColor: 'border-l-accent',
   },
   {
     title: '日本語PII検出',
     description:
       '住所、電話番号、マイナンバーなど15パターン以上を自動検出・マスク',
-    borderColor: 'border-l-status-block',
   },
   {
     title: 'LLM-as-Judge評価',
     description: 'AIが回答品質を自動スコアリング。人手レビューのコストを削減',
-    borderColor: 'border-l-violet-400',
   },
   {
     title: 'コスト分析ダッシュボード',
     description: 'プロバイダ別・モデル別のコスト推移をリアルタイムで可視化',
-    borderColor: 'border-l-status-warn',
   },
   {
     title: 'エージェントトレース',
     description: 'マルチステップAIエージェントの実行フローを完全に可視化',
-    borderColor: 'border-l-status-pass',
   },
   {
     title: 'カスタムバリデーション',
     description: '業務要件に応じた独自の品質チェックルールを設定可能',
-    borderColor: 'border-l-blue-400',
   },
 ];
 
@@ -172,7 +162,7 @@ export default function SalesPage() {
             {challenges.map((challenge, index) => (
               <div
                 key={index}
-                className={`feature-card ${challenge.borderColor}`}
+                className="feature-card"
               >
                 <h3 className="text-sm font-medium text-text-primary mb-2">
                   {challenge.title}
@@ -225,7 +215,7 @@ export default function SalesPage() {
             {features.map((feature, index) => (
               <div
                 key={index}
-                className={`feature-card ${feature.borderColor}`}
+                className="feature-card"
               >
                 <h3 className="text-sm font-medium text-text-primary mb-2">
                   {feature.title}
@@ -338,7 +328,7 @@ export default function SalesPage() {
           </h2>
           <div className="grid sm:grid-cols-2 gap-4">
             {partnershipSteps.map((item) => (
-              <div key={item.step} className="feature-card border-l-accent">
+              <div key={item.step} className="feature-card">
                 <div className="flex items-start gap-4">
                   <span className="inline-flex items-center justify-center w-7 h-7 rounded bg-base-elevated text-xs font-medium text-text-primary shrink-0">
                     {item.step}

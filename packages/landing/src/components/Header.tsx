@@ -34,16 +34,16 @@ export default function Header() {
   return (
     <>
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled || isMenuOpen ? 'bg-base-surface border-b border-border' : 'bg-transparent'
+        scrolled || isMenuOpen ? 'bg-white/95 backdrop-blur-sm border-b border-border shadow-sm' : 'bg-transparent'
       }`}>
         <div className="section-container">
           <div className="h-14 flex items-center justify-between">
             {/* Logo */}
             <a href="#" className="flex items-center gap-2 flex-shrink-0">
               <svg className="w-5 h-5" viewBox="0 0 32 32" fill="none">
-                <path d="M11.5 8 L7 22 L9.2 22 L11.5 14.5 L13.8 22 L16 22 Z" fill="#93c5fd"/>
-                <path d="M20 10.5 L16.2 22 L18.4 22 L20 15.5 L21.6 22 L23.8 22 Z" fill="#60a5fa"/>
-                <path d="M16 22 L15.2 22 L16 19.2 Z" fill="#2563eb" opacity="0.7"/>
+                <path d="M11.5 8 L7 22 L9.2 22 L11.5 14.5 L13.8 22 L16 22 Z" fill="#60a5fa"/>
+                <path d="M20 10.5 L16.2 22 L18.4 22 L20 15.5 L21.6 22 L23.8 22 Z" fill="#2563eb"/>
+                <path d="M16 22 L15.2 22 L16 19.2 Z" fill="#1d4ed8" opacity="0.7"/>
               </svg>
               <span className="text-sm font-medium text-text-primary">FujiTrace</span>
             </a>
@@ -71,8 +71,7 @@ export default function Header() {
               </a>
               <a
                 href="/dashboard"
-                className="px-4 py-2 bg-accent text-base-dark rounded-card text-sm font-semibold hover:bg-accent/90 transition-colors duration-120"
-                style={{ color: '#0d0d0f' }}
+                className="px-4 py-2 bg-accent text-white rounded-card text-sm font-semibold hover:bg-accent-hover transition-colors duration-120"
               >
                 30日間無料で試す
               </a>
@@ -97,11 +96,10 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Mobile menu — rendered outside header to avoid backdrop-blur stacking context */}
+      {/* Mobile menu */}
       {isMenuOpen && (
         <div
-          className="fixed inset-0 top-14 z-40 lg:hidden overflow-y-auto"
-          style={{ backgroundColor: '#0d0d0f' }}
+          className="fixed inset-0 top-14 z-40 lg:hidden overflow-y-auto bg-white"
         >
           <nav className="flex flex-col gap-1 px-6 py-4">
             {navItems.map((item) => (
@@ -124,8 +122,7 @@ export default function Header() {
               </a>
               <a
                 href="/dashboard"
-                className="px-4 py-3 bg-accent rounded-card text-sm font-semibold text-center hover:bg-accent/90 transition-colors duration-120"
-                style={{ color: '#0d0d0f' }}
+                className="px-4 py-3 bg-accent text-white rounded-card text-sm font-semibold text-center hover:bg-accent-hover transition-colors duration-120"
                 onClick={() => setIsMenuOpen(false)}
               >
                 30日間無料で試す

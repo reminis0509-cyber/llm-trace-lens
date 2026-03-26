@@ -4,12 +4,12 @@ export default function CTA() {
       <div className="section-container">
         <div className="surface-card p-6 sm:p-8 lg:p-12 text-center">
           <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            AIガバナンスの第一歩を、今日から
+            AI事故が起きてからでは遅い。今日から備えを。
           </h2>
           <p className="text-lg text-text-secondary mb-4 max-w-xl mx-auto">
             クレジットカード不要で全機能をご利用いただけます。
             <br className="hidden sm:block" />
-            生成AIを安心して事業の武器にする環境を、30日間無料で体験してください。
+            取引先にも説明できるAIガバナンス体制を、30日間無料で構築してください。
           </p>
           <div className="flex flex-wrap justify-center gap-4 mb-8 text-sm text-text-muted">
             <span className="flex items-center gap-1.5">
@@ -34,8 +34,7 @@ export default function CTA() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <a
               href="/dashboard"
-              className="w-full sm:w-auto px-8 py-4 bg-accent rounded-card text-base font-semibold hover:bg-accent/90 transition-colors duration-120 text-center"
-              style={{ color: '#0d0d0f' }}
+              className="w-full sm:w-auto px-8 py-4 bg-accent text-white rounded-card text-base font-semibold hover:bg-accent-hover transition-colors duration-120 text-center"
             >
               30日間無料で試す
             </a>

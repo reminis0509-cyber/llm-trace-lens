@@ -1,18 +1,18 @@
 const solutions = [
   {
     step: '01',
-    title: 'AIの意思決定を透明化し、説明責任を果たせる',
-    description: 'AIへの全入出力を自動記録。回答の信頼度と根拠を一覧で確認でき、経営会議や監査で根拠ある説明が可能になります。',
+    title: '説明責任を果たせるAI運用体制を構築',
+    description: 'AIへの全入出力を自動記録。回答の信頼度と根拠を一覧で確認でき、取引先・監査法人・規制当局に対して根拠ある説明が可能になります。',
   },
   {
     step: '02',
-    title: '情報漏洩リスクから会社を守り、安心してAI活用を推進',
-    description: '日本語の機密情報15種類以上を自動で検出・遮断。設定不要で、導入した瞬間から企業データを保護します。',
+    title: '情報漏洩リスクから会社を守る',
+    description: '日本語の機密情報15種類以上を自動で検出・遮断。設定不要で、導入した瞬間から企業データを保護し、経営者のリスクを軽減します。',
   },
   {
     step: '03',
-    title: 'AI投資のROIを可視化し、コストを最適化',
-    description: 'モデル別・部署別のコストをリアルタイムで把握。AIエージェントの全行動を記録し、投資対効果を定量的に証明できます。',
+    title: 'AI投資のROIを経営会議で証明できる',
+    description: 'モデル別・部署別のコストをリアルタイムで把握。AIエージェントの全行動を記録し、投資対効果を定量的に示せます。',
   },
 ];
 
@@ -59,10 +59,10 @@ export default function Solution() {
           <div className="p-6 space-y-3">
             {/* Thought */}
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded bg-status-block/20 text-status-block flex items-center justify-center text-xs font-mono flex-shrink-0 mt-0.5">
+              <div className="w-6 h-6 rounded bg-accent-dim text-accent flex items-center justify-center text-xs font-mono flex-shrink-0 mt-0.5">
                 T
               </div>
-              <div className="flex-1 p-3 rounded-card bg-base border-l-2 border-l-status-block">
+              <div className="flex-1 p-3 rounded-card bg-base-elevated border-l-2 border-l-border">
                 <div className="text-xs text-text-muted mb-1 label-spacing uppercase">思考</div>
                 <p className="text-sm text-text-secondary">"最新のAIニュースを検索する必要がある"</p>
               </div>
@@ -70,10 +70,10 @@ export default function Solution() {
 
             {/* Action */}
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded bg-status-warn/20 text-status-warn flex items-center justify-center text-xs font-mono flex-shrink-0 mt-0.5">
+              <div className="w-6 h-6 rounded bg-accent-dim text-accent flex items-center justify-center text-xs font-mono flex-shrink-0 mt-0.5">
                 A
               </div>
-              <div className="flex-1 p-3 rounded-card bg-base border-l-2 border-l-status-warn">
+              <div className="flex-1 p-3 rounded-card bg-base-elevated border-l-2 border-l-border">
                 <div className="text-xs text-text-muted mb-1 label-spacing uppercase">行動</div>
                 <p className="text-sm text-text-secondary font-mono">
                   web_search({"{"}"query": "latest AI news 2024"{"}"})
@@ -84,10 +84,10 @@ export default function Solution() {
 
             {/* Observation */}
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded bg-status-pass/20 text-status-pass flex items-center justify-center text-xs font-mono flex-shrink-0 mt-0.5">
+              <div className="w-6 h-6 rounded bg-accent-dim text-accent flex items-center justify-center text-xs font-mono flex-shrink-0 mt-0.5">
                 O
               </div>
-              <div className="flex-1 p-3 rounded-card bg-base border-l-2 border-l-status-pass">
+              <div className="flex-1 p-3 rounded-card bg-base-elevated border-l-2 border-l-border">
                 <div className="text-xs text-text-muted mb-1 label-spacing uppercase">観察結果</div>
                 <p className="text-sm text-text-secondary">"5件の関連記事を発見。トップ記事: GPT-5の噂..."</p>
               </div>

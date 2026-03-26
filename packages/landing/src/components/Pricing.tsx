@@ -125,7 +125,7 @@ export default function Pricing() {
               }`}
             >
               {plan.highlighted && (
-                <span className="absolute -top-3 left-4 px-2 py-0.5 bg-accent text-base text-xs rounded font-mono">
+                <span className="absolute -top-3 left-4 px-2 py-0.5 bg-accent text-white text-xs rounded font-mono">
                   おすすめ
                 </span>
               )}
@@ -162,7 +162,7 @@ export default function Pricing() {
                 href={plan.ctaHref}
                 className={`block w-full py-2.5 px-4 rounded-card text-sm font-medium text-center transition-colors duration-120 ${
                   plan.highlighted
-                    ? 'bg-accent text-base hover:bg-accent/90'
+                    ? 'bg-accent text-white hover:bg-accent/90'
                     : 'bg-base-elevated text-text-secondary border border-border hover:text-text-primary'
                 }`}
               >

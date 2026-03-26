@@ -3,7 +3,6 @@ interface EvaluationAxis {
   titleEn: string;
   method: string;
   metrics: string;
-  borderColor: string;
   label: string;
 }
 
@@ -13,7 +12,6 @@ const evaluationAxes: EvaluationAxis[] = [
     titleEn: 'Response Quality',
     method: 'LLM-as-Judge（独立したLLMによる自動採点）',
     metrics: '正確性、関連性、一貫性',
-    borderColor: 'border-l-accent',
     label: '01',
   },
   {
@@ -21,7 +19,6 @@ const evaluationAxes: EvaluationAxis[] = [
     titleEn: 'Hallucination Rate',
     method: '出力とソースデータの自動突合',
     metrics: '事実と異なる出力の割合(%)',
-    borderColor: 'border-l-status-fail',
     label: '02',
   },
   {
@@ -29,7 +26,6 @@ const evaluationAxes: EvaluationAxis[] = [
     titleEn: 'Latency',
     method: 'トレースのタイムスタンプ分析',
     metrics: '応答速度 (p50, p95, p99)',
-    borderColor: 'border-l-status-warn',
     label: '03',
   },
   {
@@ -37,7 +33,6 @@ const evaluationAxes: EvaluationAxis[] = [
     titleEn: 'Cost Efficiency',
     method: 'トークン使用量 x モデル単価',
     metrics: '1リクエストあたりのコスト',
-    borderColor: 'border-l-status-pass',
     label: '04',
   },
   {
@@ -45,7 +40,6 @@ const evaluationAxes: EvaluationAxis[] = [
     titleEn: 'Safety',
     method: '機密情報検知エンジン + 有害出力フィルタ',
     metrics: '個人情報漏洩の検出率、有害コンテンツの遮断率',
-    borderColor: 'border-l-status-block',
     label: '05',
   },
 ];
@@ -74,7 +68,7 @@ export default function EvaluationStandards() {
           {evaluationAxes.map((axis) => (
             <div
               key={axis.label}
-              className={`feature-card ${axis.borderColor} hover:bg-base-elevated transition-colors duration-120`}
+              className="feature-card hover:bg-base-elevated transition-colors duration-120"
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 rounded-card bg-accent-dim text-accent flex items-center justify-center font-mono text-xs flex-shrink-0">

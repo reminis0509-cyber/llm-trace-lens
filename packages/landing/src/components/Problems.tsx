@@ -1,23 +1,19 @@
 const problems = [
   {
-    title: 'AIの誤情報が企業の信頼を毀損する',
-    description: 'AIが自信満々に生成した誤情報が顧客対応や意思決定に使われれば、企業ブランドと顧客からの信頼を大きく損ないます。',
-    borderColor: 'border-l-status-fail',
+    title: 'AIの誤情報で、顧客の信頼が一瞬で崩れる',
+    description: 'AIが自信満々に生成した誤情報が顧客対応に使われれば、企業ブランドの毀損と訴訟リスクに直結します。気づいたときには手遅れです。',
   },
   {
-    title: '情報漏洩が法的リスクに直結する',
-    description: 'マイナンバーや顧客情報がAIの出力に含まれてしまう。一度の漏洩が訴訟・行政処分・ブランド毀損につながります。',
-    borderColor: 'border-l-status-block',
+    title: '情報漏洩は、経営者の責任問題になる',
+    description: 'マイナンバーや顧客情報がAIの出力に含まれてしまう。一度の漏洩が行政処分・損害賠償・経営責任の追及につながります。',
   },
   {
-    title: 'AI投資のROIが見えない',
-    description: 'どの部署が、どのAIに、いくら使っているか把握できない。経営会議でAI投資の妥当性を説明できますか？',
-    borderColor: 'border-l-status-warn',
+    title: 'AI投資の説明責任を果たせない',
+    description: 'どの部署が、どのAIに、いくら使っているか把握できない。取締役会や監査法人にAI投資の妥当性を説明できますか？',
   },
   {
-    title: 'AIの判断過程を説明できない',
-    description: 'AIエージェントの意思決定がブラックボックス。問題発生時に取締役会や監査で説明責任を果たせません。',
-    borderColor: 'border-l-accent',
+    title: 'AIの判断過程がブラックボックスのまま',
+    description: 'AIエージェントの意思決定を説明できない。問題発生時に取引先や規制当局への説明責任を果たせません。',
   },
 ];
 
@@ -34,7 +30,7 @@ export default function Problems() {
             AI活用を阻む、経営リスクの正体
           </h2>
           <p className="text-lg text-text-secondary max-w-xl mx-auto">
-            生成AIを事業に導入したいCEOの方へ。以下のリスクが、AI戦略の推進を妨げていませんか？
+            生成AIの導入を検討されている経営者の方へ。以下のリスクが、AI戦略の推進を妨げていませんか？
           </p>
         </div>
 
@@ -43,7 +39,7 @@ export default function Problems() {
           {problems.map((problem, index) => (
             <div
               key={index}
-              className={`feature-card ${problem.borderColor} hover:bg-base-elevated transition-colors duration-120`}
+              className="feature-card hover:bg-base-elevated transition-colors duration-120"
             >
               <h3 className="text-lg font-medium text-text-primary mb-2">{problem.title}</h3>
               <p className="text-sm text-text-secondary">{problem.description}</p>

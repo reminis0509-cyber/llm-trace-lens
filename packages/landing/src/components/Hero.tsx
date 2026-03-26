@@ -9,18 +9,18 @@ export default function Hero() {
             <span className="text-text-muted">国産AIガバナンスプラットフォーム</span>
           </div>
 
-          {/* Main headline */}
+          {/* Main headline - 生存欲求: 会社を守る */}
           <h1 className="text-display-sm md:text-display font-semibold text-text-primary mb-6">
-            生成AIを、
+            AI事故から、
             <br className="hidden sm:block" />
-            安心して事業の武器に。
+            会社と信頼を守る。
           </h1>
 
-          {/* Subheadline */}
+          {/* Subheadline - 3大欲求を網羅 */}
           <p className="text-lg text-text-secondary max-w-2xl mx-auto mb-8">
-            情報漏洩・ハルシネーション・コスト超過 --
+            ハルシネーション・情報漏洩・コスト超過 ——
             <br className="hidden sm:block" />
-            AIのリスクを可視化・制御し、経営判断に必要な透明性を提供します。
+            AIのリスクを可視化・制御し、取引先にも説明できるガバナンス体制を構築します。
           </p>
 
           {/* Trust badges */}
@@ -43,8 +43,7 @@ export default function Hero() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
             <a
               href="/dashboard"
-              className="w-full sm:w-auto px-8 py-4 bg-accent rounded-card text-base font-semibold hover:bg-accent/90 transition-colors duration-120 text-center"
-              style={{ color: '#0d0d0f' }}
+              className="w-full sm:w-auto px-8 py-4 bg-accent text-white rounded-card text-base font-semibold hover:bg-accent-hover transition-colors duration-120 text-center"
             >
               30日間無料で試す
             </a>
@@ -64,7 +63,7 @@ export default function Hero() {
               { value: '24/7', label: 'AI通信の自動監視' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
-                <div className="text-3xl font-mono tabular-nums text-text-primary mb-1">{stat.value}</div>
+                <div className="text-3xl font-mono tabular-nums text-accent mb-1">{stat.value}</div>
                 <div className="text-xs text-text-muted label-spacing">{stat.label}</div>
               </div>
             ))}

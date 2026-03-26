@@ -1,26 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 html {
   scroll-behavior: smooth;
 }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Inter', 'Noto Sans JP', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #0d0d0f;
-  color: #f4f4f5;
+  background: #ffffff;
+  color: #1e293b;
   line-height: 1.6;
 }
 
 @layer base {
   ::selection {
-    background: rgba(96, 165, 250, 0.2);
-    color: #f4f4f5;
+    background: rgba(37, 99, 235, 0.15);
+    color: #1e293b;
   }
 }
 
@@ -32,7 +32,7 @@ body {
 
   /* Terminal block */
   .terminal-block {
-    @apply bg-base border border-border-subtle rounded-card font-mono text-sm;
+    @apply bg-base-elevated border border-border rounded-card font-mono text-sm;
   }
 
   /* Section container */
@@ -42,16 +42,16 @@ body {
 
   /* Feature card */
   .feature-card {
-    @apply bg-base-surface border border-border rounded-card p-6;
+    @apply bg-white border border-border rounded-card p-6;
   }
 
   /* Pricing card */
   .pricing-card {
-    @apply bg-base-surface border border-border rounded-card p-8;
+    @apply bg-white border border-border rounded-card p-8;
   }
 
   .pricing-card-highlight {
-    @apply bg-base-surface border-2 border-accent rounded-card p-8;
+    @apply bg-white border-2 border-accent rounded-card p-8;
   }
 }
 
@@ -85,20 +85,32 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #111113;
+  background: #f8fafc;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: #cbd5e1;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+  background: #94a3b8;
 }
 
 /* Section divider - 極めて控えめに */
 .section-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, #27272a, transparent);
+  background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+}
+
+/* Live trace feed animation */
+@keyframes traceSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

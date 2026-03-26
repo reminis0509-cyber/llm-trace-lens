@@ -83,11 +83,11 @@ export default function PiiDetection() {
                 <span className="text-text-muted flex-shrink-0">Input:</span>
                 <span className="text-text-secondary">
                   {"田中太郎さんのマイナンバーは "}
-                  <span className="bg-status-block/20 text-status-block px-1.5 py-0.5 rounded">
+                  <span className="bg-accent-dim text-accent px-1.5 py-0.5 rounded">
                     1234 5678 9012
                   </span>
                   {" で、住所は "}
-                  <span className="bg-status-block/20 text-status-block px-1.5 py-0.5 rounded">
+                  <span className="bg-accent-dim text-accent px-1.5 py-0.5 rounded">
                     東京都渋谷区神南1-2-3
                   </span>
                   {" です"}
@@ -185,8 +185,7 @@ export default function PiiDetection() {
         <div className="text-center">
           <a
             href="/dashboard"
-            className="inline-flex px-6 py-3 bg-accent rounded-card font-medium hover:bg-accent/90 transition-colors duration-120"
-            style={{ color: '#0d0d0f' }}
+            className="inline-flex px-6 py-3 bg-accent text-white rounded-card font-medium hover:bg-accent/90 transition-colors duration-120"
           >
             30日間無料で試す
           </a>

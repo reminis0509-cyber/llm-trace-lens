@@ -8,33 +8,34 @@ export default {
         mono: ['Geist Mono', 'JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       colors: {
-        // ベース：温かみのあるニュートラル
+        // ベース：ライトテーマ（日本BtoB SaaS標準）
         base: {
-          DEFAULT: '#0d0d0f',
-          surface: '#111113',
-          elevated: '#18181b',
+          DEFAULT: '#ffffff',
+          surface: '#f8fafc',
+          elevated: '#f1f5f9',
         },
         border: {
-          DEFAULT: '#27272a',
-          subtle: '#1f1f22',
+          DEFAULT: '#e2e8f0',
+          subtle: '#f1f5f9',
         },
         // テキスト
         text: {
-          primary: '#f4f4f5',
-          secondary: '#a1a1aa',
-          muted: '#52525b',
+          primary: '#1e293b',
+          secondary: '#64748b',
+          muted: '#94a3b8',
         },
-        // アクセント：ブルー（信頼・安定・エンタープライズ）
+        // アクセント：深い青（信頼・誠実・日本企業向け）
         accent: {
-          DEFAULT: '#60a5fa',
-          dim: 'rgba(96, 165, 250, 0.12)',
+          DEFAULT: '#2563eb',
+          dim: 'rgba(37, 99, 235, 0.08)',
+          hover: '#1d4ed8',
         },
-        // ステータス
+        // ステータス（ライトテーマ用に調整）
         status: {
-          pass: '#4ade80',
-          warn: '#fbbf24',
-          fail: '#f87171',
-          block: '#a78bfa',
+          pass: '#16a34a',
+          warn: '#d97706',
+          fail: '#dc2626',
+          block: '#7c3aed',
         },
       },
       fontSize: {

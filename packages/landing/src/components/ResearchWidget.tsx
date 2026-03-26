@@ -101,9 +101,9 @@ function ChevronIcon({ direction }: { direction: 'up' | 'down' }) {
 function LoadingDots() {
   return (
     <div className="flex items-center gap-1" aria-label="実行中">
-      <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#60a5fa] animate-[dotPulse_1.4s_ease-in-out_0s_infinite]" />
-      <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#60a5fa] animate-[dotPulse_1.4s_ease-in-out_0.2s_infinite]" />
-      <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#60a5fa] animate-[dotPulse_1.4s_ease-in-out_0.4s_infinite]" />
+      <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent animate-[dotPulse_1.4s_ease-in-out_0s_infinite]" />
+      <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent animate-[dotPulse_1.4s_ease-in-out_0.2s_infinite]" />
+      <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent animate-[dotPulse_1.4s_ease-in-out_0.4s_infinite]" />
     </div>
   );
 }
@@ -196,14 +196,14 @@ function computeStats(steps: AgentStep[]): DashboardStats {
 function statusBorderColor(status: AgentStep['status']): string {
   switch (status) {
     case 'completed':
-      return '#4ade80';
+      return '#16a34a';
     case 'running':
-      return '#60a5fa';
+      return '#2563eb';
     case 'error':
-      return '#f87171';
+      return '#dc2626';
     case 'pending':
     default:
-      return '#52525b';
+      return '#94a3b8';
   }
 }
 
@@ -218,10 +218,10 @@ function StatusBadge({ status }: StatusBadgeProps) {
     AgentStep['status'],
     { label: string; color: string; bg: string }
   > = {
-    completed: { label: 'PASS', color: '#4ade80', bg: 'rgba(74,222,128,0.1)' },
-    running: { label: 'RUN', color: '#60a5fa', bg: 'rgba(96,165,250,0.1)' },
-    pending: { label: 'WAIT', color: '#52525b', bg: 'rgba(82,82,91,0.1)' },
-    error: { label: 'FAIL', color: '#f87171', bg: 'rgba(248,113,113,0.1)' },
+    completed: { label: 'PASS', color: '#16a34a', bg: 'rgba(22,163,74,0.08)' },
+    running: { label: 'RUN', color: '#2563eb', bg: 'rgba(37,99,235,0.08)' },
+    pending: { label: 'WAIT', color: '#94a3b8', bg: 'rgba(148,163,184,0.08)' },
+    error: { label: 'FAIL', color: '#dc2626', bg: 'rgba(220,38,38,0.08)' },
   };
   const c = config[status];
   return (
@@ -244,15 +244,15 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon }: StatCardProps) {
   return (
-    <div className="flex items-center gap-2.5 bg-[#111113] border border-[#27272a] rounded px-3 py-2.5 min-w-0">
-      <span className="text-[#6ee7b7] shrink-0" aria-hidden="true">
+    <div className="flex items-center gap-2.5 bg-base-surface border border-border rounded px-3 py-2.5 min-w-0">
+      <span className="text-status-pass shrink-0" aria-hidden="true">
         {icon}
       </span>
       <div className="min-w-0">
-        <div className="text-[10px] text-[#52525b] uppercase tracking-wider leading-none mb-0.5">
+        <div className="text-[10px] text-text-muted uppercase tracking-wider leading-none mb-0.5">
           {label}
         </div>
-        <div className="text-sm font-mono tabular-nums text-[#f4f4f5] font-medium truncate">
+        <div className="text-sm font-mono tabular-nums text-text-primary font-medium truncate">
           {value}
         </div>
       </div>
@@ -307,9 +307,9 @@ function TraceRow({ trace, index }: TraceRowProps) {
 
   return (
     <div
-      className="border rounded bg-[#111113] overflow-hidden"
+      className="border rounded bg-base-surface overflow-hidden"
       style={{
-        borderColor: '#27272a',
+        borderColor: '#e2e8f0',
         borderLeftWidth: '3px',
         borderLeftColor: statusBorderColor(trace.status),
         animation: `traceSlideIn 0.3s ease-out ${index * 0.08}s both`,
@@ -320,27 +320,27 @@ function TraceRow({ trace, index }: TraceRowProps) {
         <div className="flex items-center gap-2 min-w-0">
           {isRunning && (
             <span
-              className="inline-block w-2 h-2 rounded-full bg-[#60a5fa] shrink-0"
+              className="inline-block w-2 h-2 rounded-full bg-accent shrink-0"
               style={{ animation: 'tracePulse 2s ease-in-out infinite' }}
               aria-hidden="true"
             />
           )}
           {trace.status === 'completed' && (
-            <span className="inline-block w-2 h-2 rounded-full bg-[#4ade80] shrink-0" aria-hidden="true" />
+            <span className="inline-block w-2 h-2 rounded-full bg-status-pass shrink-0" aria-hidden="true" />
           )}
           {trace.status === 'error' && (
-            <span className="inline-block w-2 h-2 rounded-full bg-[#f87171] shrink-0" aria-hidden="true" />
+            <span className="inline-block w-2 h-2 rounded-full bg-status-fail shrink-0" aria-hidden="true" />
           )}
           {trace.status === 'pending' && (
-            <span className="inline-block w-2 h-2 rounded-full bg-[#52525b] shrink-0" aria-hidden="true" />
+            <span className="inline-block w-2 h-2 rounded-full bg-text-muted shrink-0" aria-hidden="true" />
           )}
-          <span className="text-sm text-[#f4f4f5] font-medium">
+          <span className="text-sm text-text-primary font-medium">
             {trace.label}
-            <span className="text-[#52525b] ml-1">({trace.labelJa})</span>
+            <span className="text-text-muted ml-1">({trace.labelJa})</span>
           </span>
           {isRunning && <LoadingDots />}
         </div>
-        <span className="text-[11px] font-mono text-[#52525b] shrink-0 ml-2">
+        <span className="text-[11px] font-mono text-text-muted shrink-0 ml-2">
           {trace.provider}
         </span>
       </div>
@@ -351,7 +351,7 @@ function TraceRow({ trace, index }: TraceRowProps) {
           className="px-3 pb-1"
           style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}
         >
-          <p className="text-xs text-[#a1a1aa] leading-relaxed line-clamp-2">
+          <p className="text-xs text-text-secondary leading-relaxed line-clamp-2">
             {trace.description}
           </p>
         </div>
@@ -361,25 +361,25 @@ function TraceRow({ trace, index }: TraceRowProps) {
       {(trace.status === 'completed' || trace.status === 'error') && (
         <div className="flex items-center gap-3 px-3 pb-2.5 pt-1 flex-wrap">
           {isSearch ? (
-            <span className="text-[11px] font-mono tabular-nums text-[#a1a1aa]">
+            <span className="text-[11px] font-mono tabular-nums text-text-secondary">
               {trace.resultCount ?? 0} results
             </span>
           ) : (
             trace.tokenUsage && (
-              <span className="text-[11px] font-mono tabular-nums text-[#a1a1aa]">
+              <span className="text-[11px] font-mono tabular-nums text-text-secondary">
                 {trace.tokenUsage.prompt.toLocaleString()}
-                <span className="text-[#52525b] mx-0.5">{'->'}</span>
+                <span className="text-text-muted mx-0.5">{'->'}</span>
                 {trace.tokenUsage.completion.toLocaleString()} tokens
               </span>
             )
           )}
           {trace.cost != null && trace.cost > 0 && (
-            <span className="text-[11px] font-mono tabular-nums text-[#a1a1aa]">
+            <span className="text-[11px] font-mono tabular-nums text-text-secondary">
               {'\u00A5'}{trace.cost.toFixed(2)}
             </span>
           )}
           {trace.duration && (
-            <span className="text-[11px] font-mono tabular-nums text-[#a1a1aa]">
+            <span className="text-[11px] font-mono tabular-nums text-text-secondary">
               {trace.duration}
             </span>
           )}
@@ -412,21 +412,21 @@ function DashboardPanel({ steps, isRunning }: DashboardPanelProps) {
   }, [traces.length]);
 
   return (
-    <div className="bg-[#0d0d0f] border border-[#27272a] rounded-lg overflow-hidden">
+    <div className="bg-white border border-border rounded-lg overflow-hidden">
       {/* Dashboard header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#27272a] bg-[#111113]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-base-surface">
         <div className="flex items-center gap-2.5">
-          <span className="text-sm font-semibold text-[#f4f4f5] tracking-tight">
+          <span className="text-sm font-semibold text-text-primary tracking-tight">
             FujiTrace
           </span>
           <span
             className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider"
-            style={{ color: isRunning ? '#4ade80' : '#52525b' }}
+            style={{ color: isRunning ? '#16a34a' : '#94a3b8' }}
           >
             <span
               className="inline-block w-1.5 h-1.5 rounded-full"
               style={{
-                backgroundColor: isRunning ? '#4ade80' : '#52525b',
+                backgroundColor: isRunning ? '#16a34a' : '#94a3b8',
                 animation: isRunning ? 'tracePulse 2s ease-in-out infinite' : 'none',
               }}
               aria-hidden="true"
@@ -434,7 +434,7 @@ function DashboardPanel({ steps, isRunning }: DashboardPanelProps) {
             {isRunning ? 'Live' : 'Idle'}
           </span>
         </div>
-        <span className="text-[10px] text-[#52525b] font-mono">
+        <span className="text-[10px] text-text-muted font-mono">
           Trace Dashboard
         </span>
       </div>
@@ -466,11 +466,11 @@ function DashboardPanel({ steps, isRunning }: DashboardPanelProps) {
       {/* Trace list */}
       <div className="px-3 pb-3">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] text-[#52525b] uppercase tracking-wider font-medium">
+          <span className="text-[10px] text-text-muted uppercase tracking-wider font-medium">
             Trace Log
           </span>
           {traces.length > 0 && (
-            <span className="text-[10px] text-[#52525b] font-mono tabular-nums">
+            <span className="text-[10px] text-text-muted font-mono tabular-nums">
               {traces.length} entries
             </span>
           )}
@@ -482,7 +482,7 @@ function DashboardPanel({ steps, isRunning }: DashboardPanelProps) {
         >
           {traces.length === 0 && (
             <div className="text-center py-8">
-              <p className="text-xs text-[#52525b]">
+              <p className="text-xs text-text-muted">
                 調査を開始するとトレースがここに表示されます
               </p>
             </div>
@@ -507,26 +507,26 @@ interface ReportPanelProps {
 
 function ReportPanel({ report, isRunning, isExpanded, onToggle }: ReportPanelProps) {
   return (
-    <div className="bg-[#0d0d0f] border border-[#27272a] rounded-lg overflow-hidden">
+    <div className="bg-white border border-border rounded-lg overflow-hidden">
       {/* Report header */}
       <button
         onClick={onToggle}
-        className="flex items-center justify-between w-full px-4 py-3 border-b border-[#27272a] bg-[#111113] cursor-pointer text-left"
+        className="flex items-center justify-between w-full px-4 py-3 border-b border-border bg-base-surface cursor-pointer text-left"
         aria-expanded={isExpanded}
         aria-controls="report-content"
       >
         <div className="flex items-center gap-2.5">
-          <span className="text-sm font-semibold text-[#f4f4f5] tracking-tight">
+          <span className="text-sm font-semibold text-text-primary tracking-tight">
             Research Report
           </span>
           {isRunning && !report && (
-            <span className="text-[10px] text-[#a1a1aa]">生成中...</span>
+            <span className="text-[10px] text-text-secondary">生成中...</span>
           )}
           {report && (
-            <span className="text-[10px] text-[#4ade80]">完了</span>
+            <span className="text-[10px] text-status-pass">完了</span>
           )}
         </div>
-        <span className="text-[#52525b]">
+        <span className="text-text-muted">
           <ChevronIcon direction={isExpanded ? 'up' : 'down'} />
         </span>
       </button>
@@ -553,7 +553,7 @@ function ReportPanel({ report, isRunning, isExpanded, onToggle }: ReportPanelPro
           </div>
         ) : (
           <div className="p-4 text-center">
-            <p className="text-xs text-[#52525b]">
+            <p className="text-xs text-text-muted">
               {isRunning
                 ? 'レポートを生成しています...'
                 : 'レポートはまだありません'}
@@ -577,13 +577,13 @@ interface TabSwitcherProps {
 
 function TabSwitcher({ activeTab, onTabChange, hasReport }: TabSwitcherProps) {
   return (
-    <div className="flex border border-[#27272a] rounded-lg overflow-hidden lg:hidden mb-4">
+    <div className="flex border border-border rounded-lg overflow-hidden lg:hidden mb-4">
       <button
         onClick={() => onTabChange('dashboard')}
         className="flex-1 px-4 py-2 text-sm font-medium transition-colors cursor-pointer"
         style={{
-          backgroundColor: activeTab === 'dashboard' ? '#18181b' : 'transparent',
-          color: activeTab === 'dashboard' ? '#f4f4f5' : '#52525b',
+          backgroundColor: activeTab === 'dashboard' ? '#f1f5f9' : 'transparent',
+          color: activeTab === 'dashboard' ? '#1e293b' : '#94a3b8',
         }}
         aria-pressed={activeTab === 'dashboard'}
       >
@@ -593,14 +593,14 @@ function TabSwitcher({ activeTab, onTabChange, hasReport }: TabSwitcherProps) {
         onClick={() => onTabChange('report')}
         className="flex-1 px-4 py-2 text-sm font-medium transition-colors cursor-pointer"
         style={{
-          backgroundColor: activeTab === 'report' ? '#18181b' : 'transparent',
-          color: activeTab === 'report' ? '#f4f4f5' : '#52525b',
+          backgroundColor: activeTab === 'report' ? '#f1f5f9' : 'transparent',
+          color: activeTab === 'report' ? '#1e293b' : '#94a3b8',
         }}
         aria-pressed={activeTab === 'report'}
       >
         {hasReport ? (
           <span>
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#4ade80] mr-1.5 align-middle" aria-hidden="true" />
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-status-pass mr-1.5 align-middle" aria-hidden="true" />
             レポート
           </span>
         ) : (
@@ -642,7 +642,7 @@ function ScopedStyles() {
       .research-markdown h1 {
         font-size: 1.375rem;
         font-weight: 600;
-        color: #f4f4f5;
+        color: #1e293b;
         margin-top: 1.5rem;
         margin-bottom: 0.75rem;
         line-height: 1.3;
@@ -651,7 +651,7 @@ function ScopedStyles() {
       .research-markdown h2 {
         font-size: 1.125rem;
         font-weight: 600;
-        color: #f4f4f5;
+        color: #1e293b;
         margin-top: 1.25rem;
         margin-bottom: 0.5rem;
         line-height: 1.35;
@@ -660,14 +660,14 @@ function ScopedStyles() {
       .research-markdown h3 {
         font-size: 1rem;
         font-weight: 600;
-        color: #f4f4f5;
+        color: #1e293b;
         margin-top: 1rem;
         margin-bottom: 0.5rem;
         line-height: 1.4;
       }
 
       .research-markdown p {
-        color: #a1a1aa;
+        color: #64748b;
         font-size: 0.8125rem;
         line-height: 1.7;
         margin-top: 0;
@@ -676,7 +676,7 @@ function ScopedStyles() {
 
       .research-markdown ul,
       .research-markdown ol {
-        color: #a1a1aa;
+        color: #64748b;
         font-size: 0.8125rem;
         line-height: 1.7;
         padding-left: 1.25rem;
@@ -693,7 +693,7 @@ function ScopedStyles() {
       }
 
       .research-markdown li {
-        color: #a1a1aa;
+        color: #64748b;
         margin-bottom: 0.25rem;
       }
 
@@ -704,7 +704,7 @@ function ScopedStyles() {
       }
 
       .research-markdown a {
-        color: #34d399;
+        color: #2563eb;
         text-decoration: none;
         transition: text-decoration 120ms;
       }
@@ -714,13 +714,13 @@ function ScopedStyles() {
       }
 
       .research-markdown strong {
-        color: #f4f4f5;
+        color: #1e293b;
         font-weight: 600;
       }
 
       .research-markdown code {
-        color: #34d399;
-        background: #18181b;
+        color: #2563eb;
+        background: #f1f5f9;
         padding: 0.125rem 0.375rem;
         border-radius: 3px;
         font-size: 0.75rem;
@@ -728,8 +728,8 @@ function ScopedStyles() {
       }
 
       .research-markdown pre {
-        background: #18181b;
-        border: 1px solid #27272a;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
         border-radius: 6px;
         padding: 0.75rem 1rem;
         overflow-x: auto;
@@ -745,18 +745,18 @@ function ScopedStyles() {
       }
 
       .research-markdown blockquote {
-        border-left: 3px solid #27272a;
+        border-left: 3px solid #e2e8f0;
         padding-left: 1rem;
         margin-left: 0;
         margin-top: 0;
         margin-bottom: 0.75rem;
         font-style: italic;
-        color: #a1a1aa;
+        color: #64748b;
       }
 
       .research-markdown hr {
         border: none;
-        border-top: 1px solid #27272a;
+        border-top: 1px solid #e2e8f0;
         margin: 1rem 0;
       }
 
@@ -768,18 +768,18 @@ function ScopedStyles() {
       }
 
       .research-markdown th {
-        background: #18181b;
-        color: #f4f4f5;
+        background: #f8fafc;
+        color: #1e293b;
         font-weight: 600;
         text-align: left;
         padding: 0.5rem;
-        border: 1px solid #27272a;
+        border: 1px solid #e2e8f0;
       }
 
       .research-markdown td {
-        color: #a1a1aa;
+        color: #64748b;
         padding: 0.5rem;
-        border: 1px solid #27272a;
+        border: 1px solid #e2e8f0;
       }
 
       .research-markdown img {
@@ -963,7 +963,7 @@ export default function ResearchWidget() {
             <p className="text-lg text-text-secondary max-w-2xl mx-auto mb-3">
               テーマを入力するだけで、AIが自律的にWeb検索・分析・レポート生成。全ステップはFujiTraceでリアルタイムにトレースされます。
             </p>
-            <p className="text-xs text-[#52525b] max-w-xl mx-auto">
+            <p className="text-xs text-text-muted max-w-xl mx-auto">
               このデモはFujiTraceのプロキシを通じて実行され、全てのAI通信が記録・可視化されます
             </p>
           </div>
@@ -979,19 +979,19 @@ export default function ResearchWidget() {
                 onKeyDown={handleKeyDown}
                 placeholder="例: 生成AI市場の最新動向"
                 disabled={isRunning}
-                className="flex-1 bg-[#0d0d0f] border border-[#27272a] rounded-lg px-4 py-3 text-sm text-[#f4f4f5] placeholder-[#52525b] focus:outline-none focus:border-[#34d399]/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 bg-white border border-border rounded-lg px-4 py-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="調査テーマを入力"
               />
               <button
                 type="submit"
                 disabled={!topic.trim() || isRunning}
-                className="px-6 py-3 text-sm font-medium text-[#0d0d0f] bg-[#34d399] rounded-lg hover:bg-[#2cc48a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0"
+                className="px-6 py-3 text-sm font-medium text-white bg-accent rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0"
                 aria-label="調査開始"
               >
                 {isRunning ? '調査中...' : '調査開始'}
               </button>
             </form>
-            <p className="text-xs text-[#52525b] mt-2 text-center">
+            <p className="text-xs text-text-muted mt-2 text-center">
               1時間あたり3回まで実行できます
             </p>
 
@@ -1049,7 +1049,7 @@ export default function ResearchWidget() {
                     <div className="mt-4 text-center">
                       <button
                         onClick={handleReset}
-                        className="px-6 py-2 text-sm text-[#f4f4f5] border border-[#27272a] rounded-lg hover:border-[#34d399]/50 hover:text-[#34d399] transition-colors cursor-pointer"
+                        className="px-6 py-2 text-sm text-text-primary border border-border rounded-lg hover:border-accent/50 hover:text-accent transition-colors cursor-pointer"
                         aria-label="新しい調査を開始"
                       >
                         新しい調査
@@ -1076,7 +1076,7 @@ export default function ResearchWidget() {
       {/* ── Floating Button ── */}
       <button
         onClick={handleFloatClick}
-        className="fixed bottom-6 right-20 z-50 w-12 h-12 rounded-full bg-[#34d399] hover:bg-[#2cc48a] transition-colors flex items-center justify-center cursor-pointer shadow-lg text-[#0d0d0f]"
+        className="fixed bottom-6 right-20 z-50 w-12 h-12 rounded-full bg-accent hover:bg-accent-hover transition-colors flex items-center justify-center cursor-pointer shadow-lg text-white"
         aria-label="AIリサーチデモへスクロール"
       >
         <SearchIcon />

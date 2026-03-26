@@ -14,15 +14,15 @@ export default function Footer() {
           <div className="md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
               <svg className="w-5 h-5" viewBox="0 0 32 32" fill="none">
-                <path d="M11.5 8 L7 22 L9.2 22 L11.5 14.5 L13.8 22 L16 22 Z" fill="#93c5fd"/>
-                <path d="M20 10.5 L16.2 22 L18.4 22 L20 15.5 L21.6 22 L23.8 22 Z" fill="#60a5fa"/>
-                <path d="M16 22 L15.2 22 L16 19.2 Z" fill="#2563eb" opacity="0.7"/>
+                <path d="M11.5 8 L7 22 L9.2 22 L11.5 14.5 L13.8 22 L16 22 Z" fill="#60a5fa"/>
+                <path d="M20 10.5 L16.2 22 L18.4 22 L20 15.5 L21.6 22 L23.8 22 Z" fill="#2563eb"/>
+                <path d="M16 22 L15.2 22 L16 19.2 Z" fill="#1d4ed8" opacity="0.7"/>
               </svg>
               <span className="text-sm font-medium text-text-primary">FujiTrace</span>
             </div>
             <p className="text-sm text-text-muted leading-relaxed">
-              AIの可観測性・検証・<br />
-              AIエージェントトレースプラットフォーム
+              国産AIガバナンス<br />
+              プラットフォーム
             </p>
           </div>
 

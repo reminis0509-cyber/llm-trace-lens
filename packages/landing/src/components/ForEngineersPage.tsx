@@ -19,7 +19,6 @@ interface ComparisonRow {
 interface TechFeature {
   title: string;
   description: string;
-  borderColor: string;
 }
 
 interface EvaluationAxis {
@@ -27,7 +26,6 @@ interface EvaluationAxis {
   titleEn: string;
   method: string;
   metrics: string;
-  borderColor: string;
   label: string;
 }
 
@@ -76,42 +74,34 @@ const techFeatures: TechFeature[] = [
   {
     title: '日本語PII検出エンジン',
     description: 'マイナンバー、住所、電話番号、パスポートなど15種類以上を正規表現ベースで自動検出・遮断。',
-    borderColor: 'border-l-status-block',
   },
   {
     title: 'LLM-as-Judge 評価',
     description: 'OpenAI・Anthropic両対応。独立したLLMが回答の正確性・関連性・安全性を自動スコアリング。',
-    borderColor: 'border-l-violet-400',
   },
   {
     title: 'AIエージェント行動トレース',
     description: 'Thought / Action / Observation パターンを構造化記録。ネストされたツール呼び出しも完全に可視化。',
-    borderColor: 'border-l-status-pass',
   },
   {
     title: 'ハルシネーション検出',
     description: '信頼度スコア(0-100)と根拠数を照合。閾値ベースの自動判定でFail/Warn/Passを分類。',
-    borderColor: 'border-l-accent',
   },
   {
     title: 'コスト・予算管理',
     description: 'トークン数 x モデル単価でリアルタイム計算。プロジェクト別の予算上限設定とアラート通知。',
-    borderColor: 'border-l-status-fail',
   },
   {
     title: 'セキュリティリスクスコア',
     description: '4要素(PII, Injection, Toxicity, Anomaly)の加重平均で0-100のリスクスコアを算出。',
-    borderColor: 'border-l-status-warn',
   },
   {
     title: 'マルチプロバイダー対応',
     description: 'OpenAI, Anthropic, Google Gemini に対応。各プロバイダーのSDK互換APIを提供。',
-    borderColor: 'border-l-blue-400',
   },
   {
     title: 'セルフホスト対応',
     description: 'Docker Composeで全サービスを一括起動。PostgreSQL + Redis + Fastify構成。OSSライセンス。',
-    borderColor: 'border-l-amber-400',
   },
 ];
 
@@ -121,7 +111,6 @@ const evaluationAxes: EvaluationAxis[] = [
     titleEn: 'Response Quality',
     method: 'LLM-as-Judge（独立したLLMによる自動採点）',
     metrics: '正確性、関連性、一貫性',
-    borderColor: 'border-l-accent',
     label: '01',
   },
   {
@@ -129,7 +118,6 @@ const evaluationAxes: EvaluationAxis[] = [
     titleEn: 'Hallucination Rate',
     method: '出力とソースデータの自動突合',
     metrics: '事実と異なる出力の割合(%)',
-    borderColor: 'border-l-status-fail',
     label: '02',
   },
   {
@@ -137,7 +125,6 @@ const evaluationAxes: EvaluationAxis[] = [
     titleEn: 'Latency',
     method: 'トレースのタイムスタンプ分析',
     metrics: '応答速度 (p50, p95, p99)',
-    borderColor: 'border-l-status-warn',
     label: '03',
   },
   {
@@ -145,7 +132,6 @@ const evaluationAxes: EvaluationAxis[] = [
     titleEn: 'Cost Efficiency',
     method: 'トークン使用量 x モデル単価',
     metrics: '1リクエストあたりのコスト',
-    borderColor: 'border-l-status-pass',
     label: '04',
   },
   {
@@ -153,7 +139,6 @@ const evaluationAxes: EvaluationAxis[] = [
     titleEn: 'Safety',
     method: '機密情報検知エンジン + 有害出力フィルタ',
     metrics: '個人情報漏洩の検出率、有害コンテンツの遮断率',
-    borderColor: 'border-l-status-block',
     label: '05',
   },
 ];
@@ -305,8 +290,7 @@ export default function ForEngineersPage() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
               <a
                 href="/dashboard"
-                className="w-full sm:w-auto px-8 py-4 bg-accent rounded-card text-base font-semibold hover:bg-accent/90 transition-colors duration-120 text-center"
-                style={{ color: '#0d0d0f' }}
+                className="w-full sm:w-auto px-8 py-4 bg-accent text-white rounded-card text-base font-semibold hover:bg-accent/90 transition-colors duration-120 text-center"
               >
                 30日間無料で試す
               </a>
@@ -411,9 +395,9 @@ export default function ForEngineersPage() {
               <div className="text-center">
                 <div className="bg-accent-dim border border-accent/30 rounded-card p-4 sm:p-6 mb-4">
                   <svg className="w-8 h-8 sm:w-10 sm:h-10 mx-auto" viewBox="0 0 32 32" fill="none">
-                    <path d="M11.5 8 L7 22 L9.2 22 L11.5 14.5 L13.8 22 L16 22 Z" fill="#93c5fd"/>
-                    <path d="M20 10.5 L16.2 22 L18.4 22 L20 15.5 L21.6 22 L23.8 22 Z" fill="#60a5fa"/>
-                    <path d="M16 22 L15.2 22 L16 19.2 Z" fill="#2563eb" opacity="0.7"/>
+                    <path d="M11.5 8 L7 22 L9.2 22 L11.5 14.5 L13.8 22 L16 22 Z" fill="#60a5fa"/>
+                    <path d="M20 10.5 L16.2 22 L18.4 22 L20 15.5 L21.6 22 L23.8 22 Z" fill="#2563eb"/>
+                    <path d="M16 22 L15.2 22 L16 19.2 Z" fill="#1d4ed8" opacity="0.7"/>
                   </svg>
                 </div>
                 <span className="text-sm font-medium text-text-primary">FujiTrace Proxy</span>
@@ -611,7 +595,7 @@ export default function ForEngineersPage() {
             {techFeatures.map((feature, index) => (
               <div
                 key={index}
-                className={`feature-card ${feature.borderColor} hover:bg-base-elevated transition-colors duration-120`}
+                className="feature-card hover:bg-base-elevated transition-colors duration-120"
               >
                 <h3 className="text-sm font-medium text-text-primary mb-2">{feature.title}</h3>
                 <p className="text-sm text-text-secondary">{feature.description}</p>
@@ -644,7 +628,7 @@ export default function ForEngineersPage() {
             {evaluationAxes.map((axis) => (
               <div
                 key={axis.label}
-                className={`feature-card ${axis.borderColor} hover:bg-base-elevated transition-colors duration-120`}
+                className="feature-card hover:bg-base-elevated transition-colors duration-120"
               >
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-8 h-8 rounded-card bg-accent-dim text-accent flex items-center justify-center font-mono text-xs flex-shrink-0">
@@ -721,8 +705,7 @@ export default function ForEngineersPage() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <a
                 href="/dashboard"
-                className="w-full sm:w-auto px-8 py-4 bg-accent rounded-card text-base font-semibold hover:bg-accent/90 transition-colors duration-120 text-center"
-                style={{ color: '#0d0d0f' }}
+                className="w-full sm:w-auto px-8 py-4 bg-accent text-white rounded-card text-base font-semibold hover:bg-accent/90 transition-colors duration-120 text-center"
               >
                 30日間無料で試す
               </a>

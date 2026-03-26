@@ -135,7 +135,7 @@ export default function Partners() {
         <div className="text-center">
           <a
             href="mailto:partner@fujitrace.jp"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-base rounded-card text-sm font-medium hover:bg-accent/90 transition-colors duration-120"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-white rounded-card text-sm font-medium hover:bg-accent/90 transition-colors duration-120"
           >
             パートナー登録のお問い合わせ
             <svg
