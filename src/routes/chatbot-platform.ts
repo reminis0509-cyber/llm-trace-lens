@@ -94,6 +94,13 @@ async function resolveWorkspaceId(request: FastifyRequest): Promise<string | nul
     return workspaceHeader;
   }
 
+  // 4. If user is authenticated (has any user header) but workspace not found,
+  // fall back to 'default' workspace
+  const userId = request.headers['x-user-id'] as string | undefined;
+  if (userId || userEmail) {
+    return 'default';
+  }
+
   return null;
 }
 
