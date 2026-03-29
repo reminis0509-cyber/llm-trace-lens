@@ -32,6 +32,8 @@ import adminDashboardRoutes from './routes/admin-dashboard.js';
 import billingRoutes from './routes/billing.js';
 import chatbotRoutes from './routes/chatbot.js';
 import researchRoutes from './routes/research.js';
+import chatbotPlatformRoutes from './routes/chatbot-platform.js';
+import { startExchangeRateScheduler, stopExchangeRateScheduler } from './chatbot/exchange-rate.js';
 import { closeKnex } from './storage/knex-client.js';
 
 /**
@@ -196,6 +198,9 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
   // Register research agent routes (public, SSE endpoint)
   await researchRoutes(fastify);
 
+  // Register chatbot platform routes (dashboard + widget APIs)
+  await chatbotPlatformRoutes(fastify);
+
   // Register main routes
   await registerRoutes(fastify);
 
@@ -267,12 +272,16 @@ export async function start() {
   // Start data retention scheduler (auto-cleanup expired traces)
   startRetentionScheduler();
 
+  // Start exchange rate scheduler (daily USD/JPY fetch)
+  startExchangeRateScheduler();
+
   // Graceful shutdown
   const signals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];
   for (const signal of signals) {
     process.on(signal, async () => {
       fastify.log.info(`Received ${signal}, shutting down...`);
       stopRetentionScheduler();
+      stopExchangeRateScheduler();
       await fastify.close();
       await closeKnex();
       process.exit(0);

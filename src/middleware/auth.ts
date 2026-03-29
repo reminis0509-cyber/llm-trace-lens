@@ -125,6 +125,9 @@ const AUTH_SKIP_PATHS = [
   '/admin/', // Admin APIは独自の認証を使用
   '/api/chatbot',
   '/api/research',
+  '/api/widget/', // Chatbot widget API (publish key auth)
+  '/widget/', // Widget static files
+  '/api/exchange-rate', // Public exchange rate endpoint
 ];
 
 /**
