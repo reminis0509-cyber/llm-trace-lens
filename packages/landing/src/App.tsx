@@ -17,6 +17,7 @@ import ForEngineersPage from './components/ForEngineersPage';
 import PiiDetection from './components/PiiDetection';
 import LiveTraceFeed from './components/LiveTraceFeed';
 import MidPageCTA from './components/MidPageCTA';
+import ChatbotSection from './components/ChatbotSection';
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -72,6 +73,10 @@ export default function App() {
 
         {/* 8. 機能一覧 */}
         <Features />
+        <div className="section-divider" />
+
+        {/* 8.5 AIチャットbot */}
+        <ChatbotSection />
         <div className="section-divider" />
 
         {/* 9. 料金 */}
