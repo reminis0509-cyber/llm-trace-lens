@@ -58,8 +58,36 @@ const widgetChatSchema = z.object({
 
 // ─── Helper ──────────────────────────────────────────────────────────
 
-function getWorkspaceId(request: FastifyRequest): string | null {
-  return request.workspace?.workspaceId || null;
+import { getKnex } from '../storage/knex-client.js';
+
+/**
+ * Resolve workspaceId from request context.
+ * Priority: API key auth > dashboard auth (user email) > null
+ */
+async function resolveWorkspaceId(request: FastifyRequest): Promise<string | null> {
+  // 1. API key auth (resolved by auth middleware)
+  if (request.workspace?.workspaceId) {
+    return request.workspace.workspaceId;
+  }
+
+  // 2. Dashboard auth (RBAC plugin sets request.user)
+  const userEmail = request.user?.email;
+  if (userEmail) {
+    try {
+      const db = getKnex();
+      const membership = await db('workspace_users')
+        .where({ email: userEmail.toLowerCase() })
+        .orderBy('created_at', 'asc')
+        .first();
+      if (membership?.workspace_id) {
+        return membership.workspace_id as string;
+      }
+    } catch {
+      // DB lookup failed
+    }
+  }
+
+  return null;
 }
 
 // ─── Routes ──────────────────────────────────────────────────────────
@@ -70,7 +98,7 @@ export async function chatbotPlatformRoutes(fastify: FastifyInstance): Promise<v
 
   // List chatbots
   fastify.get('/api/chatbots', async (request, reply) => {
-    const workspaceId = getWorkspaceId(request);
+    const workspaceId = await resolveWorkspaceId(request);
     if (!workspaceId) return reply.code(401).send({ error: 'Unauthorized' });
     const chatbots = await listChatbots(workspaceId);
     return reply.send({ chatbots });
@@ -78,7 +106,7 @@ export async function chatbotPlatformRoutes(fastify: FastifyInstance): Promise<v
 
   // Create chatbot
   fastify.post('/api/chatbots', async (request, reply) => {
-    const workspaceId = getWorkspaceId(request);
+    const workspaceId = await resolveWorkspaceId(request);
     if (!workspaceId) return reply.code(401).send({ error: 'Unauthorized' });
 
     const parsed = createChatbotSchema.safeParse(request.body);
@@ -92,7 +120,7 @@ export async function chatbotPlatformRoutes(fastify: FastifyInstance): Promise<v
 
   // Get chatbot
   fastify.get('/api/chatbots/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {
-    const workspaceId = getWorkspaceId(request);
+    const workspaceId = await resolveWorkspaceId(request);
     if (!workspaceId) return reply.code(401).send({ error: 'Unauthorized' });
 
     const chatbot = await getChatbot(request.params.id, workspaceId);
@@ -102,7 +130,7 @@ export async function chatbotPlatformRoutes(fastify: FastifyInstance): Promise<v
 
   // Update chatbot
   fastify.put('/api/chatbots/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {
-    const workspaceId = getWorkspaceId(request);
+    const workspaceId = await resolveWorkspaceId(request);
     if (!workspaceId) return reply.code(401).send({ error: 'Unauthorized' });
 
     const parsed = updateChatbotSchema.safeParse(request.body);
@@ -117,7 +145,7 @@ export async function chatbotPlatformRoutes(fastify: FastifyInstance): Promise<v
 
   // Delete chatbot
   fastify.delete('/api/chatbots/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {
-    const workspaceId = getWorkspaceId(request);
+    const workspaceId = await resolveWorkspaceId(request);
     if (!workspaceId) return reply.code(401).send({ error: 'Unauthorized' });
 
     const deleted = await deleteChatbot(request.params.id, workspaceId);
@@ -127,7 +155,7 @@ export async function chatbotPlatformRoutes(fastify: FastifyInstance): Promise<v
 
   // Publish chatbot (generate embed script)
   fastify.post('/api/chatbots/:id/publish', async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {
-    const workspaceId = getWorkspaceId(request);
+    const workspaceId = await resolveWorkspaceId(request);
     if (!workspaceId) return reply.code(401).send({ error: 'Unauthorized' });
 
     const result = await publishChatbot(request.params.id, workspaceId);
@@ -137,7 +165,7 @@ export async function chatbotPlatformRoutes(fastify: FastifyInstance): Promise<v
 
   // Upload document
   fastify.post('/api/chatbots/:id/documents', async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {
-    const workspaceId = getWorkspaceId(request);
+    const workspaceId = await resolveWorkspaceId(request);
     if (!workspaceId) return reply.code(401).send({ error: 'Unauthorized' });
 
     const chatbot = await getChatbot(request.params.id, workspaceId);
@@ -182,7 +210,7 @@ export async function chatbotPlatformRoutes(fastify: FastifyInstance): Promise<v
 
   // List documents
   fastify.get('/api/chatbots/:id/documents', async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {
-    const workspaceId = getWorkspaceId(request);
+    const workspaceId = await resolveWorkspaceId(request);
     if (!workspaceId) return reply.code(401).send({ error: 'Unauthorized' });
 
     const documents = await listDocuments(request.params.id, workspaceId);
@@ -191,7 +219,7 @@ export async function chatbotPlatformRoutes(fastify: FastifyInstance): Promise<v
 
   // Delete document
   fastify.delete('/api/chatbots/:id/documents/:docId', async (request: FastifyRequest<{ Params: { id: string; docId: string } }>, reply) => {
-    const workspaceId = getWorkspaceId(request);
+    const workspaceId = await resolveWorkspaceId(request);
     if (!workspaceId) return reply.code(401).send({ error: 'Unauthorized' });
 
     const deleted = await deleteDocument(request.params.docId, request.params.id, workspaceId);
@@ -201,7 +229,7 @@ export async function chatbotPlatformRoutes(fastify: FastifyInstance): Promise<v
 
   // List sessions
   fastify.get('/api/chatbots/:id/sessions', async (request: FastifyRequest<{ Params: { id: string }; Querystring: { limit?: string; offset?: string } }>, reply) => {
-    const workspaceId = getWorkspaceId(request);
+    const workspaceId = await resolveWorkspaceId(request);
     if (!workspaceId) return reply.code(401).send({ error: 'Unauthorized' });
 
     const limit = parseInt(request.query.limit || '50', 10);
@@ -212,7 +240,7 @@ export async function chatbotPlatformRoutes(fastify: FastifyInstance): Promise<v
 
   // Get session messages
   fastify.get('/api/chatbots/:id/sessions/:sessionId/messages', async (request: FastifyRequest<{ Params: { id: string; sessionId: string } }>, reply) => {
-    const workspaceId = getWorkspaceId(request);
+    const workspaceId = await resolveWorkspaceId(request);
     if (!workspaceId) return reply.code(401).send({ error: 'Unauthorized' });
 
     const messages = await getSessionMessages(request.params.sessionId, workspaceId);
@@ -221,7 +249,7 @@ export async function chatbotPlatformRoutes(fastify: FastifyInstance): Promise<v
 
   // Get chatbot stats
   fastify.get('/api/chatbots/:id/stats', async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {
-    const workspaceId = getWorkspaceId(request);
+    const workspaceId = await resolveWorkspaceId(request);
     if (!workspaceId) return reply.code(401).send({ error: 'Unauthorized' });
 
     const stats = await getChatbotStats(request.params.id, workspaceId);
