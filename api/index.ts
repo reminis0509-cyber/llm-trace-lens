@@ -9,6 +9,7 @@ import chatbotRoutes from '../src/routes/chatbot.js';
 import researchRoutes from '../src/routes/research.js';
 import membersRoutes from '../src/routes/members.js';
 import adminDashboardRoutes from '../src/routes/admin-dashboard.js';
+import chatbotPlatformRoutes from '../src/routes/chatbot-platform.js';
 import rbacPlugin from '../src/middleware/rbac.js';
 import { budgetGuardMiddleware } from '../src/middleware/budget-guard.js';
 
@@ -48,6 +49,9 @@ async function getApp() {
 
     // Register chatbot routes (public, no auth)
     await chatbotRoutes(app);
+
+    // Register chatbot platform routes (dashboard + widget APIs)
+    await chatbotPlatformRoutes(app);
 
     // Register research agent routes (public, SSE endpoint)
     await researchRoutes(app);
