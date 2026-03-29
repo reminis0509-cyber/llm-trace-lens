@@ -26,13 +26,18 @@ const config: { [key: string]: Knex.Config } = {
   },
   postgres: {
     client: 'pg',
-    connection: {
-      host: process.env.POSTGRES_HOST || 'localhost',
-      port: parseInt(process.env.POSTGRES_PORT || '5432'),
-      user: process.env.POSTGRES_USER || 'postgres',
-      password: process.env.POSTGRES_PASSWORD,
-      database: process.env.POSTGRES_DB || 'fujitrace'
-    },
+    connection: process.env.DATABASE_URL
+      ? {
+          connectionString: process.env.DATABASE_URL,
+          ssl: process.env.DATABASE_URL.includes('supabase') ? { rejectUnauthorized: false } : false,
+        }
+      : {
+          host: process.env.POSTGRES_HOST || 'localhost',
+          port: parseInt(process.env.POSTGRES_PORT || '5432'),
+          user: process.env.POSTGRES_USER || 'postgres',
+          password: process.env.POSTGRES_PASSWORD,
+          database: process.env.POSTGRES_DB || 'fujitrace',
+        },
     pool: {
       min: 2,
       max: 10
