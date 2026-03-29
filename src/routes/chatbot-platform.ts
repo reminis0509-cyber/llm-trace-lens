@@ -70,8 +70,9 @@ async function resolveWorkspaceId(request: FastifyRequest): Promise<string | nul
     return request.workspace.workspaceId;
   }
 
-  // 2. Dashboard auth (RBAC plugin sets request.user)
-  const userEmail = request.user?.email;
+  // 2. Dashboard auth (RBAC plugin sets request.user from X-User-ID/X-User-Email headers)
+  const userEmail = request.user?.email ||
+    (request.headers['x-user-email'] as string | undefined);
   if (userEmail) {
     try {
       const db = getKnex();
@@ -85,6 +86,12 @@ async function resolveWorkspaceId(request: FastifyRequest): Promise<string | nul
     } catch {
       // DB lookup failed
     }
+  }
+
+  // 3. Fallback: check X-Workspace-ID header (legacy support)
+  const workspaceHeader = request.headers['x-workspace-id'] as string | undefined;
+  if (workspaceHeader) {
+    return workspaceHeader;
   }
 
   return null;
