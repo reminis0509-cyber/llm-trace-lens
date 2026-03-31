@@ -1,6 +1,8 @@
 import { X } from 'lucide-react';
 import type { Trace, ValidationLevel } from '../types';
+import { usePlan } from '../contexts/PlanContext';
 import { FeedbackButton } from './FeedbackButton';
+import { FeatureGate } from './FeatureGate';
 import { EvaluationScores } from './EvaluationScores';
 import { EvaluationBadges } from './EvaluationBadges';
 import { AgentStepFlow } from './AgentStepFlow';
@@ -27,6 +29,8 @@ const STATUS_BAR_STYLES: Record<ValidationLevel, string> = {
 };
 
 export function TraceDetail({ trace, onClose, apiKey }: Props) {
+  const { isFree } = usePlan();
+
   return (
     <div className="surface-card lg:sticky lg:top-6">
       {/* Header */}
@@ -113,9 +117,9 @@ export function TraceDetail({ trace, onClose, apiKey }: Props) {
           </p>
         </Section>
 
-        <Section title={`根拠 (${trace.structured?.evidence?.length || 0})`}>
+        <Section title={`根拠 (${Array.isArray(trace.structured?.evidence) ? trace.structured.evidence.length : 0})`}>
           <ul className="space-y-2">
-            {(trace.structured?.evidence || []).map((item, i) => (
+            {(Array.isArray(trace.structured?.evidence) ? trace.structured.evidence : []).map((item, i) => (
               <li key={i} className="flex gap-2 text-sm">
                 <span className="text-status-pass">+</span>
                 <span className="text-text-secondary">{safeString(item)}</span>
@@ -124,9 +128,9 @@ export function TraceDetail({ trace, onClose, apiKey }: Props) {
           </ul>
         </Section>
 
-        <Section title={`リスク (${trace.structured?.risks?.length || 0})`}>
+        <Section title={`リスク (${Array.isArray(trace.structured?.risks) ? trace.structured.risks.length : 0})`}>
           <ul className="space-y-2">
-            {(trace.structured?.risks || []).map((item, i) => (
+            {(Array.isArray(trace.structured?.risks) ? trace.structured.risks : []).map((item, i) => (
               <li key={i} className="flex gap-2 text-sm">
                 <span className="text-status-warn">!</span>
                 <span className="text-text-secondary">{safeString(item)}</span>
@@ -173,7 +177,13 @@ export function TraceDetail({ trace, onClose, apiKey }: Props) {
         {/* LLM-as-Judge Evaluation */}
         {trace.evaluation && (
           <section className="mt-6">
-            <EvaluationScores evaluation={trace.evaluation} />
+            <FeatureGate
+              locked={isFree}
+              title="LLM-as-Judge 評価詳細"
+              description="AIの品質スコアを確認するにはProプランが必要です"
+            >
+              <EvaluationScores evaluation={trace.evaluation} />
+            </FeatureGate>
           </section>
         )}
       </div>

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, DollarSign, Bell, Webhook } from 'lucide-react';
 import { PlanUsage } from './PlanUsage';
+import { usePlan } from '../contexts/PlanContext';
+import { FeatureGate } from '../components/FeatureGate';
 
 interface CostData {
   stats: {
@@ -19,6 +21,8 @@ interface SettingsProps {
 }
 
 export function Settings({ onBack }: SettingsProps) {
+  const { isFree } = usePlan();
+
   // Webhook state
   const [webhookUrl, setWebhookUrl] = useState('');
   const [selectedEvents, setSelectedEvents] = useState<string[]>(['BLOCK']);
@@ -34,10 +38,14 @@ export function Settings({ onBack }: SettingsProps) {
   // Cost data state
   const [costData, setCostData] = useState<CostData | null>(null);
 
+  // Exchange rate state (USD to JPY)
+  const [exchangeRate, setExchangeRate] = useState<number | null>(null);
+
   useEffect(() => {
     loadWebhookConfig();
     loadBudgetConfig();
     loadCostStats();
+    loadExchangeRate();
   }, []);
 
   const loadWebhookConfig = async () => {
@@ -74,6 +82,16 @@ export function Settings({ onBack }: SettingsProps) {
       setCostData(data);
     } catch (error) {
       console.error('Failed to load cost stats:', error);
+    }
+  };
+
+  const loadExchangeRate = async () => {
+    try {
+      const res = await fetch('/api/exchange-rate');
+      const data = await res.json();
+      setExchangeRate(data.rate);
+    } catch (error) {
+      console.error('Failed to load exchange rate:', error);
     }
   };
 
@@ -175,13 +193,27 @@ export function Settings({ onBack }: SettingsProps) {
 
           <div className="mb-4">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-3xl font-bold font-mono text-gray-100">
-                ${costData.stats.totalCost.toFixed(2)}
-              </span>
-              {costData.budget && (
-                <span className="text-lg text-gray-400 font-mono">
-                  / ${costData.budget.monthlyLimit.toFixed(2)}
+              <div>
+                <span className="text-3xl font-bold font-mono text-gray-100">
+                  ${costData.stats.totalCost.toFixed(2)}
                 </span>
+                {exchangeRate !== null && (
+                  <div className="text-sm text-gray-500 font-mono">
+                    {`\u7D04 \u00A5${Math.round(costData.stats.totalCost * exchangeRate).toLocaleString()}`}
+                  </div>
+                )}
+              </div>
+              {costData.budget && (
+                <div className="text-right">
+                  <span className="text-lg text-gray-400 font-mono">
+                    / ${costData.budget.monthlyLimit.toFixed(2)}
+                  </span>
+                  {exchangeRate !== null && (
+                    <div className="text-sm text-gray-500 font-mono">
+                      {`/ \u7D04 \u00A5${Math.round(costData.budget.monthlyLimit * exchangeRate).toLocaleString()}`}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
@@ -208,17 +240,30 @@ export function Settings({ onBack }: SettingsProps) {
           </div>
 
           {Object.keys(costData.stats.byProvider).length > 0 && (
-            <div className="mt-4 pt-4 border-t border-navy-700">
-              <h4 className="text-sm font-medium text-gray-400 mb-3">プロバイダー別コスト</h4>
-              <div className="space-y-2">
-                {Object.entries(costData.stats.byProvider).map(([provider, cost]) => (
-                  <div key={provider} className="flex justify-between text-sm">
-                    <span className="text-gray-300 capitalize">{provider}</span>
-                    <span className="font-mono text-gray-200">${cost.toFixed(2)}</span>
-                  </div>
-                ))}
+            <FeatureGate
+              locked={isFree}
+              title="プロバイダー別コスト内訳"
+              description="コスト最適化のためにはProプランが必要です"
+            >
+              <div className="mt-4 pt-4 border-t border-navy-700">
+                <h4 className="text-sm font-medium text-gray-400 mb-3">プロバイダー別コスト</h4>
+                <div className="space-y-2">
+                  {Object.entries(costData.stats.byProvider).map(([provider, cost]) => (
+                    <div key={provider} className="flex justify-between text-sm">
+                      <span className="text-gray-300 capitalize">{provider}</span>
+                      <span className="font-mono text-gray-200">
+                        ${cost.toFixed(2)}
+                        {exchangeRate !== null && (
+                          <span className="text-sm text-gray-500 ml-2">
+                            {`(\u7D04\u00A5${Math.round(cost * exchangeRate).toLocaleString()})`}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            </FeatureGate>
           )}
         </div>
       )}

@@ -1,5 +1,6 @@
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { RoleProvider } from './contexts/RoleContext';
+import { PlanProvider } from './contexts/PlanContext';
 import { Auth } from './pages/Auth';
 import { Dashboard } from './pages/Dashboard';
 import { InviteAccept } from './pages/InviteAccept';
@@ -61,14 +62,18 @@ function AppContent() {
   if (isAdminPath(path)) {
     return (
       <RoleProvider initialWorkspaceId={workspaceId}>
-        <AdminRoute />
+        <PlanProvider>
+          <AdminRoute />
+        </PlanProvider>
       </RoleProvider>
     );
   }
 
   return (
     <RoleProvider initialWorkspaceId={workspaceId}>
-      <Dashboard />
+      <PlanProvider>
+        <Dashboard />
+      </PlanProvider>
     </RoleProvider>
   );
 }

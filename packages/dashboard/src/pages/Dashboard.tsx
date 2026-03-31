@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Key, MessageSquare, List, BarChart3, TrendingUp, Link2, Settings as SettingsIcon, LogOut, Users, Menu, X, Building2, Shield, Bot } from 'lucide-react';
+import { Key, MessageSquare, List, BarChart3, TrendingUp, Link2, Settings as SettingsIcon, LogOut, Users, Menu, X, Shield, Bot } from 'lucide-react';
 import { TraceList } from '../components/TraceList';
 import { TraceDetail } from '../components/TraceDetail';
 import { StatsPanel } from '../components/StatsPanel';
@@ -10,7 +10,6 @@ import { Integrations } from './Integrations';
 import { ApiKeys } from './ApiKeys';
 import { Playground } from './Playground';
 import { Members } from './Members';
-import { Benchmark } from './Benchmark';
 import { AdminDashboard } from './AdminDashboard';
 import { ChatbotIndex } from './chatbot/ChatbotIndex';
 import { ErrorBoundary } from '../components/ErrorBoundary';
@@ -18,7 +17,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useRole } from '../contexts/RoleContext';
 import type { Trace } from '../types';
 
-type Tab = 'traces' | 'stats' | 'analytics' | 'benchmark' | 'chatbot' | 'integrations' | 'settings' | 'apikeys' | 'playground' | 'members' | 'admin';
+type Tab = 'traces' | 'stats' | 'analytics' | 'chatbot' | 'integrations' | 'settings' | 'apikeys' | 'playground' | 'members' | 'admin';
 
 type TabItem = { id: Tab; label: string; icon: React.ReactNode };
 
@@ -26,7 +25,6 @@ const mainTabs: TabItem[] = [
   { id: 'traces', label: 'トレース', icon: <List className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'stats', label: '統計', icon: <BarChart3 className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'analytics', label: '分析', icon: <TrendingUp className="w-4 h-4" strokeWidth={1.5} /> },
-  { id: 'benchmark', label: 'ベンチマーク', icon: <Building2 className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'chatbot', label: 'チャットbot', icon: <Bot className="w-4 h-4" strokeWidth={1.5} /> },
 ];
 
@@ -287,9 +285,6 @@ export function Dashboard() {
           )}
           {activeTab === 'analytics' && (
             <Analytics onBack={() => setActiveTab('traces')} />
-          )}
-          {activeTab === 'benchmark' && (
-            <Benchmark />
           )}
           {activeTab === 'integrations' && (
             <Integrations onBack={() => setActiveTab('traces')} />

@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { RefreshCw, List, Radio } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { RefreshCw, List, Radio, Lock } from 'lucide-react';
 import { fetchTraces } from '../api/client';
 import { useRealtimeTraces } from '../hooks/useRealtimeTraces';
+import { usePlan } from '../contexts/PlanContext';
 import type { Trace, ValidationLevel } from '../types';
 
 // Helper to safely render any value as string (prevents React error #31)
@@ -27,6 +28,7 @@ const STATUS_BAR_STYLES: Record<ValidationLevel, string> = {
 };
 
 export function TraceList({ onSelect, selectedId, workspaceId, onNewTrace }: Props) {
+  const { isFree, retentionDays } = usePlan();
   const [traces, setTraces] = useState<Trace[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -156,6 +158,11 @@ export function TraceList({ onSelect, selectedId, workspaceId, onNewTrace }: Pro
     { value: 'gemini', label: 'Gemini' },
   ];
 
+  const cutoffDate = useMemo(
+    () => (isFree ? new Date(Date.now() - retentionDays * 86400000) : null),
+    [isFree, retentionDays],
+  );
+
   return (
     <div className="surface-card">
       {/* Header */}
@@ -233,49 +240,65 @@ export function TraceList({ onSelect, selectedId, workspaceId, onNewTrace }: Pro
             <p className="text-sm text-text-muted">トレースが見つかりません</p>
           </div>
         ) : (
-          traces.map((trace) => (
-            <div
-              key={trace.id}
-              onClick={() => onSelect(trace)}
-              className={`group px-6 py-4 cursor-pointer border-b border-border-subtle border-l-[3px] transition-colors duration-120 ${
-                STATUS_BAR_STYLES[trace.validation?.overall ?? 'PASS']
-              } ${
-                selectedId === trace.id
-                  ? 'bg-accent-dim'
-                  : 'hover:bg-base-elevated'
-              }`}
-              title={`${trace.provider} / ${trace.model}`}
-            >
-              <div className="flex items-start justify-between gap-4 mb-2">
-                <p className="text-sm text-text-primary line-clamp-2 flex-1">
-                  {extractPromptDisplay(trace.prompt)}
-                </p>
-                <span className="text-2xl font-mono tabular-nums text-text-primary flex-shrink-0">
-                  {Math.round((trace.validation?.score ?? 0) * 100)}
-                  <span className="text-sm text-text-muted opacity-0 group-hover:opacity-100 transition-opacity">
-                    /100
+          traces.map((trace) => {
+            const isLocked = cutoffDate !== null && new Date(trace.timestamp) < cutoffDate;
+            return (
+              <div
+                key={trace.id}
+                onClick={isLocked ? undefined : () => onSelect(trace)}
+                className={`group relative px-6 py-4 border-b border-border-subtle border-l-[3px] transition-colors duration-120 ${
+                  STATUS_BAR_STYLES[trace.validation?.overall ?? 'PASS']
+                } ${
+                  isLocked
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'cursor-pointer'
+                } ${
+                  !isLocked && selectedId === trace.id
+                    ? 'bg-accent-dim'
+                    : !isLocked
+                      ? 'hover:bg-base-elevated'
+                      : ''
+                }`}
+                title={isLocked ? 'Proプランで過去データにアクセス' : `${trace.provider} / ${trace.model}`}
+              >
+                <div className="flex items-start justify-between gap-4 mb-2">
+                  <p className="text-sm text-text-primary line-clamp-2 flex-1">
+                    {extractPromptDisplay(trace.prompt)}
+                  </p>
+                  <span className="text-2xl font-mono tabular-nums text-text-primary flex-shrink-0">
+                    {Math.round((trace.validation?.score ?? 0) * 100)}
+                    <span className="text-sm text-text-muted opacity-0 group-hover:opacity-100 transition-opacity">
+                      /100
+                    </span>
                   </span>
-                </span>
-              </div>
+                </div>
 
-              <p className="text-sm text-text-secondary font-medium line-clamp-1 mb-3">
-                {safeString(trace.structured?.answer)}
-              </p>
+                <p className="text-sm text-text-secondary font-medium line-clamp-1 mb-3">
+                  {safeString(trace.structured?.answer)}
+                </p>
 
-              <div className="flex flex-wrap items-center gap-4 text-xs text-text-muted font-mono tabular-nums">
-                <span>信頼度 {((trace.structured?.confidence ?? 0) * 100).toFixed(0)}%</span>
-                <span>根拠 {trace.structured?.evidence?.length ?? 0}</span>
-                {trace.agentTrace && (
-                  <>
-                    <span>{trace.agentTrace.stepCount} ステップ</span>
-                    <span>{trace.agentTrace.toolCallCount} ツール</span>
-                  </>
+                <div className="flex flex-wrap items-center gap-4 text-xs text-text-muted font-mono tabular-nums">
+                  <span>信頼度 {((trace.structured?.confidence ?? 0) * 100).toFixed(0)}%</span>
+                  <span>根拠 {trace.structured?.evidence?.length ?? 0}</span>
+                  {trace.agentTrace && (
+                    <>
+                      <span>{trace.agentTrace.stepCount} ステップ</span>
+                      <span>{trace.agentTrace.toolCallCount} ツール</span>
+                    </>
+                  )}
+                  <span>{trace.latencyMs}ms</span>
+                  <span className="hidden sm:inline">{formatTime(trace.timestamp)}</span>
+                </div>
+
+                {isLocked && (
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 bg-base-elevated/90 backdrop-blur-sm px-3 py-1.5 rounded-card text-xs text-text-muted">
+                    <Lock className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>Proプランで過去データにアクセス</span>
+                  </div>
                 )}
-                <span>{trace.latencyMs}ms</span>
-                <span className="hidden sm:inline">{formatTime(trace.timestamp)}</span>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

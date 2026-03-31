@@ -1,25 +1,33 @@
 import type { TraceEvaluations } from '../types';
+import { usePlan } from '../contexts/PlanContext';
 
 interface BadgeProps {
   label: string;
   flagged: boolean;
   score?: number;
   details?: string;
+  detailsLocked?: boolean;
 }
 
-function EvaluationBadge({ label, flagged, score, details }: BadgeProps) {
+function EvaluationBadge({ label, flagged, score, details, detailsLocked }: BadgeProps) {
   const colorClass = flagged
     ? 'border-l-status-fail text-status-fail'
     : 'border-l-status-pass text-status-pass';
 
+  const titleText = detailsLocked
+    ? 'Proプランで詳細を確認'
+    : (details ?? (flagged ? '問題を検出' : '問題なし'));
+
   return (
     <div
       className={`inline-flex items-center gap-2 px-3 py-1.5 bg-base rounded-card border-l-2 text-xs font-mono ${colorClass} cursor-default`}
-      title={details ?? (flagged ? '問題を検出' : '問題なし')}
+      title={titleText}
     >
       <span>{label}</span>
       {score !== undefined && score > 0 && (
-        <span className="text-text-muted tabular-nums">{(score * 100).toFixed(0)}%</span>
+        <span className="text-text-muted tabular-nums">
+          {detailsLocked ? '---' : `${(score * 100).toFixed(0)}%`}
+        </span>
       )}
     </div>
   );
@@ -30,6 +38,8 @@ interface EvaluationBadgesProps {
 }
 
 export function EvaluationBadges({ evaluations }: EvaluationBadgesProps) {
+  const { isFree } = usePlan();
+
   if (!evaluations) return null;
 
   const hasAnyResult =
@@ -50,6 +60,7 @@ export function EvaluationBadges({ evaluations }: EvaluationBadgesProps) {
             flagged={evaluations.toxicity.flagged}
             score={evaluations.toxicity.score}
             details={evaluations.toxicity.details}
+            detailsLocked={isFree}
           />
         )}
         {evaluations.promptInjection && (
@@ -58,6 +69,7 @@ export function EvaluationBadges({ evaluations }: EvaluationBadgesProps) {
             flagged={evaluations.promptInjection.flagged}
             score={evaluations.promptInjection.score}
             details={evaluations.promptInjection.details}
+            detailsLocked={isFree}
           />
         )}
         {evaluations.failureToAnswer && (
@@ -65,6 +77,7 @@ export function EvaluationBadges({ evaluations }: EvaluationBadgesProps) {
             label="回答拒否"
             flagged={evaluations.failureToAnswer.flagged}
             details={evaluations.failureToAnswer.details}
+            detailsLocked={isFree}
           />
         )}
         {evaluations.languageMismatch && (
@@ -72,6 +85,7 @@ export function EvaluationBadges({ evaluations }: EvaluationBadgesProps) {
             label="言語不一致"
             flagged={evaluations.languageMismatch.flagged}
             details={evaluations.languageMismatch.details}
+            detailsLocked={isFree}
           />
         )}
       </div>
