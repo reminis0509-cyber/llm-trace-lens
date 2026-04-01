@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
 import { registerRoutes } from '../src/proxy/routes.js';
 import { settingsRoutes } from '../src/routes/settings.js';
 import { storageRoutes } from '../src/routes/storage.js';
@@ -25,6 +26,9 @@ async function getApp() {
       origin: true,
       credentials: true,
     });
+
+    // Multipart support (file uploads for chatbot documents)
+    await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 } });
 
     // Register RBAC plugin (role-based access control)
     await app.register(rbacPlugin);

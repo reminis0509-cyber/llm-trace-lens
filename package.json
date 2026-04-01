@@ -24,6 +24,7 @@
     "@azure/msal-node": "^5.0.4",
     "@fastify/cors": "^11.2.0",
     "@fastify/helmet": "^13.0.2",
+    "@fastify/multipart": "^9.4.0",
     "@fastify/rate-limit": "^10.3.0",
     "@fastify/static": "^9.0.0",
     "@google/generative-ai": "^0.24.1",

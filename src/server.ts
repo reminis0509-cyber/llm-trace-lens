@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
+import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import path from 'path';
 import fs from 'fs';
@@ -124,6 +125,9 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Admin-API-Key', 'X-User-ID', 'X-User-Email', 'X-Workspace-ID'],
   });
+
+  // Multipart support (file uploads for chatbot documents)
+  await fastify.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 } });
 
   // Rate Limiting (optional)
   if (options?.enableRateLimit !== false) {

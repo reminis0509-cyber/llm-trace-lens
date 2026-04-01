@@ -185,16 +185,12 @@ export async function chatbotPlatformRoutes(fastify: FastifyInstance): Promise<v
     const chatbot = await getChatbot(request.params.id, workspaceId);
     if (!chatbot) return reply.code(404).send({ error: 'Chatbot not found' });
 
-    // Parse multipart
-    const data = await (request as unknown as { file: () => Promise<{
-      filename: string;
-      mimetype: string;
-      file: { toBuffer: () => Promise<Buffer> };
-    }> }).file();
+    // Parse multipart file upload
+    const data = await request.file();
 
     if (!data) return reply.code(400).send({ error: 'No file uploaded' });
 
-    const buffer = await data.file.toBuffer();
+    const buffer = await data.toBuffer();
     const fileSize = buffer.length;
 
     // 10MB limit
