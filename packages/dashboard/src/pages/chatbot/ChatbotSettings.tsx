@@ -144,12 +144,12 @@ function BasicSettings({
   onUpdate: (c: ChatbotConfig) => void;
   onDelete: () => void;
 }) {
-  const [name, setName] = useState(chatbot.name);
+  const [name, setName] = useState(chatbot.name || '');
   const [systemPrompt, setSystemPrompt] = useState(chatbot.system_prompt || '');
-  const [tone, setTone] = useState(chatbot.tone);
-  const [model, setModel] = useState(chatbot.model);
-  const [temperature, setTemperature] = useState(chatbot.temperature);
-  const [maxTokens, setMaxTokens] = useState(chatbot.max_tokens);
+  const [tone, setTone] = useState(chatbot.tone || 'polite');
+  const [model, setModel] = useState(chatbot.model || 'gpt-4o-mini');
+  const [temperature, setTemperature] = useState(chatbot.temperature ?? 0.3);
+  const [maxTokens, setMaxTokens] = useState(chatbot.max_tokens ?? 1024);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -336,8 +336,8 @@ function DesignSettings({
   chatbot: ChatbotConfig;
   onUpdate: (c: ChatbotConfig) => void;
 }) {
-  const [widgetColor, setWidgetColor] = useState(chatbot.widget_color);
-  const [widgetPosition, setWidgetPosition] = useState(chatbot.widget_position);
+  const [widgetColor, setWidgetColor] = useState(chatbot.widget_color || '#2563eb');
+  const [widgetPosition, setWidgetPosition] = useState(chatbot.widget_position || 'bottom-right');
   const [widgetLogoUrl, setWidgetLogoUrl] = useState(chatbot.widget_logo_url || '');
   const [welcomeMessage, setWelcomeMessage] = useState(chatbot.welcome_message || '');
   const [saving, setSaving] = useState(false);
