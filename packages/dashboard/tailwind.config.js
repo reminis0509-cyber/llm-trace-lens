@@ -14,11 +14,11 @@ export default {
           DEFAULT: '#E2E8F0',
           subtle: '#F1F5F9',
         },
-        // テキスト
+        // テキスト（LP統一: slate系）
         text: {
-          primary: '#111827',
-          secondary: '#6B7280',
-          muted: '#9CA3AF',
+          primary: '#1E293B',
+          secondary: '#64748B',
+          muted: '#94A3B8',
         },
         // アクセント：コーポレートブルー（LP統一）
         accent: {
@@ -40,7 +40,7 @@ export default {
       },
       fontFamily: {
         mono: ['Geist Mono', 'IBM Plex Mono', 'JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
-        sans: ['Noto Sans JP', 'Geist', 'DM Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'Noto Sans JP', 'system-ui', 'sans-serif'],
       },
       fontSize: {
         'nav': ['13px', { lineHeight: '1.5', fontWeight: '450' }],

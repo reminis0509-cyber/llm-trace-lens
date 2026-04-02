@@ -32,7 +32,7 @@ const TOOLTIP_STYLE = {
   backgroundColor: '#FFFFFF',
   border: '1px solid #E2E8F0',
   borderRadius: '6px',
-  color: '#111827',
+  color: '#1E293B',
   fontSize: '12px',
   fontFamily: 'Geist Mono, monospace',
   boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
@@ -105,7 +105,7 @@ function renderPieLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent, n
     <text
       x={x}
       y={y}
-      fill="#6B7280"
+      fill="#64748B"
       textAnchor={x > cx ? 'start' : 'end'}
       dominantBaseline="central"
       fontSize={11}
@@ -292,7 +292,7 @@ export function StatsPanel({ refreshTrigger = 0 }: StatsPanelProps) {
                       <Label
                         value={`${passRate}%`}
                         position="center"
-                        fill="#111827"
+                        fill="#1E293B"
                         fontSize={24}
                         fontWeight={700}
                         fontFamily="Geist Mono, monospace"
@@ -344,13 +344,13 @@ export function StatsPanel({ refreshTrigger = 0 }: StatsPanelProps) {
                     textAnchor="end"
                     height={80}
                     interval={0}
-                    tick={{ fill: '#6B7280', fontSize: 11, fontFamily: 'Geist Mono, monospace' }}
+                    tick={{ fill: '#64748B', fontSize: 11, fontFamily: 'Geist Mono, monospace' }}
                     axisLine={{ stroke: CHART_GRID_COLOR }}
                     tickLine={false}
                   />
                   <YAxis
                     domain={[0, 100]}
-                    tick={{ fill: '#9CA3AF', fontSize: 11, fontFamily: 'Geist Mono, monospace' }}
+                    tick={{ fill: '#94A3B8', fontSize: 11, fontFamily: 'Geist Mono, monospace' }}
                     axisLine={false}
                     tickLine={false}
                     width={36}
@@ -391,12 +391,12 @@ export function StatsPanel({ refreshTrigger = 0 }: StatsPanelProps) {
                   textAnchor="end"
                   height={80}
                   interval={0}
-                  tick={{ fill: '#6B7280', fontSize: 11, fontFamily: 'Geist Mono, monospace' }}
+                  tick={{ fill: '#64748B', fontSize: 11, fontFamily: 'Geist Mono, monospace' }}
                   axisLine={{ stroke: CHART_GRID_COLOR }}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fill: '#9CA3AF', fontSize: 11, fontFamily: 'Geist Mono, monospace' }}
+                  tick={{ fill: '#94A3B8', fontSize: 11, fontFamily: 'Geist Mono, monospace' }}
                   axisLine={false}
                   tickLine={false}
                   width={48}
