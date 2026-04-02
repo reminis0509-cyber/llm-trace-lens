@@ -105,6 +105,15 @@ function getTrialProgressPercent(startedAt: string, expiresAt: string): number {
   return Math.min(100, Math.max(0, (elapsed / total) * 100));
 }
 
+function getPlanLabel(planType: string): string {
+  const labels: Record<string, string> = {
+    'free': 'フリー',
+    'pro': 'プロ',
+    'enterprise': 'エンタープライズ',
+  };
+  return labels[planType] || planType;
+}
+
 function getPlanBadgeColor(planType: string): string {
   switch (planType) {
     case 'enterprise': return 'bg-violet-500/20 text-violet-400 border-violet-500/30';
@@ -228,7 +237,7 @@ export function PlanUsage() {
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-medium text-text-primary">{'\u73fe\u5728\u306e\u30d7\u30e9\u30f3'}</h2>
                 <span className={`px-2 py-0.5 text-xs rounded border ${getPlanBadgeColor(plan.planType)}`}>
-                  {plan.planType === 'free' ? 'Free' : plan.planType === 'pro' ? 'Pro' : 'Enterprise'}
+                  {getPlanLabel(plan.planType)}
                 </span>
               </div>
               <p className="text-sm text-text-muted">
@@ -251,7 +260,7 @@ export function PlanUsage() {
                   ) : (
                     <ArrowUpRight className="w-4 h-4" strokeWidth={1.5} />
                   )}
-                  {upgrading ? '\u51e6\u7406\u4e2d...' : 'Pro\u306b\u30a2\u30c3\u30d7\u30b0\u30ec\u30fc\u30c9'}
+                  {upgrading ? '\u51e6\u7406\u4e2d...' : '\u30d7\u30ed\u306b\u30a2\u30c3\u30d7\u30b0\u30ec\u30fc\u30c9'}
                 </button>
               ) : (
                 <a
@@ -285,7 +294,7 @@ export function PlanUsage() {
                   className="flex items-center gap-2 px-4 py-2 border border-border text-text-secondary rounded-card text-sm font-medium hover:text-text-primary hover:bg-base-elevated transition-colors duration-120"
                 >
                   <Mail className="w-4 h-4" strokeWidth={1.5} />
-                  Enterprise{'\u76f8\u8ac7'}
+                  {'\u30a8\u30f3\u30bf\u30fc\u30d7\u30e9\u30a4\u30ba\u76f8\u8ac7'}
                 </a>
               </>
             )}
@@ -366,7 +375,7 @@ export function PlanUsage() {
                 <div className="flex items-start gap-2 px-3 py-2 rounded-card bg-status-warn/10 border border-status-warn/20">
                   <AlertTriangle className="w-4 h-4 text-status-warn flex-shrink-0 mt-0.5" strokeWidth={1.5} />
                   <p className="text-xs text-status-warn">
-                    {'\u30c8\u30e9\u30a4\u30a2\u30eb\u7d42\u4e86\u307e\u3067\u3042\u3068'}{remainingDays}{'\u65e5\u3002Pro\u30d7\u30e9\u30f3\u3078\u306e\u79fb\u884c\u3092\u3054\u691c\u8a0e\u304f\u3060\u3055\u3044\u3002'}
+                    {'\u30c8\u30e9\u30a4\u30a2\u30eb\u7d42\u4e86\u307e\u3067\u3042\u3068'}{remainingDays}{'\u65e5\u3002\u30d7\u30ed\u30d7\u30e9\u30f3\u3078\u306e\u79fb\u884c\u3092\u3054\u691c\u8a0e\u304f\u3060\u3055\u3044\u3002'}
                   </p>
                 </div>
               )}
@@ -525,7 +534,7 @@ export function PlanUsage() {
                       disabled={upgrading}
                       className="block w-full mt-4 py-2 px-4 rounded-card text-sm font-medium text-center transition-colors duration-120 bg-accent text-base hover:bg-accent/90 disabled:opacity-50"
                     >
-                      {upgrading ? '\u51e6\u7406\u4e2d...' : 'Pro\u306b\u30a2\u30c3\u30d7\u30b0\u30ec\u30fc\u30c9'}
+                      {upgrading ? '\u51e6\u7406\u4e2d...' : '\u30d7\u30ed\u306b\u30a2\u30c3\u30d7\u30b0\u30ec\u30fc\u30c9'}
                     </button>
                   ) : !isCurrent ? (
                     <a
@@ -536,7 +545,7 @@ export function PlanUsage() {
                           : 'bg-base-elevated text-text-secondary border border-border hover:text-text-primary'
                       }`}
                     >
-                      {p.type === 'pro' ? 'Pro\u306b\u30a2\u30c3\u30d7\u30b0\u30ec\u30fc\u30c9' : '\u304a\u554f\u3044\u5408\u308f\u305b'}
+                      {p.type === 'pro' ? '\u30d7\u30ed\u306b\u30a2\u30c3\u30d7\u30b0\u30ec\u30fc\u30c9' : '\u304a\u554f\u3044\u5408\u308f\u305b'}
                     </a>
                   ) : null
                 )}

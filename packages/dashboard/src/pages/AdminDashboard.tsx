@@ -8,6 +8,15 @@ import { adminApi, type AdminOverviewStats, type AdminWorkspace, type WorkspaceS
 
 // ---- Helpers ----
 
+function getPlanLabel(planType: string): string {
+  const labels: Record<string, string> = {
+    'free': 'フリー',
+    'pro': 'プロ',
+    'enterprise': 'エンタープライズ',
+  };
+  return labels[planType] || planType;
+}
+
 function formatNumber(n: number): string {
   if (n === Infinity || n >= 999999999) return '無制限';
   return n.toLocaleString('ja-JP');
@@ -51,7 +60,7 @@ function getStatusBadge(status: WorkspaceStatus, trialDays: number | null): { cl
     default:
       return {
         className: 'bg-base-elevated text-text-muted border-border',
-        label: 'Free',
+        label: 'フリー',
       };
   }
 }
@@ -283,7 +292,7 @@ export function AdminDashboard() {
     { key: 'all', label: '全て' },
     { key: 'trial', label: 'トライアル' },
     { key: 'active', label: '有料' },
-    { key: 'free', label: 'Free' },
+    { key: 'free', label: 'フリー' },
     { key: 'expired', label: '期限切れ' },
   ];
 
@@ -449,7 +458,7 @@ export function AdminDashboard() {
                       </td>
                       <td className="px-6 py-3 hidden md:table-cell">
                         <span className={`inline-flex px-2 py-0.5 text-xs rounded border ${getPlanBadgeColor(ws.plan.type)}`}>
-                          {ws.plan.type === 'free' ? 'Free' : ws.plan.type === 'pro' ? 'Pro' : 'Enterprise'}
+                          {getPlanLabel(ws.plan.type)}
                         </span>
                       </td>
                       <td className="px-6 py-3 hidden lg:table-cell">
@@ -579,7 +588,7 @@ export function AdminDashboard() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className={`px-2 py-0.5 text-xs rounded border ${getPlanBadgeColor(selectedWs.plan.type)}`}>
-                      {selectedWs.plan.type === 'free' ? 'Free' : selectedWs.plan.type === 'pro' ? 'Pro' : 'Enterprise'}
+                      {getPlanLabel(selectedWs.plan.type)}
                     </span>
                     {(() => {
                       const badge = getStatusBadge(selectedWs.status, selectedWs.trialDaysRemaining);
@@ -665,7 +674,7 @@ export function AdminDashboard() {
                           : 'border-border text-text-secondary hover:text-text-primary hover:bg-base-elevated'
                       }`}
                     >
-                      {pt === 'free' ? 'Free' : pt === 'pro' ? 'Pro' : 'Enterprise'}
+                      {getPlanLabel(pt)}
                     </button>
                   ))}
                 </div>
@@ -707,7 +716,7 @@ export function AdminDashboard() {
                 changingPlan.plan === 'pro' ? 'text-accent' :
                 changingPlan.plan === 'enterprise' ? 'text-violet-400' : 'text-text-primary'
               }`}>
-                {changingPlan.plan === 'free' ? 'Free' : changingPlan.plan === 'pro' ? 'Pro' : 'Enterprise'}
+                {getPlanLabel(changingPlan.plan)}
               </span>{' '}
               に変更しますか？
             </p>
