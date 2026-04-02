@@ -82,7 +82,10 @@ export function Setup({ onComplete }: SetupProps) {
   return (
     <div className="max-w-2xl mx-auto py-12 px-6">
       <div className="flex items-center gap-3 mb-8">
-        <span className="text-3xl">🔧</span>
+        <svg className="w-8 h-8" viewBox="0 0 32 32" fill="none">
+          <path d="M6 26 L14.5 6 L19.7 18.2" stroke="#6ee7b7" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+          <path d="M16.5 26 L22 12.5 L27.5 26" stroke="#4ade80" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+        </svg>
         <h1 className="text-2xl font-bold text-gray-900">FujiTrace セットアップ</h1>
       </div>
 
@@ -293,8 +296,12 @@ export function Setup({ onComplete }: SetupProps) {
       {step === 4 && (
         <div>
           <div className="flex items-center gap-3 mb-4">
-            <span className="text-3xl">✅</span>
-            <h2 className="text-xl font-semibold">セットアップ完了！</h2>
+            <div className="w-8 h-8 rounded-full bg-status-pass/10 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-status-pass" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold">セットアップ完了</h2>
           </div>
           <p className="text-gray-600 mb-6">
             FujiTraceの準備が完了しました。以下のエンドポイントを使用してリクエストを送信してください。

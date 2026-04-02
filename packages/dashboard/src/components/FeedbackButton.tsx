@@ -45,7 +45,7 @@ export function FeedbackButton({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to submit feedback');
+        throw new Error('フィードバックの送信に失敗しました');
       }
 
       setSubmitted(true);
@@ -53,7 +53,7 @@ export function FeedbackButton({
       setReason('');
       onFeedbackSubmitted?.(feedbackType);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
     } finally {
       setIsSubmitting(false);
     }

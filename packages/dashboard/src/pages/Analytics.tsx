@@ -107,19 +107,19 @@ export function Analytics({ apiKey, onBack }: Props) {
         <SummaryCard
           title="偽陽性"
           value={stats?.byType.false_positive || 0}
-          subtitle={`${falsePositiveRate}全体の%`}
+          subtitle={`全体の${falsePositiveRate}%`}
           isZero={!stats?.byType.false_positive}
         />
         <SummaryCard
           title="偽陰性"
           value={stats?.byType.false_negative || 0}
-          subtitle={`${falseNegativeRate}全体の%`}
+          subtitle={`全体の${falseNegativeRate}%`}
           isZero={!stats?.byType.false_negative}
         />
         <SummaryCard
           title="正確"
           value={stats?.byType.correct || 0}
-          subtitle={`${accuracyRate}正解率`}
+          subtitle={`正解率${accuracyRate}%`}
           isZero={!stats?.byType.correct}
         />
       </div>

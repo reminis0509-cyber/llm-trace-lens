@@ -16,6 +16,52 @@ interface SessionQuery {
   sessionId: string;
 }
 
+// ===========================
+// OAuth State Store for CSRF Protection
+// ===========================
+
+/** TTL for OAuth state tokens: 10 minutes (milliseconds) */
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+
+/** In-memory store for OAuth state tokens with automatic TTL cleanup */
+const oauthStateStore = new Map<string, NodeJS.Timeout>();
+
+/**
+ * Store an OAuth state token with automatic expiry.
+ * The token is deleted after OAUTH_STATE_TTL_MS or upon successful validation.
+ */
+function storeOAuthState(state: string): void {
+  // Clear any existing timer for this state (defensive)
+  const existingTimer = oauthStateStore.get(state);
+  if (existingTimer) {
+    clearTimeout(existingTimer);
+  }
+
+  const timer = setTimeout(() => {
+    oauthStateStore.delete(state);
+  }, OAUTH_STATE_TTL_MS);
+
+  // Prevent the timer from keeping the Node.js process alive
+  timer.unref();
+
+  oauthStateStore.set(state, timer);
+}
+
+/**
+ * Validate and consume an OAuth state token (one-time use).
+ * Returns true if the state was valid, false otherwise.
+ */
+function consumeOAuthState(state: string): boolean {
+  const timer = oauthStateStore.get(state);
+  if (!timer) {
+    return false;
+  }
+
+  clearTimeout(timer);
+  oauthStateStore.delete(state);
+  return true;
+}
+
 /**
  * Auth routes for OAuth/SSO
  */
@@ -112,7 +158,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
     const host = request.headers['x-forwarded-host'] || request.headers.host;
     const redirectUri = `${protocol}://${host}/auth/microsoft/callback`;
 
-    // セキュリティ: OAuthのCSRF対策としてstateパラメータは暗号論的に安全な乱数を使用
+    // Security: Use cryptographically secure random bytes for OAuth CSRF state parameter
     const state = randomBytes(16).toString('hex');
     const authUrl = getMicrosoftAuthUrl(redirectUri, state);
 
@@ -122,6 +168,9 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
         error: 'Failed to generate auth URL'
       });
     }
+
+    // Store state server-side for validation in the callback (10-minute TTL)
+    storeOAuthState(state);
 
     return reply.send({
       authUrl,
@@ -145,6 +194,23 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
         });
       }
 
+      // Security: Validate OAuth state parameter to prevent CSRF attacks
+      if (!state) {
+        request.log.warn('Microsoft OAuth callback missing state parameter');
+        return reply.code(400).send({
+          success: false,
+          error: 'Missing state parameter. Please restart the authentication flow.'
+        });
+      }
+
+      if (!consumeOAuthState(state)) {
+        request.log.warn('Microsoft OAuth callback received invalid or expired state parameter');
+        return reply.code(400).send({
+          success: false,
+          error: 'Invalid or expired state parameter. Please restart the authentication flow.'
+        });
+      }
+
       const protocol = request.headers['x-forwarded-proto'] || 'http';
       const host = request.headers['x-forwarded-host'] || request.headers.host;
       const redirectUri = `${protocol}://${host}/auth/microsoft/callback`;
@@ -161,12 +227,14 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
       // Create session
       const sessionId = await createSession(result.user!.email, result.workspaceId!);
 
-      // For browser-based flows, redirect to dashboard with session
+      // For browser-based flows, set session cookie and redirect
       // For API flows, return JSON
       const acceptHeader = request.headers.accept || '';
       if (acceptHeader.includes('text/html')) {
-        // Redirect to dashboard with session token in query
-        return reply.redirect(`/dashboard?session=${sessionId}`);
+        reply.header('Set-Cookie',
+          `session_id=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`
+        );
+        return reply.redirect('/dashboard');
       }
 
       return reply.send({

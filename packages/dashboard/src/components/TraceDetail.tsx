@@ -32,7 +32,7 @@ export function TraceDetail({ trace, onClose, apiKey }: Props) {
   const { isFree } = usePlan();
 
   return (
-    <div className="surface-card lg:sticky lg:top-6">
+    <div className="surface-card lg:sticky lg:top-6 animate-detail-enter">
       {/* Header */}
       <div className="px-6 py-4 border-b border-border flex items-center justify-between">
         <div className="min-w-0 flex-1">
@@ -67,7 +67,11 @@ export function TraceDetail({ trace, onClose, apiKey }: Props) {
           </div>
           <div className="space-y-2">
             {(trace.validation?.rules ?? []).map((rule, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm">
+              <div
+                key={i}
+                className="flex items-center gap-2 text-sm animate-trace-enter trace-row-stagger"
+                style={{ '--stagger': i } as React.CSSProperties}
+              >
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${
                     rule.level === 'PASS'
@@ -97,9 +101,9 @@ export function TraceDetail({ trace, onClose, apiKey }: Props) {
         </Section>
 
         <Section title={`信頼度: ${((trace.structured?.confidence ?? 0) * 100).toFixed(0)}%`}>
-          <div className="w-full bg-base-elevated rounded-full h-2">
+          <div className="w-full bg-base-elevated rounded-full h-2 overflow-hidden">
             <div
-              className={`h-2 rounded-full transition-all duration-300 ${
+              className={`h-2 rounded-full animate-waterfall-draw will-change-transform ${
                 (trace.structured?.confidence ?? 0) >= 0.8
                   ? 'bg-status-pass'
                   : (trace.structured?.confidence ?? 0) >= 0.5
@@ -145,10 +149,17 @@ export function TraceDetail({ trace, onClose, apiKey }: Props) {
             <MetaItem label="プロバイダー" value={trace.provider} />
             <MetaItem label="モデル" value={trace.model} />
             <MetaItem label="レイテンシ" value={`${trace.latencyMs}ms`} />
-            <MetaItem label="トークン" value={String(trace.tokensUsed)} />
+            <MetaItem label="トークン" value={trace.tokensUsed.toLocaleString('ja-JP')} />
             <MetaItem
               label="タイムスタンプ"
-              value={new Date(trace.timestamp).toLocaleString()}
+              value={new Date(trace.timestamp).toLocaleString('ja-JP', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+              })}
             />
           </div>
         </Section>

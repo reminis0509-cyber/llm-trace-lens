@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Check if Supabase is configured
     if (!isSupabaseConfigured) {
-      setError('Supabase is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+      setError('Supabaseが設定されていません。環境変数 VITE_SUPABASE_URL と VITE_SUPABASE_ANON_KEY を設定してください。');
       setLoading(false);
       return;
     }
@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .catch((err) => {
         console.error('Auth error:', err);
-        setError(err.message || 'Failed to initialize authentication');
+        setError(err.message || '認証の初期化に失敗しました');
         setLoading(false);
       });
 

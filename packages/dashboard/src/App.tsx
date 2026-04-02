@@ -22,10 +22,10 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen flex items-center justify-center bg-base">
         <div className="text-center">
-          <div className="text-4xl mb-4">🔍</div>
-          <div className="text-gray-600">Loading...</div>
+          <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <div className="text-text-muted text-sm">読み込み中...</div>
         </div>
       </div>
     );
@@ -33,15 +33,19 @@ function AppContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-100">
-        <div className="text-center max-w-md p-6 bg-white rounded-lg shadow-lg">
-          <div className="text-4xl mb-4">⚠️</div>
-          <h1 className="text-xl font-bold text-red-600 mb-2">Configuration Error</h1>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <p className="text-sm text-gray-500">
-            Please ensure the following environment variables are set during build:
+      <div className="min-h-screen flex items-center justify-center bg-base">
+        <div className="text-center max-w-md p-6 surface-card">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-status-fail/10 flex items-center justify-center">
+            <svg className="w-6 h-6 text-status-fail" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold text-status-fail mb-2">設定エラー</h1>
+          <p className="text-text-secondary mb-4">{error}</p>
+          <p className="text-sm text-text-muted">
+            ビルド時に以下の環境変数が設定されていることを確認してください:
           </p>
-          <ul className="text-sm text-gray-500 mt-2 text-left list-disc list-inside">
+          <ul className="text-sm text-text-muted mt-2 text-left list-disc list-inside">
             <li>VITE_SUPABASE_URL</li>
             <li>VITE_SUPABASE_ANON_KEY</li>
           </ul>

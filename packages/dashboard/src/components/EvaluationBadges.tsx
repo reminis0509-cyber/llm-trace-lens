@@ -91,7 +91,7 @@ export function EvaluationBadges({ evaluations }: EvaluationBadgesProps) {
       </div>
       {evaluations.meta && (
         <p className="text-xs text-text-muted mt-2 font-mono tabular-nums">
-          評価日時: {new Date(evaluations.meta.evaluatedAt).toLocaleString()}
+          評価日時: {new Date(evaluations.meta.evaluatedAt).toLocaleString('ja-JP')}
           {' '}({evaluations.meta.durationMs}ms)
         </p>
       )}

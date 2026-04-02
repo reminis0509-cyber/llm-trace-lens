@@ -16,7 +16,7 @@ export function InviteAccept() {
 
     if (!token) {
       setStatus('error');
-      setErrorMsg('Invitation token not found in URL');
+      setErrorMsg('URLに招待トークンが含まれていません');
       return;
     }
 
@@ -51,7 +51,7 @@ export function InviteAccept() {
       }, 3000);
     } catch (err) {
       setStatus('error');
-      setErrorMsg(err instanceof Error ? err.message : 'Failed to accept invitation');
+      setErrorMsg(err instanceof Error ? err.message : '招待の承認に失敗しました');
     }
   };
 
@@ -61,18 +61,18 @@ export function InviteAccept() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-      <div className="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg text-center">
+    <div className="min-h-screen flex items-center justify-center bg-base p-4">
+      <div className="w-full max-w-md p-8 surface-card text-center">
         {status === 'loading' && (
           <>
             <div className="mb-6">
-              <Loader2 className="w-16 h-16 text-indigo-500 animate-spin mx-auto" />
+              <Loader2 className="w-16 h-16 text-accent animate-spin mx-auto" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              Processing Invitation...
+            <h2 className="text-xl font-bold text-text-primary mb-2">
+              招待を処理中...
             </h2>
-            <p className="text-gray-500 dark:text-gray-400">
-              Please wait while we add you to the workspace.
+            <p className="text-text-muted">
+              ワークスペースへの追加を処理しています。しばらくお待ちください。
             </p>
           </>
         )}
@@ -80,19 +80,19 @@ export function InviteAccept() {
         {status === 'success' && (
           <>
             <div className="mb-6">
-              <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto">
-                <CheckCircle className="w-12 h-12 text-green-500" />
+              <div className="w-20 h-20 bg-status-pass/10 rounded-full flex items-center justify-center mx-auto">
+                <CheckCircle className="w-12 h-12 text-status-pass" />
               </div>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              Welcome to the Team!
+            <h2 className="text-xl font-bold text-text-primary mb-2">
+              ワークスペースに参加しました
             </h2>
-            <p className="text-gray-500 dark:text-gray-400 mb-6">
-              You have successfully joined the workspace.
+            <p className="text-text-muted mb-6">
+              ワークスペースへの参加が完了しました。
             </p>
-            <div className="flex items-center justify-center gap-2 text-sm text-gray-400 dark:text-gray-500">
+            <div className="flex items-center justify-center gap-2 text-sm text-text-muted">
               <Loader2 className="w-4 h-4 animate-spin" />
-              Redirecting to dashboard...
+              ダッシュボードにリダイレクト中...
             </div>
           </>
         )}
@@ -100,21 +100,21 @@ export function InviteAccept() {
         {status === 'error' && (
           <>
             <div className="mb-6">
-              <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto">
-                <XCircle className="w-12 h-12 text-red-500" />
+              <div className="w-20 h-20 bg-status-fail/10 rounded-full flex items-center justify-center mx-auto">
+                <XCircle className="w-12 h-12 text-status-fail" />
               </div>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              Invitation Failed
+            <h2 className="text-xl font-bold text-text-primary mb-2">
+              招待の承認に失敗しました
             </h2>
-            <p className="text-red-500 dark:text-red-400 mb-6">
+            <p className="text-status-fail mb-6">
               {errorMsg}
             </p>
             <a
               href="/dashboard"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-base rounded-card font-medium hover:bg-accent/90 transition"
             >
-              Go to Dashboard
+              ダッシュボードへ
             </a>
           </>
         )}
@@ -122,22 +122,22 @@ export function InviteAccept() {
         {status === 'login-required' && (
           <>
             <div className="mb-6">
-              <div className="w-20 h-20 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mx-auto">
-                <Users className="w-12 h-12 text-indigo-500" />
+              <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center mx-auto">
+                <Users className="w-12 h-12 text-accent" />
               </div>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              You've Been Invited!
+            <h2 className="text-xl font-bold text-text-primary mb-2">
+              ワークスペースに招待されました
             </h2>
-            <p className="text-gray-500 dark:text-gray-400 mb-6">
-              Please log in or create an account to join this workspace.
+            <p className="text-text-muted mb-6">
+              ワークスペースに参加するには、ログインまたはアカウントの作成が必要です。
             </p>
             <button
               onClick={handleLogin}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-base rounded-card font-medium hover:bg-accent/90 transition"
             >
               <LogIn className="w-5 h-5" />
-              Login / Sign Up
+              ログイン / アカウント作成
             </button>
           </>
         )}

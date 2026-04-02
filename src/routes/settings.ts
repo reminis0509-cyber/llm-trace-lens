@@ -1,6 +1,13 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { createHash, timingSafeEqual } from 'crypto';
 import { getConfig, saveConfig, type LLMProviderKeys } from '../kv/client.js';
 import { getSession } from '../auth/google.js';
+
+function safeCompare(a: string, b: string): boolean {
+  const hashA = createHash('sha256').update(a).digest();
+  const hashB = createHash('sha256').update(b).digest();
+  return timingSafeEqual(hashA, hashB);
+}
 
 /**
  * Verify that the request has valid authentication
@@ -19,7 +26,7 @@ async function verifyAuth(request: FastifyRequest, reply: FastifyReply): Promise
     const apiKeys = process.env.API_KEYS?.split(',') || [];
     const adminKey = process.env.ADMIN_API_KEY;
 
-    if (apiKeys.includes(token) || token === adminKey) {
+    if (apiKeys.some(k => safeCompare(k, token)) || (adminKey && safeCompare(token, adminKey))) {
       return true;
     }
   }
@@ -28,7 +35,7 @@ async function verifyAuth(request: FastifyRequest, reply: FastifyReply): Promise
   const apiKeyHeader = request.headers['x-api-key'] as string | undefined;
   if (apiKeyHeader) {
     const apiKeys = process.env.API_KEYS?.split(',') || [];
-    if (apiKeys.includes(apiKeyHeader)) {
+    if (apiKeys.some(k => safeCompare(k, apiKeyHeader))) {
       return true;
     }
   }

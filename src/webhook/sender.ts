@@ -8,7 +8,7 @@ import axios, { AxiosError } from 'axios';
  * - Link-local addresses (169.254.x.x)
  * - Internal cloud metadata endpoints (169.254.169.254)
  */
-function isUrlSafe(urlString: string): { safe: boolean; reason?: string } {
+export function isUrlSafe(urlString: string): { safe: boolean; reason?: string } {
   try {
     const url = new URL(urlString);
 

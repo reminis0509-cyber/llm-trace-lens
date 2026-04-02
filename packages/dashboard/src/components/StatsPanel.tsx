@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useAnimatedValue } from '../hooks/useAnimatedValue';
 import {
   BarChart,
   Bar,
@@ -493,6 +494,7 @@ export function StatsPanel({ refreshTrigger = 0 }: StatsPanelProps) {
 
 function SummaryCard({ title, value, suffix = '', colorTier = 'neutral', trendDirection = 'flat' }: SummaryCardProps) {
   const valueColorClass = TIER_TEXT_CLASSES[colorTier];
+  const { displayValue, hasChanged } = useAnimatedValue(value);
 
   const TrendIcon = trendDirection === 'up'
     ? TrendingUp
@@ -507,7 +509,11 @@ function SummaryCard({ title, value, suffix = '', colorTier = 'neutral', trendDi
       : 'text-text-muted';
 
   return (
-    <div className="surface-card p-5 group">
+    <div
+      className={`surface-card p-5 group transition-colors duration-300 ${
+        hasChanged ? 'animate-value-highlight' : ''
+      }`}
+    >
       <div className="flex items-center justify-between mb-3">
         <p className="text-xs text-text-muted label-spacing uppercase">{title}</p>
         <span className={trendColorClass} aria-label={`トレンド: ${trendDirection}`}>
@@ -515,7 +521,7 @@ function SummaryCard({ title, value, suffix = '', colorTier = 'neutral', trendDi
         </span>
       </div>
       <p className={`text-4xl font-bold font-mono tabular-nums leading-none ${valueColorClass}`}>
-        {value.toLocaleString()}
+        {displayValue.toLocaleString()}
         {suffix && <span className="text-base font-normal text-text-muted ml-1">{suffix}</span>}
       </p>
     </div>

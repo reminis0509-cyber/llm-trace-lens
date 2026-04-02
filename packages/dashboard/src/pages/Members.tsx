@@ -253,7 +253,7 @@ export function Members({ workspaceId, onBack }: MembersProps) {
                       {member.email}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      参加日 {new Date(member.created_at).toLocaleDateString()}
+                      参加日 {new Date(member.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })}
                       {member.invited_by && ` | 招待元 ${member.invited_by}`}
                     </p>
                   </div>
@@ -272,7 +272,7 @@ export function Members({ workspaceId, onBack }: MembersProps) {
                     </select>
                   ) : (
                     <span className={`px-3 py-1.5 rounded-lg text-sm font-medium ${getRoleBadgeClass(member.role)}`}>
-                      {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                      {member.role === 'owner' ? 'オーナー' : member.role === 'admin' ? '管理者' : 'メンバー'}
                     </span>
                   )}
 
@@ -313,7 +313,7 @@ export function Members({ workspaceId, onBack }: MembersProps) {
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     招待元 {invitation.invited_by_email} |
-                    有効期限 {new Date(invitation.expires_at).toLocaleDateString()}
+                    有効期限 {new Date(invitation.expires_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })}
                   </p>
                 </div>
 

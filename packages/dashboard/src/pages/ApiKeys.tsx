@@ -81,7 +81,7 @@ export function ApiKeys({ onBack }: Props) {
       setShowAddForm(false);
       loadKeys();
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to add key';
+      const errorMessage = err instanceof Error ? err.message : 'キーの追加に失敗しました';
       setError(errorMessage);
     } finally {
       setSaving(false);
@@ -264,8 +264,8 @@ export function ApiKeys({ onBack }: Props) {
                   </span>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="text-xs text-text-muted">
-                    {new Date(key.created_at).toLocaleDateString()}
+                  <span className="text-xs text-text-muted font-mono tabular-nums">
+                    {new Date(key.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })}
                   </span>
                   <button
                     onClick={() => deleteKey(key.id)}

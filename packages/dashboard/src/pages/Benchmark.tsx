@@ -435,7 +435,7 @@ function MetricCard({
     switch (format) {
       case 'score': return (v * 100).toFixed(1) + '%';
       case 'percent': return (v * 100).toFixed(1) + '%';
-      case 'ms': return Math.round(v).toLocaleString() + 'ms';
+      case 'ms': return Math.round(v).toLocaleString('ja-JP') + 'ms';
       case 'cost': return '$' + v.toFixed(4);
     }
   };
@@ -462,7 +462,7 @@ function MetricCard({
           {diff != null && (
             <div className={`flex items-center gap-1 text-xs ${isGood ? 'text-emerald-500' : isBad ? 'text-red-400' : 'text-text-muted'}`}>
               {isGood ? <TrendingUp className="w-3.5 h-3.5" /> : isBad ? <TrendingDown className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
-              {format === 'ms' ? Math.abs(Math.round(diff)).toLocaleString() + 'ms' :
+              {format === 'ms' ? Math.abs(Math.round(diff)).toLocaleString('ja-JP') + 'ms' :
                format === 'cost' ? '$' + Math.abs(diff).toFixed(4) :
                (Math.abs(diff) * 100).toFixed(1) + 'pt'}
             </div>

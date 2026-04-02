@@ -44,7 +44,7 @@ export function EvaluationScores({ evaluation }: Props) {
       <h3 className="text-xs text-text-muted mb-4 label-spacing uppercase">
         LLM-as-Judge 自動評価
         <span className="ml-2 text-xs font-normal text-text-muted">
-          {evaluation.evaluationModel} · {new Date(evaluation.evaluatedAt).toLocaleString()}
+          {evaluation.evaluationModel} · {new Date(evaluation.evaluatedAt).toLocaleString('ja-JP')}
         </span>
       </h3>
       <ScoreBar label="回答関連性" score={evaluation.answerRelevance} />

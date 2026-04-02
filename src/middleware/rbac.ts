@@ -1,11 +1,16 @@
 /**
  * RBAC (Role-Based Access Control) Middleware
- * Handles user authentication via Supabase and role-based access control
+ * Handles user authentication via verified session cookies, Supabase JWTs,
+ * and role-based access control.
+ *
+ * SECURITY: User identity is NEVER derived from client-supplied headers
+ * (e.g. X-User-ID, X-User-Email). Identity is verified server-side only.
  */
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import fp from 'fastify-plugin';
 import type { Role, UserInfo } from '../types/rbac.js';
 import { getKnex } from '../storage/knex-client.js';
+import { getSession } from '../auth/google.js';
 
 // Extend Fastify types
 declare module 'fastify' {
@@ -21,31 +26,71 @@ declare module 'fastify' {
 }
 
 /**
- * Extract user info from request headers
- * Frontend should pass X-User-ID and X-User-Email from Supabase session
+ * Supabase user response shape (subset of fields we need)
  */
-function extractUserInfo(request: FastifyRequest): UserInfo | null {
-  const userId = request.headers['x-user-id'] as string | undefined;
-  const userEmail = request.headers['x-user-email'] as string | undefined;
+interface SupabaseUserResponse {
+  id: string;
+  email?: string;
+}
 
-  // Try to extract from Supabase JWT in Authorization header (if Bearer token is a Supabase JWT)
-  // For now, we rely on frontend passing user info via headers
-  if (userId && userEmail) {
-    return {
-      id: userId,
-      email: userEmail.toLowerCase(),
-    };
-  }
-
-  // Fallback: check session cookie
+/**
+ * Extract user info from verified authentication sources only.
+ *
+ * Authentication is attempted in the following order:
+ * 1. Session cookie — validated via getSession() against KV store
+ * 2. Supabase JWT — verified by calling the Supabase Auth API
+ *
+ * Returns null if no valid authentication is found (triggers 401/403 downstream).
+ */
+async function extractUserInfo(request: FastifyRequest): Promise<UserInfo | null> {
+  // 1. Try session cookie (set during OAuth callback flows)
   const sessionId = (request.headers.cookie || '').match(/session_id=([^;]+)/)?.[1];
   if (sessionId) {
-    // For session-based auth, the session should already be validated upstream
-    // We would need to import the session service to get user info
-    // For now, return null and require headers
-    return null;
+    try {
+      const session = await getSession(sessionId);
+      if (session) {
+        return {
+          id: session.email, // session stores email as primary identifier
+          email: session.email.toLowerCase(),
+        };
+      }
+    } catch (err: unknown) {
+      request.log.warn({ err }, 'Failed to validate session cookie');
+    }
   }
 
+  // 2. Try Supabase JWT from Authorization header
+  const authHeader = request.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.slice(7);
+    const supabaseUrl = process.env['SUPABASE_URL'];
+    const supabaseAnonKey = process.env['SUPABASE_ANON_KEY'];
+
+    if (supabaseUrl && supabaseAnonKey && token.length > 0) {
+      try {
+        const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'apikey': supabaseAnonKey,
+          },
+        });
+
+        if (response.ok) {
+          const userData = (await response.json()) as SupabaseUserResponse;
+          if (userData.id && userData.email) {
+            return {
+              id: userData.id,
+              email: userData.email.toLowerCase(),
+            };
+          }
+        }
+      } catch (err: unknown) {
+        request.log.warn({ err }, 'Failed to verify Supabase JWT');
+      }
+    }
+  }
+
+  // No valid authentication found
   return null;
 }
 
@@ -54,7 +99,7 @@ async function rbacPlugin(fastify: FastifyInstance) {
 
   // Add user info extraction hook
   fastify.addHook('preHandler', async (request) => {
-    const userInfo = extractUserInfo(request);
+    const userInfo = await extractUserInfo(request);
     if (userInfo) {
       request.user = userInfo;
     }

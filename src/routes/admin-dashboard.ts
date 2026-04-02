@@ -6,7 +6,7 @@
  *   1. Token-based: POST /api/admin/login でトークンを取得し、Authorization: Bearer <token> ヘッダーで認証
  *   2. Email-based (後方互換): ADMIN_EMAILS 環境変数に含まれるメールアドレスで認証
  */
-import { randomUUID, timingSafeEqual } from 'crypto';
+import { randomUUID, timingSafeEqual, createHash } from 'crypto';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { listWorkspaces, getWorkspace } from '../kv/client.js';
 import { getWorkspacePlan, updateWorkspacePlan } from '../plans/storage.js';
@@ -170,8 +170,9 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
 
     const { email, password } = request.body;
 
-    const passwordMatch = adminPassword.length === password.length &&
-      timingSafeEqual(Buffer.from(password), Buffer.from(adminPassword));
+    const hashA = createHash('sha256').update(password).digest();
+    const hashB = createHash('sha256').update(adminPassword).digest();
+    const passwordMatch = timingSafeEqual(hashA, hashB);
     if (
       adminEmails.includes(email.toLowerCase()) &&
       passwordMatch

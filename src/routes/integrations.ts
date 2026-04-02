@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { slackIntegration } from '../integrations/slack.js';
 import { teamsIntegration } from '../integrations/teams.js';
 import { getWorkspaceFromApiKey } from '../kv/client.js';
+import { isUrlSafe } from '../webhook/sender.js';
 
 /**
  * Integration routes for Slack and Teams webhook management
@@ -48,6 +49,11 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
 
     if (!url) {
       return reply.code(400).send({ error: 'Missing webhook URL' });
+    }
+
+    const urlCheck = isUrlSafe(url);
+    if (!urlCheck.safe) {
+      return reply.code(400).send({ error: `Unsafe URL: ${urlCheck.reason}` });
     }
 
     try {
@@ -112,6 +118,11 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
 
     if (!url || !platform) {
       return reply.code(400).send({ error: 'Missing url or platform' });
+    }
+
+    const urlCheck = isUrlSafe(url);
+    if (!urlCheck.safe) {
+      return reply.code(400).send({ error: `Unsafe URL: ${urlCheck.reason}` });
     }
 
     const mockTrace = {

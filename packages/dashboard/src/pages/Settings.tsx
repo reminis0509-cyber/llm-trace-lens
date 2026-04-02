@@ -108,7 +108,7 @@ export function Settings({ onBack }: SettingsProps) {
         alert('Webhook設定を保存しました！');
       } else {
         const data = await res.json();
-        alert('Webhook設定の保存に失敗: ' + (data.error || 'Unknown error'));
+        alert('Webhook設定の保存に失敗: ' + (data.error || '不明なエラー'));
       }
     } catch (error) {
       alert('Webhook設定の保存エラー: ' + (error as Error).message);
@@ -126,7 +126,7 @@ export function Settings({ onBack }: SettingsProps) {
       if (res.ok) {
         setTestStatus('テスト送信成功！');
       } else {
-        setTestStatus('テスト失敗: ' + (data.error || 'Unknown error'));
+        setTestStatus('テスト失敗: ' + (data.error || '不明なエラー'));
       }
     } catch (error) {
       setTestStatus('エラー: ' + (error as Error).message);

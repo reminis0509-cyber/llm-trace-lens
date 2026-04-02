@@ -24,11 +24,11 @@ export function StorageUsage() {
         setStats(data);
         setError(null);
       } else {
-        setError('Failed to fetch storage stats');
+        setError('ストレージ統計の取得に失敗しました');
       }
     } catch (err) {
       console.error('Failed to fetch storage stats:', err);
-      setError('Failed to fetch storage stats');
+      setError('ストレージ統計の取得に失敗しました');
     } finally {
       setLoading(false);
     }
@@ -92,7 +92,7 @@ export function StorageUsage() {
 
         <div className="flex justify-between text-sm">
           <span className="text-text-muted font-mono tabular-nums">
-            {(currentCount ?? 0).toLocaleString()} / {(maxCount ?? 0).toLocaleString()} traces
+            {(currentCount ?? 0).toLocaleString('ja-JP')} / {(maxCount ?? 0).toLocaleString('ja-JP')} トレース
           </span>
           <span className={`font-mono tabular-nums ${
             isCritical

@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { RefreshCw, List, Radio, Lock } from 'lucide-react';
+import { RefreshCw, List, Lock } from 'lucide-react';
 import { fetchTraces } from '../api/client';
 import { useRealtimeTraces } from '../hooks/useRealtimeTraces';
 import { usePlan } from '../contexts/PlanContext';
+import { LiveIndicator } from './LiveIndicator';
 import type { Trace, ValidationLevel } from '../types';
 
 // Helper to safely render any value as string (prevents React error #31)
@@ -27,6 +28,13 @@ const STATUS_BAR_STYLES: Record<ValidationLevel, string> = {
   BLOCK: 'border-l-status-block',
 };
 
+const STATUS_PULSE_STYLES: Record<ValidationLevel, string> = {
+  PASS: 'animate-pulse-pass',
+  WARN: 'animate-pulse-warn',
+  FAIL: 'animate-pulse-fail',
+  BLOCK: 'animate-pulse-fail',
+};
+
 export function TraceList({ onSelect, selectedId, workspaceId, onNewTrace }: Props) {
   const { isFree, retentionDays } = usePlan();
   const [traces, setTraces] = useState<Trace[]>([]);
@@ -35,6 +43,8 @@ export function TraceList({ onSelect, selectedId, workspaceId, onNewTrace }: Pro
   const [filter, setFilter] = useState<string>('all');
   const [providerFilter, setProviderFilter] = useState<string>('all');
   const [newTraceCount, setNewTraceCount] = useState(0);
+  const [newTraceIds, setNewTraceIds] = useState<Set<string>>(new Set());
+  const prevTraceIdsRef = useRef<Set<string>>(new Set());
   const onNewTraceRef = useRef(onNewTrace);
 
   // Keep onNewTrace ref up to date
@@ -50,6 +60,16 @@ export function TraceList({ onSelect, selectedId, workspaceId, onNewTrace }: Pro
         level: filter === 'all' ? undefined : filter,
         provider: providerFilter === 'all' ? undefined : providerFilter,
       });
+      // Detect which trace IDs are new (not in previous set)
+      const incoming = new Set(result.traces.map((t) => t.id));
+      const freshIds = new Set<string>();
+      incoming.forEach((id) => {
+        if (!prevTraceIdsRef.current.has(id)) {
+          freshIds.add(id);
+        }
+      });
+      prevTraceIdsRef.current = incoming;
+      setNewTraceIds(freshIds);
       setTraces(result.traces);
       setTotal(result.total);
     } catch (error) {
@@ -177,21 +197,10 @@ export function TraceList({ onSelect, selectedId, workspaceId, onNewTrace }: Pro
             </span>
           </div>
           <div className="flex items-center gap-3">
-            {isConnected ? (
-              <span className="flex items-center gap-1.5 text-xs text-status-pass font-mono">
-                <Radio className="w-3 h-3" />
-                リアルタイム
-              </span>
-            ) : (
-              <span className="text-xs text-text-muted font-mono">
-                ポーリング (30s)
-              </span>
-            )}
-            {newTraceCount > 0 && (
-              <span className="text-xs text-accent font-mono tabular-nums">
-                +{newTraceCount} 新着
-              </span>
-            )}
+            <LiveIndicator
+              isConnected={isConnected}
+              newTraceCount={newTraceCount}
+            />
             <button
               onClick={handleManualRefresh}
               className="p-2 text-text-secondary hover:text-text-primary hover:bg-base-elevated rounded-card transition-colors duration-120"
@@ -240,14 +249,19 @@ export function TraceList({ onSelect, selectedId, workspaceId, onNewTrace }: Pro
             <p className="text-sm text-text-muted">トレースが見つかりません</p>
           </div>
         ) : (
-          traces.map((trace) => {
+          traces.map((trace, index) => {
             const isLocked = cutoffDate !== null && new Date(trace.timestamp) < cutoffDate;
+            const isNew = newTraceIds.has(trace.id);
             return (
               <div
                 key={trace.id}
                 onClick={isLocked ? undefined : () => onSelect(trace)}
                 className={`group relative px-6 py-4 border-b border-border-subtle border-l-[3px] transition-colors duration-120 ${
                   STATUS_BAR_STYLES[trace.validation?.overall ?? 'PASS']
+                } ${
+                  isNew
+                    ? `animate-trace-enter trace-row-stagger ${STATUS_PULSE_STYLES[trace.validation?.overall ?? 'PASS']}`
+                    : ''
                 } ${
                   isLocked
                     ? 'opacity-50 cursor-not-allowed'
@@ -259,6 +273,7 @@ export function TraceList({ onSelect, selectedId, workspaceId, onNewTrace }: Pro
                       ? 'hover:bg-base-elevated'
                       : ''
                 }`}
+                style={isNew ? { '--stagger': index } as React.CSSProperties : undefined}
                 title={isLocked ? 'Proプランで過去データにアクセス' : `${trace.provider} / ${trace.model}`}
               >
                 <div className="flex items-start justify-between gap-4 mb-2">

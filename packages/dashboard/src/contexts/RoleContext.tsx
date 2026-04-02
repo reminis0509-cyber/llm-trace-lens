@@ -57,7 +57,7 @@ export function RoleProvider({ children, initialWorkspaceId }: RoleProviderProps
       const data = await membersApi.getMyRole(workspaceId);
       setRole(data.role);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch role');
+      setError(err instanceof Error ? err.message : 'ロール情報の取得に失敗しました');
       setRole(null);
     } finally {
       setLoading(false);

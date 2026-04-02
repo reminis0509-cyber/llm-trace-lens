@@ -60,11 +60,11 @@ export function Playground({ onBack }: Props) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `API error: ${response.status}`);
+        throw new Error(errorData.error || `APIエラー: ${response.status}`);
       }
 
       const data = await response.json();
-      const assistantMessage = data.choices?.[0]?.message?.content || 'No response';
+      const assistantMessage = data.choices?.[0]?.message?.content || 'レスポンスなし';
 
       setResult({
         success: true,

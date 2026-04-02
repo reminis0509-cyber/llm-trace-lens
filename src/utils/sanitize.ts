@@ -73,7 +73,10 @@ export function isInputSafe(input: string): { safe: boolean; reason?: string } {
 /**
  * オブジェクトの全フィールドをチェック
  */
-export function validateObject(obj: Record<string, unknown>): { safe: boolean; field?: string; reason?: string } {
+export function validateObject(obj: Record<string, unknown>, depth: number = 0): { safe: boolean; field?: string; reason?: string } {
+  if (depth > 10) {
+    return { safe: false, field: '<nested>', reason: 'Object nesting too deep' };
+  }
   for (const [key, value] of Object.entries(obj)) {
     if (typeof value === 'string') {
       const result = isInputSafe(value);
@@ -81,7 +84,7 @@ export function validateObject(obj: Record<string, unknown>): { safe: boolean; f
         return { safe: false, field: key, reason: result.reason };
       }
     } else if (typeof value === 'object' && value !== null) {
-      const result = validateObject(value as Record<string, unknown>);
+      const result = validateObject(value as Record<string, unknown>, depth + 1);
       if (!result.safe) {
         return { safe: false, field: `${key}.${result.field}`, reason: result.reason };
       }
