@@ -32,7 +32,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="min-h-[400px] flex items-center justify-center p-6">
-          <div className="bg-navy-800 border border-navy-600 rounded-xl p-6 max-w-md text-center">
+          <div className="bg-base-surface border border-border rounded-xl p-6 max-w-md text-center">
             <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-red-500/10 flex items-center justify-center">
               <svg
                 className="w-6 h-6 text-red-400"
@@ -48,15 +48,15 @@ export class ErrorBoundary extends Component<Props, State> {
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-100 mb-2">
+            <h3 className="text-lg font-semibold text-text-primary mb-2">
               エラーが発生しました
             </h3>
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-text-secondary mb-4">
               {this.state.error?.message || '予期しないエラーが発生しました'}
             </p>
             <button
               onClick={() => this.setState({ hasError: false, error: null })}
-              className="px-4 py-2 bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/30 rounded-lg text-sm font-medium hover:bg-accent-cyan/20 transition"
+              className="px-4 py-2 bg-accent-dim text-accent border border-accent/30 rounded-lg text-sm font-medium hover:bg-accent/20 transition"
             >
               再試行
             </button>

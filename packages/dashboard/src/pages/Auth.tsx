@@ -47,9 +47,8 @@ export function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-navy-900 bg-grid flex items-center justify-center p-4">
-      {/* Glassmorphism card */}
-      <div className="glass-card w-full max-w-md p-8">
+    <div className="min-h-screen bg-base flex items-center justify-center p-4">
+      <div className="surface-card w-full max-w-md p-8">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-accent-cyan to-accent-emerald flex items-center justify-center">
@@ -58,8 +57,8 @@ export function Auth() {
               <path d="M16.5 26 L22 12.5 L27.5 26" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-100 tracking-wide">FujiTrace</h1>
-          <p className="text-gray-400 mt-2">
+          <h1 className="text-2xl font-bold text-text-primary tracking-wide">FujiTrace</h1>
+          <p className="text-text-secondary mt-2">
             {isLogin ? 'アカウントにログイン' : '新しいアカウントを作成'}
           </p>
         </div>
@@ -79,7 +78,7 @@ export function Auth() {
         {/* Google Sign In */}
         <button
           onClick={handleGoogleSignIn}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-navy-600 rounded-lg hover:bg-navy-700 hover:border-navy-500 transition mb-6"
+          className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-border rounded-lg hover:bg-base-elevated transition mb-6"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path
@@ -99,23 +98,23 @@ export function Auth() {
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
             />
           </svg>
-          <span className="text-gray-200 font-medium">Googleで続行</span>
+          <span className="text-text-primary font-medium">Googleで続行</span>
         </button>
 
         {/* Divider */}
         <div className="relative mb-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-navy-600"></div>
+            <div className="w-full border-t border-border"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-navy-800 text-gray-500">またはメールで続行</span>
+            <span className="px-2 bg-base-surface text-text-muted">またはメールで続行</span>
           </div>
         </div>
 
         {/* Email Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-text-primary mb-1">
               メールアドレス
             </label>
             <input
@@ -129,7 +128,7 @@ export function Auth() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-text-primary mb-1">
               パスワード
             </label>
             <input
@@ -146,14 +145,14 @@ export function Auth() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-accent-cyan text-navy-900 rounded-lg font-semibold hover:bg-accent-cyan-dim disabled:bg-navy-600 disabled:text-gray-400 disabled:cursor-not-allowed transition"
+            className="w-full py-3 bg-accent text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-200 disabled:text-text-secondary disabled:cursor-not-allowed transition"
           >
             {loading ? '読み込み中...' : isLogin ? 'ログイン' : 'アカウント作成'}
           </button>
         </form>
 
         {/* Toggle */}
-        <p className="mt-6 text-center text-sm text-gray-400">
+        <p className="mt-6 text-center text-sm text-text-secondary">
           {isLogin ? 'アカウントをお持ちでないですか？' : 'すでにアカウントをお持ちですか？'}
           <button
             onClick={() => {
@@ -161,7 +160,7 @@ export function Auth() {
               setError('');
               setMessage('');
             }}
-            className="ml-1 text-accent-cyan font-medium hover:underline"
+            className="ml-1 text-accent font-medium hover:underline"
           >
             {isLogin ? 'アカウント作成' : 'ログイン'}
           </button>

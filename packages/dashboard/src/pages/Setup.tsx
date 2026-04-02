@@ -86,7 +86,7 @@ export function Setup({ onComplete }: SetupProps) {
           <path d="M6 26 L14.5 6 L19.7 18.2" stroke="#6ee7b7" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
           <path d="M16.5 26 L22 12.5 L27.5 26" stroke="#4ade80" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
         </svg>
-        <h1 className="text-2xl font-bold text-gray-900">FujiTrace セットアップ</h1>
+        <h1 className="text-2xl font-bold text-text-primary">FujiTrace セットアップ</h1>
       </div>
 
       {/* Progress Indicator */}
@@ -95,7 +95,7 @@ export function Setup({ onComplete }: SetupProps) {
           <div
             key={i}
             className={`flex-1 h-1 rounded ${
-              i <= step ? 'bg-green-500' : 'bg-gray-200'
+              i <= step ? 'bg-status-pass' : 'bg-base-elevated'
             }`}
           />
         ))}
@@ -111,7 +111,7 @@ export function Setup({ onComplete }: SetupProps) {
       {step === 1 && (
         <div>
           <h2 className="text-xl font-semibold mb-2">ステップ1: ストレージバックエンドの選択</h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-text-secondary mb-6">
             トレースと設定データの保存先を選択してください。
           </p>
 
@@ -120,7 +120,7 @@ export function Setup({ onComplete }: SetupProps) {
               className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition ${
                 storageType === 'postgres'
                   ? 'border-green-500 bg-green-50'
-                  : 'border-gray-300 hover:bg-gray-50'
+                  : 'border-border hover:bg-base-elevated'
               }`}
             >
               <input
@@ -132,10 +132,10 @@ export function Setup({ onComplete }: SetupProps) {
                 className="w-5 h-5 text-green-600"
               />
               <div className="flex-1">
-                <div className="font-semibold text-gray-900">
+                <div className="font-semibold text-text-primary">
                   PostgreSQL <span className="text-green-600 text-sm">（推奨）</span>
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-text-secondary">
                   Supabase、Neon、AWS RDS - 本番環境に最適
                 </div>
               </div>
@@ -145,7 +145,7 @@ export function Setup({ onComplete }: SetupProps) {
               className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition ${
                 storageType === 'kv'
                   ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-300 hover:bg-gray-50'
+                  : 'border-border hover:bg-base-elevated'
               }`}
             >
               <input
@@ -154,11 +154,11 @@ export function Setup({ onComplete }: SetupProps) {
                 value="kv"
                 checked={storageType === 'kv'}
                 onChange={e => setStorageType(e.target.value as StorageType)}
-                className="w-5 h-5 text-blue-600"
+                className="w-5 h-5 text-accent"
               />
               <div className="flex-1">
-                <div className="font-semibold text-gray-900">Vercel KV</div>
-                <div className="text-sm text-gray-600">
+                <div className="font-semibold text-text-primary">Vercel KV</div>
+                <div className="text-sm text-text-secondary">
                   開発・小規模テスト用（ストレージ制限あり）
                 </div>
               </div>
@@ -186,7 +186,7 @@ export function Setup({ onComplete }: SetupProps) {
       {step === 2 && (
         <div>
           <h2 className="text-xl font-semibold mb-2">ステップ2: APIキーの設定</h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-text-secondary mb-6">
             使用するLLMプロバイダーのAPIキーを入力してください。最低1つ必要です。
           </p>
 
@@ -196,7 +196,7 @@ export function Setup({ onComplete }: SetupProps) {
             { key: 'gemini', label: 'Google Gemini', placeholder: 'AIza...' },
           ].map(provider => (
             <div key={provider.key} className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-text-secondary mb-1">
                 {provider.label}
               </label>
               <input
@@ -204,7 +204,7 @@ export function Setup({ onComplete }: SetupProps) {
                 placeholder={provider.placeholder}
                 value={(config.providers as Record<string, string>)?.[provider.key] || ''}
                 onChange={e => handleProviderChange(provider.key, e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
               />
             </div>
           ))}
@@ -212,7 +212,7 @@ export function Setup({ onComplete }: SetupProps) {
           <div className="flex gap-3 mt-6">
             <button
               onClick={() => setStep(1)}
-              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium"
+              className="px-6 py-2 bg-base-elevated text-text-secondary rounded-lg hover:bg-gray-200 transition font-medium"
             >
               戻る
             </button>
@@ -230,7 +230,7 @@ export function Setup({ onComplete }: SetupProps) {
       {step === 3 && (
         <div>
           <h2 className="text-xl font-semibold mb-2">ステップ3: バリデーションルール</h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-text-secondary mb-6">
             LLMレスポンスの品質・安全性チェックを設定してください。
           </p>
 
@@ -253,7 +253,7 @@ export function Setup({ onComplete }: SetupProps) {
           ].map(rule => (
             <div
               key={rule.key}
-              className="mb-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+              className="mb-4 p-4 border border-border rounded-lg hover:bg-base-elevated transition"
             >
               <label className="flex items-center cursor-pointer">
                 <input
@@ -262,11 +262,11 @@ export function Setup({ onComplete }: SetupProps) {
                     config.validation?.[rule.key as keyof typeof config.validation] as boolean ?? true
                   }
                   onChange={e => handleValidationChange(rule.key, e.target.checked)}
-                  className="w-5 h-5 mr-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="w-5 h-5 mr-3 rounded border-border text-accent focus:ring-accent"
                 />
                 <div>
-                  <div className="font-medium text-gray-900">{rule.label}</div>
-                  <div className="text-sm text-gray-500">{rule.desc}</div>
+                  <div className="font-medium text-text-primary">{rule.label}</div>
+                  <div className="text-sm text-text-muted">{rule.desc}</div>
                 </div>
               </label>
             </div>
@@ -275,7 +275,7 @@ export function Setup({ onComplete }: SetupProps) {
           <div className="flex gap-3 mt-6">
             <button
               onClick={() => setStep(2)}
-              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium"
+              className="px-6 py-2 bg-base-elevated text-text-secondary rounded-lg hover:bg-gray-200 transition font-medium"
             >
               戻る
             </button>
@@ -303,12 +303,12 @@ export function Setup({ onComplete }: SetupProps) {
             </div>
             <h2 className="text-xl font-semibold">セットアップ完了</h2>
           </div>
-          <p className="text-gray-600 mb-6">
+          <p className="text-text-secondary mb-6">
             FujiTraceの準備が完了しました。以下のエンドポイントを使用してリクエストを送信してください。
           </p>
 
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-text-secondary mb-2">
               プロキシエンドポイント
             </label>
             <div className="flex gap-2">
@@ -316,11 +316,11 @@ export function Setup({ onComplete }: SetupProps) {
                 type="text"
                 value={endpoint}
                 readOnly
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-800 font-mono text-sm"
+                className="flex-1 px-4 py-2 border border-border rounded-lg bg-base-surface text-text-primary font-mono text-sm"
               />
               <button
                 onClick={() => copyToClipboard(endpoint)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-blue-700 transition font-medium"
               >
                 コピー
               </button>
@@ -328,7 +328,7 @@ export function Setup({ onComplete }: SetupProps) {
           </div>
 
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-text-secondary mb-2">
               cURLの例
             </label>
             <pre className="p-4 bg-gray-900 text-gray-100 rounded-lg overflow-x-auto text-sm font-mono">
@@ -348,7 +348,7 @@ export function Setup({ onComplete }: SetupProps) {
                   `curl -X POST ${endpoint} -H "Content-Type: application/json" -d '{"model": "gpt-4", "provider": "openai", "messages": [{"role": "user", "content": "What is quantum computing?"}]}'`
                 )
               }
-              className="mt-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm font-medium"
+              className="mt-2 px-4 py-2 bg-base-elevated text-text-secondary rounded-lg hover:bg-gray-200 transition text-sm font-medium"
             >
               cURLをコピー
             </button>

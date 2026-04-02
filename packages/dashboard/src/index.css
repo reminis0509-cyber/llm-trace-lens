@@ -12,7 +12,7 @@
     @apply bg-base text-text-primary antialiased;
   }
 
-  /* Form elements - ensure dark theme compatibility */
+  /* Form elements */
   input[type="text"],
   input[type="email"],
   input[type="password"],
@@ -20,15 +20,15 @@
   input[type="search"],
   textarea,
   select {
-    @apply bg-base-surface text-text-primary border-border;
-    color-scheme: dark;
+    @apply bg-white text-text-primary border-border;
+    color-scheme: light;
   }
 
   select option {
-    @apply bg-base-surface text-text-primary;
+    @apply bg-white text-text-primary;
   }
 
-  /* Custom scrollbar for dark theme */
+  /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -53,9 +53,9 @@
 }
 
 @layer components {
-  /* Simple surface card - no glass effect */
+  /* Simple surface card */
   .surface-card {
-    @apply bg-base-surface border border-border rounded-card;
+    @apply bg-white border border-border rounded-card shadow-sm;
   }
 
   /* Terminal-style code block */
@@ -88,7 +88,7 @@
   /* Skeleton loading - shimmer effect */
   .skeleton {
     @apply bg-base-elevated animate-shimmer;
-    background: linear-gradient(90deg, #18181b 0%, #27272a 50%, #18181b 100%);
+    background: linear-gradient(90deg, #F1F5F9 0%, #E2E8F0 50%, #F1F5F9 100%);
     background-size: 200% 100%;
   }
 

@@ -110,18 +110,18 @@ export function Members({ workspaceId, onBack }: MembersProps) {
       case 'admin':
         return <Shield className="w-4 h-4 text-blue-500" />;
       default:
-        return <User className="w-4 h-4 text-gray-400" />;
+        return <User className="w-4 h-4 text-text-secondary" />;
     }
   };
 
   const getRoleBadgeClass = (role: Role) => {
     switch (role) {
       case 'owner':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+        return 'bg-yellow-100 text-yellow-800';
       case 'admin':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+        return 'bg-blue-100 text-blue-800';
       default:
-        return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300';
+        return 'bg-base-elevated text-text-secondary';
     }
   };
 
@@ -133,19 +133,19 @@ export function Members({ workspaceId, onBack }: MembersProps) {
           {onBack && (
             <button
               onClick={onBack}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              className="p-2 rounded-lg hover:bg-base-elevated transition"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
           )}
-          <div className="p-2 bg-indigo-100 dark:bg-indigo-900 rounded-lg">
-            <Users className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+          <div className="p-2 bg-accent-dim rounded-lg">
+            <Users className="w-6 h-6 text-accent" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">チームメンバー</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <h1 className="text-2xl font-bold text-text-primary">チームメンバー</h1>
+            <p className="text-sm text-text-secondary">
               ワークスペースのメンバーと招待を管理
             </p>
           </div>
@@ -154,7 +154,7 @@ export function Members({ workspaceId, onBack }: MembersProps) {
         {isAdmin && (
           <button
             onClick={() => setShowInviteForm(!showInviteForm)}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+            className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-blue-700 transition"
           >
             <UserPlus className="w-4 h-4" />
             メンバーを招待
@@ -164,8 +164,8 @@ export function Members({ workspaceId, onBack }: MembersProps) {
 
       {/* Error Message */}
       {error && (
-        <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <p className="text-red-600 dark:text-red-400">{error}</p>
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600">{error}</p>
           <button
             onClick={() => setError(null)}
             className="mt-2 text-sm text-red-500 hover:text-red-600 underline"
@@ -177,7 +177,7 @@ export function Members({ workspaceId, onBack }: MembersProps) {
 
       {/* Invite Form */}
       {showInviteForm && isAdmin && (
-        <div className="mb-6 p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+        <div className="mb-6 p-6 bg-base rounded-xl border border-border">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Link2 className="w-5 h-5" />
             招待リンクを作成
@@ -189,24 +189,24 @@ export function Members({ workspaceId, onBack }: MembersProps) {
               placeholder="メールアドレス（任意 - 空欄でリンクのみ）"
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
+              className="flex-1 px-4 py-2 border border-border rounded-lg bg-base text-text-primary placeholder-text-muted"
             />
             <button
               onClick={handleCreateInvite}
               disabled={isCreatingInvite}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               {isCreatingInvite ? '作成中...' : 'リンクを生成'}
             </button>
           </div>
 
           {inviteLink && (
-            <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-              <p className="text-sm text-green-600 dark:text-green-400 mb-2">
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-600 mb-2">
                 このリンクを招待したい方に共有してください：
               </p>
               <div className="flex items-center gap-2">
-                <code className="flex-1 p-2 bg-white dark:bg-gray-800 rounded border border-green-200 dark:border-green-800 text-sm break-all">
+                <code className="flex-1 p-2 bg-base rounded border border-green-200 text-sm break-all">
                   {inviteLink}
                 </code>
                 <button
@@ -217,7 +217,7 @@ export function Members({ workspaceId, onBack }: MembersProps) {
                   {copied ? 'コピーしました！' : 'コピー'}
                 </button>
               </div>
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              <p className="mt-2 text-xs text-text-muted">
                 このリンクは7日間有効です。
               </p>
             </div>
@@ -226,33 +226,33 @@ export function Members({ workspaceId, onBack }: MembersProps) {
       )}
 
       {/* Members List */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="font-semibold text-gray-900 dark:text-white">
+      <div className="bg-base rounded-xl border border-border overflow-hidden">
+        <div className="px-6 py-4 border-b border-border">
+          <h2 className="font-semibold text-text-primary">
             メンバー ({members.length})
           </h2>
         </div>
 
         {loading ? (
-          <div className="p-8 text-center text-gray-500">メンバーを読み込み中...</div>
+          <div className="p-8 text-center text-text-muted">メンバーを読み込み中...</div>
         ) : members.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">メンバーが見つかりません</div>
+          <div className="p-8 text-center text-text-muted">メンバーが見つかりません</div>
         ) : (
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          <div className="divide-y divide-border">
             {members.map((member) => (
               <div
                 key={member.id}
-                className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
+                className="px-6 py-4 flex items-center justify-between hover:bg-base-elevated transition"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-base-elevated rounded-full flex items-center justify-center">
                     {getRoleIcon(member.role)}
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">
+                    <p className="font-medium text-text-primary">
                       {member.email}
                     </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-text-muted">
                       参加日 {new Date(member.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })}
                       {member.invited_by && ` | 招待元 ${member.invited_by}`}
                     </p>
@@ -279,7 +279,7 @@ export function Members({ workspaceId, onBack }: MembersProps) {
                   {isAdmin && (
                     <button
                       onClick={() => handleRemoveMember(member.id, member.email)}
-                      className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
                       title="メンバーを削除"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -294,24 +294,24 @@ export function Members({ workspaceId, onBack }: MembersProps) {
 
       {/* Pending Invitations */}
       {isAdmin && invitations.length > 0 && (
-        <div className="mt-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="font-semibold text-gray-900 dark:text-white">
+        <div className="mt-6 bg-base rounded-xl border border-border overflow-hidden">
+          <div className="px-6 py-4 border-b border-border">
+            <h2 className="font-semibold text-text-primary">
               保留中の招待 ({invitations.length})
             </h2>
           </div>
 
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          <div className="divide-y divide-border">
             {invitations.map((invitation) => (
               <div
                 key={invitation.token}
-                className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
+                className="px-6 py-4 flex items-center justify-between hover:bg-base-elevated transition"
               >
                 <div>
-                  <p className="font-medium text-gray-900 dark:text-white">
+                  <p className="font-medium text-text-primary">
                     {invitation.email || 'リンクを知っている人全員'}
                   </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm text-text-muted">
                     招待元 {invitation.invited_by_email} |
                     有効期限 {new Date(invitation.expires_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })}
                   </p>
@@ -319,7 +319,7 @@ export function Members({ workspaceId, onBack }: MembersProps) {
 
                 <button
                   onClick={() => handleRevokeInvitation(invitation.token)}
-                  className="flex items-center gap-1 px-3 py-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition text-sm"
+                  className="flex items-center gap-1 px-3 py-1.5 text-red-500 hover:bg-red-50 rounded-lg transition text-sm"
                 >
                   <X className="w-4 h-4" />
                   取消

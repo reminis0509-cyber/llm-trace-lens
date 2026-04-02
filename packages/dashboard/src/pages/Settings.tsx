@@ -180,36 +180,36 @@ export function Settings({ onBack }: SettingsProps) {
 
       {/* Cost Overview */}
       {costData && costData.stats && (
-        <div className="gradient-border p-6">
+        <div className="surface-card p-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-accent-cyan/10 flex items-center justify-center">
-              <DollarSign className="w-5 h-5 text-accent-cyan" />
+            <div className="w-10 h-10 rounded-lg bg-accent-dim flex items-center justify-center">
+              <DollarSign className="w-5 h-5 text-accent" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-100">今月のコスト</h2>
-              <p className="text-sm text-gray-400">現在の支出と予算状況</p>
+              <h2 className="text-lg font-semibold text-text-primary">今月のコスト</h2>
+              <p className="text-sm text-text-secondary">現在の支出と予算状況</p>
             </div>
           </div>
 
           <div className="mb-4">
             <div className="flex justify-between items-center mb-2">
               <div>
-                <span className="text-3xl font-bold font-mono text-gray-100">
+                <span className="text-3xl font-bold font-mono text-text-primary">
                   ${costData.stats.totalCost.toFixed(2)}
                 </span>
                 {exchangeRate !== null && (
-                  <div className="text-sm text-gray-500 font-mono">
+                  <div className="text-sm text-text-muted font-mono">
                     {`\u7D04 \u00A5${Math.round(costData.stats.totalCost * exchangeRate).toLocaleString()}`}
                   </div>
                 )}
               </div>
               {costData.budget && (
                 <div className="text-right">
-                  <span className="text-lg text-gray-400 font-mono">
+                  <span className="text-lg text-text-secondary font-mono">
                     / ${costData.budget.monthlyLimit.toFixed(2)}
                   </span>
                   {exchangeRate !== null && (
-                    <div className="text-sm text-gray-500 font-mono">
+                    <div className="text-sm text-text-muted font-mono">
                       {`/ \u7D04 \u00A5${Math.round(costData.budget.monthlyLimit * exchangeRate).toLocaleString()}`}
                     </div>
                   )}
@@ -218,7 +218,7 @@ export function Settings({ onBack }: SettingsProps) {
             </div>
 
             {costData.budget && (
-              <div className="w-full bg-navy-700 rounded-full h-3">
+              <div className="w-full bg-base-elevated rounded-full h-3">
                 <div
                   className={`h-3 rounded-full transition-all ${
                     costData.percentage > 95
@@ -233,7 +233,7 @@ export function Settings({ onBack }: SettingsProps) {
             )}
 
             {costData.budget && (
-              <p className="mt-2 text-sm text-gray-400">
+              <p className="mt-2 text-sm text-text-secondary">
                 予算の{costData.percentage.toFixed(1)}%を使用
               </p>
             )}
@@ -245,16 +245,16 @@ export function Settings({ onBack }: SettingsProps) {
               title="プロバイダー別コスト内訳"
               description="コスト最適化のためにはProプランが必要です"
             >
-              <div className="mt-4 pt-4 border-t border-navy-700">
-                <h4 className="text-sm font-medium text-gray-400 mb-3">プロバイダー別コスト</h4>
+              <div className="mt-4 pt-4 border-t border-border">
+                <h4 className="text-sm font-medium text-text-secondary mb-3">プロバイダー別コスト</h4>
                 <div className="space-y-2">
                   {Object.entries(costData.stats.byProvider).map(([provider, cost]) => (
                     <div key={provider} className="flex justify-between text-sm">
-                      <span className="text-gray-300 capitalize">{provider}</span>
-                      <span className="font-mono text-gray-200">
+                      <span className="text-text-primary capitalize">{provider}</span>
+                      <span className="font-mono text-text-primary">
                         ${cost.toFixed(2)}
                         {exchangeRate !== null && (
-                          <span className="text-sm text-gray-500 ml-2">
+                          <span className="text-sm text-text-muted ml-2">
                             {`(\u7D04\u00A5${Math.round(cost * exchangeRate).toLocaleString()})`}
                           </span>
                         )}
@@ -269,19 +269,19 @@ export function Settings({ onBack }: SettingsProps) {
       )}
 
       {/* Budget Management */}
-      <div className="glass-card p-6">
+      <div className="surface-card p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-lg bg-accent-emerald/10 flex items-center justify-center">
-            <SettingsIcon className="w-5 h-5 text-accent-emerald" />
+          <div className="w-10 h-10 rounded-lg bg-accent-dim flex items-center justify-center">
+            <SettingsIcon className="w-5 h-5 text-accent" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-100">予算管理</h2>
-            <p className="text-sm text-gray-400">支出上限とアラートしきい値を設定</p>
+            <h2 className="text-lg font-semibold text-text-primary">予算管理</h2>
+            <p className="text-sm text-text-secondary">支出上限とアラートしきい値を設定</p>
           </div>
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-text-primary mb-2">
             月間予算（USD）
           </label>
           <input
@@ -290,12 +290,12 @@ export function Settings({ onBack }: SettingsProps) {
             onChange={(e) => setMonthlyBudget(Number(e.target.value))}
             min="0"
             step="10"
-            className="w-full px-4 py-2 bg-navy-800 border border-navy-600 rounded-lg text-gray-100 font-mono focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan"
+            className="w-full px-4 py-2 bg-base-surface border border-border rounded-lg text-text-primary font-mono focus:ring-2 focus:ring-accent/50 focus:border-accent"
           />
         </div>
 
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-300 mb-3">
+          <label className="block text-sm font-medium text-text-primary mb-3">
             アラートしきい値
           </label>
           <div className="space-y-3">
@@ -304,9 +304,9 @@ export function Settings({ onBack }: SettingsProps) {
                 type="checkbox"
                 checked={alertAt80}
                 onChange={(e) => setAlertAt80(e.target.checked)}
-                className="h-4 w-4 bg-navy-800 border-navy-600 rounded text-accent-cyan focus:ring-accent-cyan/50"
+                className="h-4 w-4 bg-base-surface border-border rounded text-accent focus:ring-accent/50"
               />
-              <span className="ml-3 text-sm text-gray-300 group-hover:text-gray-200">
+              <span className="ml-3 text-sm text-text-primary group-hover:text-text-primary">
                 予算の80%でアラート
               </span>
             </label>
@@ -315,9 +315,9 @@ export function Settings({ onBack }: SettingsProps) {
                 type="checkbox"
                 checked={alertAt95}
                 onChange={(e) => setAlertAt95(e.target.checked)}
-                className="h-4 w-4 bg-navy-800 border-navy-600 rounded text-accent-cyan focus:ring-accent-cyan/50"
+                className="h-4 w-4 bg-base-surface border-border rounded text-accent focus:ring-accent/50"
               />
-              <span className="ml-3 text-sm text-gray-300 group-hover:text-gray-200">
+              <span className="ml-3 text-sm text-text-primary group-hover:text-text-primary">
                 予算の95%でアラート
               </span>
             </label>
@@ -327,26 +327,26 @@ export function Settings({ onBack }: SettingsProps) {
         <button
           onClick={saveBudgetConfig}
           disabled={isSavingBudget}
-          className="px-4 py-2 bg-accent-cyan text-navy-900 rounded-lg font-medium hover:bg-accent-cyan-dim disabled:bg-navy-600 disabled:text-gray-400 disabled:cursor-not-allowed transition"
+          className="px-4 py-2 bg-accent text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-200 disabled:text-text-secondary disabled:cursor-not-allowed transition"
         >
           {isSavingBudget ? '保存中...' : '予算設定を保存'}
         </button>
       </div>
 
       {/* Webhook Settings */}
-      <div className="glass-card p-6">
+      <div className="surface-card p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-lg bg-accent-purple/10 flex items-center justify-center">
-            <Webhook className="w-5 h-5 text-accent-purple" />
+          <div className="w-10 h-10 rounded-lg bg-status-block/10 flex items-center justify-center">
+            <Webhook className="w-5 h-5 text-status-block" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-100">Webhook通知</h2>
-            <p className="text-sm text-gray-400">バリデーションイベントのアラートを設定</p>
+            <h2 className="text-lg font-semibold text-text-primary">Webhook通知</h2>
+            <p className="text-sm text-text-secondary">バリデーションイベントのアラートを設定</p>
           </div>
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-text-primary mb-2">
             Webhook URL
           </label>
           <input
@@ -354,15 +354,15 @@ export function Settings({ onBack }: SettingsProps) {
             value={webhookUrl}
             onChange={(e) => setWebhookUrl(e.target.value)}
             placeholder="https://hooks.slack.com/services/..."
-            className="w-full px-4 py-2 bg-navy-800 border border-navy-600 rounded-lg text-gray-100 placeholder-gray-500 font-mono text-sm focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan"
+            className="w-full px-4 py-2 bg-base-surface border border-border rounded-lg text-text-primary placeholder-text-muted font-mono text-sm focus:ring-2 focus:ring-accent/50 focus:border-accent"
           />
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-text-muted">
             Slack、Microsoft Teams、または任意のHTTPエンドポイントに対応
           </p>
         </div>
 
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-300 mb-3">
+          <label className="block text-sm font-medium text-text-primary mb-3">
             トリガーイベント
           </label>
           <div className="space-y-3">
@@ -376,11 +376,11 @@ export function Settings({ onBack }: SettingsProps) {
                   type="checkbox"
                   checked={selectedEvents.includes(event)}
                   onChange={() => toggleEvent(event)}
-                  className="h-4 w-4 bg-navy-800 border-navy-600 rounded text-accent-cyan focus:ring-accent-cyan/50"
+                  className="h-4 w-4 bg-base-surface border-border rounded text-accent focus:ring-accent/50"
                 />
-                <span className="ml-3 text-sm text-gray-300 group-hover:text-gray-200">
-                  <span className="font-mono text-accent-cyan">{event}</span>
-                  <span className="text-gray-500 ml-2">- {desc}</span>
+                <span className="ml-3 text-sm text-text-primary group-hover:text-text-primary">
+                  <span className="font-mono text-accent">{event}</span>
+                  <span className="text-text-muted ml-2">- {desc}</span>
                 </span>
               </label>
             ))}
@@ -391,7 +391,7 @@ export function Settings({ onBack }: SettingsProps) {
           <button
             onClick={saveWebhookConfig}
             disabled={isSavingWebhook || !webhookUrl}
-            className="px-4 py-2 bg-accent-cyan text-navy-900 rounded-lg font-medium hover:bg-accent-cyan-dim disabled:bg-navy-600 disabled:text-gray-400 disabled:cursor-not-allowed transition"
+            className="px-4 py-2 bg-accent text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-200 disabled:text-text-secondary disabled:cursor-not-allowed transition"
           >
             {isSavingWebhook ? '保存中...' : '設定を保存'}
           </button>
@@ -399,7 +399,7 @@ export function Settings({ onBack }: SettingsProps) {
           <button
             onClick={testWebhook}
             disabled={!webhookUrl}
-            className="px-4 py-2 border border-navy-600 text-gray-300 rounded-lg font-medium hover:bg-navy-700 hover:text-gray-100 disabled:border-navy-700 disabled:text-gray-500 disabled:cursor-not-allowed transition"
+            className="px-4 py-2 border border-border text-text-primary rounded-lg font-medium hover:bg-base-elevated disabled:border-border disabled:text-text-muted disabled:cursor-not-allowed transition"
           >
             テスト送信
           </button>

@@ -77,8 +77,8 @@ export function AdminRoute() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-navy-900 bg-grid flex items-center justify-center p-4">
-        <div className="glass-card w-full max-w-md p-8">
+      <div className="min-h-screen bg-base flex items-center justify-center p-4">
+        <div className="surface-card w-full max-w-md p-8">
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-accent-cyan to-accent-emerald flex items-center justify-center">
@@ -87,8 +87,8 @@ export function AdminRoute() {
                 <path d="M16.5 26 L22 12.5 L27.5 26" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-gray-100 tracking-wide">FujiTrace</h1>
-            <p className="text-gray-400 mt-2">管理者ログイン</p>
+            <h1 className="text-2xl font-bold text-text-primary tracking-wide">FujiTrace</h1>
+            <p className="text-text-secondary mt-2">管理者ログイン</p>
           </div>
 
           {/* Error */}
@@ -101,7 +101,7 @@ export function AdminRoute() {
           {/* Login Form */}
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor="admin-email">
+              <label className="block text-sm font-medium text-text-primary mb-1" htmlFor="admin-email">
                 メールアドレス
               </label>
               <input
@@ -117,7 +117,7 @@ export function AdminRoute() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor="admin-password">
+              <label className="block text-sm font-medium text-text-primary mb-1" htmlFor="admin-password">
                 パスワード
               </label>
               <input
@@ -136,7 +136,7 @@ export function AdminRoute() {
               type="submit"
               disabled={isLoading}
               aria-label="ログインする"
-              className="w-full py-3 bg-accent-cyan text-navy-900 rounded-lg font-semibold hover:bg-accent-cyan-dim disabled:bg-navy-600 disabled:text-gray-400 disabled:cursor-not-allowed transition"
+              className="w-full py-3 bg-accent text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-200 disabled:text-text-secondary disabled:cursor-not-allowed transition"
             >
               {isLoading ? '読み込み中...' : 'ログイン'}
             </button>
@@ -146,7 +146,7 @@ export function AdminRoute() {
           <p className="mt-6 text-center">
             <a
               href="/dashboard/"
-              className="inline-flex items-center gap-2 text-sm text-accent-cyan hover:underline"
+              className="inline-flex items-center gap-2 text-sm text-accent hover:underline"
             >
               <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
               ダッシュボードに戻る

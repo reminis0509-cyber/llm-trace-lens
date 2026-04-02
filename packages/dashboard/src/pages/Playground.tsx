@@ -101,7 +101,7 @@ export function Playground({ onBack }: Props) {
               setProvider(e.target.value);
               setModel(models[e.target.value][0]);
             }}
-            className="px-3 sm:px-4 py-2 bg-base-elevated border border-border rounded-lg text-white focus:ring-2 focus:ring-accent/50 focus:border-accent text-sm"
+            className="px-3 sm:px-4 py-2 bg-base-elevated border border-border rounded-lg text-text-primary focus:ring-2 focus:ring-accent/50 focus:border-accent text-sm"
           >
             <option value="openai">OpenAI</option>
             <option value="anthropic">Anthropic</option>
@@ -111,7 +111,7 @@ export function Playground({ onBack }: Props) {
           <select
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            className="px-3 sm:px-4 py-2 bg-base-elevated border border-border rounded-lg text-white focus:ring-2 focus:ring-accent/50 focus:border-accent font-mono text-xs sm:text-sm"
+            className="px-3 sm:px-4 py-2 bg-base-elevated border border-border rounded-lg text-text-primary focus:ring-2 focus:ring-accent/50 focus:border-accent font-mono text-xs sm:text-sm"
           >
             {models[provider].map((m) => (
               <option key={m} value={m}>
@@ -128,12 +128,12 @@ export function Playground({ onBack }: Props) {
           {!result && !loading && (
             <>
               <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-base-elevated flex items-center justify-center">
-                <Zap className="w-10 h-10 text-gray-500" />
+                <Zap className="w-10 h-10 text-text-muted" />
               </div>
-              <h2 className="text-xl font-semibold text-gray-200 mb-2">
+              <h2 className="text-xl font-semibold text-text-primary mb-2">
                 API接続テスト
               </h2>
-              <p className="text-gray-400 mb-8">
+              <p className="text-text-secondary mb-8">
                 プロバイダーとモデルを選択して、API接続をテストします。
               </p>
               <button
@@ -149,7 +149,7 @@ export function Playground({ onBack }: Props) {
           {loading && (
             <div className="py-16">
               <Loader2 className="w-12 h-12 mx-auto mb-4 text-accent animate-spin" />
-              <p className="text-gray-400">{provider}に接続テスト中...</p>
+              <p className="text-text-secondary">{provider}に接続テスト中...</p>
             </div>
           )}
 
@@ -170,7 +170,7 @@ export function Playground({ onBack }: Props) {
                   <p className={`font-semibold ${result.success ? 'text-status-pass' : 'text-status-fail'}`}>
                     {result.success ? '接続成功' : '接続失敗'}
                   </p>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-text-secondary">
                     {provider} / {result.model || model}
                   </p>
                 </div>
@@ -178,25 +178,25 @@ export function Playground({ onBack }: Props) {
 
               {/* Latency */}
               <div className="flex items-center gap-3 p-4 rounded-lg bg-base-elevated border border-border">
-                <Clock className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                <Clock className="w-5 h-5 text-text-secondary flex-shrink-0" />
                 <div>
-                  <p className="text-sm text-gray-400">レスポンスタイム</p>
-                  <p className="text-white font-mono">{result.latencyMs} ms</p>
+                  <p className="text-sm text-text-secondary">レスポンスタイム</p>
+                  <p className="text-text-primary font-mono">{result.latencyMs} ms</p>
                 </div>
               </div>
 
               {/* Response or Error */}
               {result.success && result.response && (
                 <div className="p-4 rounded-lg bg-base-elevated border border-border">
-                  <p className="text-sm text-gray-400 mb-2">レスポンス</p>
-                  <p className="text-gray-200 text-sm">{result.response}</p>
+                  <p className="text-sm text-text-secondary mb-2">レスポンス</p>
+                  <p className="text-text-primary text-sm">{result.response}</p>
                 </div>
               )}
 
               {!result.success && result.error && (
                 <div className="p-4 rounded-lg bg-status-fail/10 border border-status-fail/30">
                   <p className="text-sm text-status-fail font-medium mb-1">エラー</p>
-                  <p className="text-gray-300 text-sm">{result.error}</p>
+                  <p className="text-text-primary text-sm">{result.error}</p>
                 </div>
               )}
 

@@ -4,38 +4,38 @@ export default {
   theme: {
     extend: {
       colors: {
-        // ベース：温かみのあるニュートラル（純粋な黒/白を避ける）
+        // ベース：日本BtoB SaaS標準ライトテーマ
         base: {
-          DEFAULT: '#0d0d0f',
-          surface: '#111113',
-          elevated: '#18181b',
+          DEFAULT: '#FFFFFF',
+          surface: '#F8FAFC',
+          elevated: '#F1F5F9',
         },
         border: {
-          DEFAULT: '#27272a',
-          subtle: '#1f1f22',
+          DEFAULT: '#E2E8F0',
+          subtle: '#F1F5F9',
         },
         // テキスト
         text: {
-          primary: '#f4f4f5',
-          secondary: '#a1a1aa',
-          muted: '#52525b',
+          primary: '#111827',
+          secondary: '#6B7280',
+          muted: '#9CA3AF',
         },
-        // アクセント：1色のみ、落ち着いたセージグリーン
+        // アクセント：コーポレートブルー（LP統一）
         accent: {
-          DEFAULT: '#6ee7b7',
-          dim: 'rgba(110, 231, 183, 0.12)',
+          DEFAULT: '#2563EB',
+          dim: 'rgba(37, 99, 235, 0.08)',
         },
-        // ステータス：彩度を下げた自然なトーン
+        // ステータス：白背景でのコントラスト確保
         status: {
-          pass: '#4ade80',
-          warn: '#fbbf24',
-          fail: '#f87171',
-          block: '#a78bfa',
+          pass: '#16A34A',
+          warn: '#D97706',
+          fail: '#DC2626',
+          block: '#7C3AED',
         },
-        // チャート用（単色グレーベース）
+        // チャート用
         chart: {
-          bar: '#3f3f46',
-          grid: 'rgba(63, 63, 70, 0.3)',
+          bar: '#CBD5E1',
+          grid: 'rgba(226, 232, 240, 0.6)',
         },
       },
       fontFamily: {
@@ -82,22 +82,22 @@ export default {
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         pulsePass: {
-          '0%': { boxShadow: '0 0 0 0 rgba(74, 222, 128, 0.4)' },
-          '70%': { boxShadow: '0 0 0 6px rgba(74, 222, 128, 0)' },
-          '100%': { boxShadow: '0 0 0 0 rgba(74, 222, 128, 0)' },
+          '0%': { boxShadow: '0 0 0 0 rgba(22, 163, 74, 0.3)' },
+          '70%': { boxShadow: '0 0 0 6px rgba(22, 163, 74, 0)' },
+          '100%': { boxShadow: '0 0 0 0 rgba(22, 163, 74, 0)' },
         },
         pulseFail: {
-          '0%': { boxShadow: '0 0 0 0 rgba(248, 113, 113, 0.4)' },
-          '70%': { boxShadow: '0 0 0 6px rgba(248, 113, 113, 0)' },
-          '100%': { boxShadow: '0 0 0 0 rgba(248, 113, 113, 0)' },
+          '0%': { boxShadow: '0 0 0 0 rgba(220, 38, 38, 0.3)' },
+          '70%': { boxShadow: '0 0 0 6px rgba(220, 38, 38, 0)' },
+          '100%': { boxShadow: '0 0 0 0 rgba(220, 38, 38, 0)' },
         },
         pulseWarn: {
-          '0%': { boxShadow: '0 0 0 0 rgba(251, 191, 36, 0.4)' },
-          '70%': { boxShadow: '0 0 0 6px rgba(251, 191, 36, 0)' },
-          '100%': { boxShadow: '0 0 0 0 rgba(251, 191, 36, 0)' },
+          '0%': { boxShadow: '0 0 0 0 rgba(217, 119, 6, 0.3)' },
+          '70%': { boxShadow: '0 0 0 6px rgba(217, 119, 6, 0)' },
+          '100%': { boxShadow: '0 0 0 0 rgba(217, 119, 6, 0)' },
         },
         valueHighlight: {
-          '0%': { backgroundColor: 'rgba(110, 231, 183, 0.15)' },
+          '0%': { backgroundColor: 'rgba(37, 99, 235, 0.10)' },
           '100%': { backgroundColor: 'transparent' },
         },
         livePulse: {

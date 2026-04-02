@@ -20,21 +20,22 @@ import type { ProviderStats, Trace } from '../types';
 // ─── Color constants (matching tailwind.config.js status tokens) ────────────
 
 const STATUS_COLORS: Record<string, string> = {
-  PASS: '#4ade80',
-  WARN: '#fbbf24',
-  FAIL: '#f87171',
-  BLOCK: '#a78bfa',
+  PASS: '#16A34A',
+  WARN: '#D97706',
+  FAIL: '#DC2626',
+  BLOCK: '#7C3AED',
 };
 
-const CHART_GRID_COLOR = 'rgba(63, 63, 70, 0.3)';
+const CHART_GRID_COLOR = 'rgba(226, 232, 240, 0.6)';
 
 const TOOLTIP_STYLE = {
-  backgroundColor: '#111113',
-  border: '1px solid #27272a',
+  backgroundColor: '#FFFFFF',
+  border: '1px solid #E2E8F0',
   borderRadius: '6px',
-  color: '#f4f4f5',
+  color: '#111827',
   fontSize: '12px',
   fontFamily: 'Geist Mono, monospace',
+  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
 };
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -104,7 +105,7 @@ function renderPieLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent, n
     <text
       x={x}
       y={y}
-      fill="#a1a1aa"
+      fill="#6B7280"
       textAnchor={x > cx ? 'start' : 'end'}
       dominantBaseline="central"
       fontSize={11}
@@ -291,7 +292,7 @@ export function StatsPanel({ refreshTrigger = 0 }: StatsPanelProps) {
                       <Label
                         value={`${passRate}%`}
                         position="center"
-                        fill="#f4f4f5"
+                        fill="#111827"
                         fontSize={24}
                         fontWeight={700}
                         fontFamily="Geist Mono, monospace"
@@ -343,27 +344,27 @@ export function StatsPanel({ refreshTrigger = 0 }: StatsPanelProps) {
                     textAnchor="end"
                     height={80}
                     interval={0}
-                    tick={{ fill: '#a1a1aa', fontSize: 11, fontFamily: 'Geist Mono, monospace' }}
+                    tick={{ fill: '#6B7280', fontSize: 11, fontFamily: 'Geist Mono, monospace' }}
                     axisLine={{ stroke: CHART_GRID_COLOR }}
                     tickLine={false}
                   />
                   <YAxis
                     domain={[0, 100]}
-                    tick={{ fill: '#52525b', fontSize: 11, fontFamily: 'Geist Mono, monospace' }}
+                    tick={{ fill: '#9CA3AF', fontSize: 11, fontFamily: 'Geist Mono, monospace' }}
                     axisLine={false}
                     tickLine={false}
                     width={36}
                   />
                   <Tooltip
                     contentStyle={TOOLTIP_STYLE}
-                    cursor={{ fill: 'rgba(110, 231, 183, 0.08)' }}
+                    cursor={{ fill: 'rgba(37, 99, 235, 0.06)' }}
                     formatter={(value: number) => [`${value}`, '平均スコア']}
                   />
                   <Bar dataKey="score" name="平均スコア" radius={[3, 3, 0, 0]}>
                     {confidenceByProvider.map((entry, index) => (
                       <Cell
                         key={index}
-                        fill={entry.score >= 80 ? '#4ade80' : entry.score >= 60 ? '#fbbf24' : '#f87171'}
+                        fill={entry.score >= 80 ? '#16A34A' : entry.score >= 60 ? '#D97706' : '#DC2626'}
                       />
                     ))}
                   </Bar>
@@ -390,12 +391,12 @@ export function StatsPanel({ refreshTrigger = 0 }: StatsPanelProps) {
                   textAnchor="end"
                   height={80}
                   interval={0}
-                  tick={{ fill: '#a1a1aa', fontSize: 11, fontFamily: 'Geist Mono, monospace' }}
+                  tick={{ fill: '#6B7280', fontSize: 11, fontFamily: 'Geist Mono, monospace' }}
                   axisLine={{ stroke: CHART_GRID_COLOR }}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fill: '#52525b', fontSize: 11, fontFamily: 'Geist Mono, monospace' }}
+                  tick={{ fill: '#9CA3AF', fontSize: 11, fontFamily: 'Geist Mono, monospace' }}
                   axisLine={false}
                   tickLine={false}
                   width={48}
@@ -403,14 +404,14 @@ export function StatsPanel({ refreshTrigger = 0 }: StatsPanelProps) {
                 />
                 <Tooltip
                   contentStyle={TOOLTIP_STYLE}
-                  cursor={{ fill: 'rgba(110, 231, 183, 0.08)' }}
+                  cursor={{ fill: 'rgba(37, 99, 235, 0.06)' }}
                   formatter={(value: number) => [`${value}ms`, '平均レイテンシ']}
                 />
                 <Bar dataKey="latency" name="平均レイテンシ (ms)" radius={[3, 3, 0, 0]}>
                   {confidenceByProvider.map((entry, index) => (
                     <Cell
                       key={index}
-                      fill={entry.latency <= 500 ? '#4ade80' : entry.latency <= 1500 ? '#fbbf24' : '#f87171'}
+                      fill={entry.latency <= 500 ? '#16A34A' : entry.latency <= 1500 ? '#D97706' : '#DC2626'}
                     />
                   ))}
                 </Bar>

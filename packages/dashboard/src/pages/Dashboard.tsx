@@ -175,7 +175,7 @@ export function Dashboard() {
                 </button>
               ))}
               <div className="pt-2 mt-2 border-t border-border">
-                <span className="block px-3 pb-1 text-xs text-zinc-500">設定</span>
+                <span className="block px-3 pb-1 text-xs text-text-muted">設定</span>
                 {settingsTabs.map((tab) => (
                   <button
                     key={tab.id}
