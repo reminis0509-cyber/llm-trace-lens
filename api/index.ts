@@ -4,12 +4,22 @@ import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
 import { registerRoutes } from '../src/proxy/routes.js';
 import { settingsRoutes } from '../src/routes/settings.js';
+import { webhookSettingsRoutes } from '../src/routes/webhook-settings.js';
+import { budgetSettingsRoutes } from '../src/routes/budget-settings.js';
+import customRulesRoutes from '../src/routes/custom-rules.js';
+import authRoutes from '../src/routes/auth.js';
+import adminRoutes from '../src/routes/admin.js';
 import { storageRoutes } from '../src/routes/storage.js';
+import { secretsRoutes } from '../src/routes/secrets.js';
 import feedbackRoutes from '../src/routes/feedback.js';
+import integrationsRoutes from '../src/routes/integrations.js';
+import planRoutes from '../src/routes/plans.js';
+import benchmarkRoutes from '../src/routes/benchmarks.js';
 import chatbotRoutes from '../src/routes/chatbot.js';
 import researchRoutes from '../src/routes/research.js';
 import membersRoutes from '../src/routes/members.js';
 import adminDashboardRoutes from '../src/routes/admin-dashboard.js';
+import billingRoutes from '../src/routes/billing.js';
 import chatbotPlatformRoutes from '../src/routes/chatbot-platform.js';
 import rbacPlugin from '../src/middleware/rbac.js';
 import { budgetGuardMiddleware } from '../src/middleware/budget-guard.js';
@@ -36,31 +46,25 @@ async function getApp() {
     // Budget guard middleware - blocks requests when budget exceeded
     app.addHook('preHandler', budgetGuardMiddleware);
 
-    // Register member management routes
+    // Register routes (mirroring src/server.ts registration order)
     await membersRoutes(app);
-
-    // Register admin dashboard routes
-    await adminDashboardRoutes(app);
-
-    // Register settings routes
     await settingsRoutes(app);
-
-    // Register storage routes (usage stats)
-    await storageRoutes(app);
-
-    // Register feedback routes
+    await webhookSettingsRoutes(app);
+    await budgetSettingsRoutes(app);
+    await customRulesRoutes(app);
+    await authRoutes(app);
+    await adminRoutes(app);
     await feedbackRoutes(app);
-
-    // Register chatbot routes (public, no auth)
+    await integrationsRoutes(app);
+    await storageRoutes(app);
+    await secretsRoutes(app);
+    await planRoutes(app);
+    await benchmarkRoutes(app);
+    await adminDashboardRoutes(app);
+    await billingRoutes(app);
     await chatbotRoutes(app);
-
-    // Register chatbot platform routes (dashboard + widget APIs)
-    await chatbotPlatformRoutes(app);
-
-    // Register research agent routes (public, SSE endpoint)
     await researchRoutes(app);
-
-    // Register main routes
+    await chatbotPlatformRoutes(app);
     await registerRoutes(app);
 
     await app.ready();
