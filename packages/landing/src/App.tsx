@@ -18,6 +18,7 @@ import PiiDetection from './components/PiiDetection';
 import LiveTraceFeed from './components/LiveTraceFeed';
 import MidPageCTA from './components/MidPageCTA';
 import ChatbotSection from './components/ChatbotSection';
+import PricingSimulator from './components/PricingSimulator';
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -81,6 +82,10 @@ export default function App() {
 
         {/* 9. 料金 */}
         <Pricing />
+        <div className="section-divider" />
+
+        {/* 9.5 料金シミュレーション */}
+        <PricingSimulator />
         <div className="section-divider" />
 
         {/* 10. パートナー */}
