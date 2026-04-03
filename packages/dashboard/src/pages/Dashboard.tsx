@@ -24,18 +24,23 @@ type TabItem = { id: Tab; label: string; icon: React.ReactNode };
 const mainTabs: TabItem[] = [
   { id: 'traces', label: 'トレース', icon: <List className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'stats', label: '統計', icon: <BarChart3 className="w-4 h-4" strokeWidth={1.5} /> },
-  { id: 'analytics', label: '分析', icon: <TrendingUp className="w-4 h-4" strokeWidth={1.5} /> },
-  { id: 'chatbot', label: 'チャットbot', icon: <Bot className="w-4 h-4" strokeWidth={1.5} /> },
+  // Hidden: フィードバック機能はユーザー需要が来たら復活
+  // { id: 'analytics', label: '分析', icon: <TrendingUp className="w-4 h-4" strokeWidth={1.5} /> },
 ];
 
 const settingsTabs: TabItem[] = [
   { id: 'apikeys', label: 'APIキー', icon: <Key className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'playground', label: 'API接続テスト', icon: <MessageSquare className="w-4 h-4" strokeWidth={1.5} /> },
-  { id: 'integrations', label: '連携', icon: <Link2 className="w-4 h-4" strokeWidth={1.5} /> },
+  // Hidden: 連携タブは顧客需要が来たら復活
+  // { id: 'integrations', label: '連携', icon: <Link2 className="w-4 h-4" strokeWidth={1.5} /> },
   // Hidden: メンバー機能は Enterprise 需要が来たら復活
   // { id: 'members', label: 'メンバー', icon: <Users className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'settings', label: '設定', icon: <SettingsIcon className="w-4 h-4" strokeWidth={1.5} /> },
 ];
+
+const chatbotTab: TabItem = {
+  id: 'chatbot', label: 'チャットbot', icon: <Bot className="w-4 h-4" strokeWidth={1.5} />,
+};
 
 const adminTab: TabItem = {
   id: 'admin', label: '管理', icon: <Shield className="w-4 h-4" strokeWidth={1.5} />,
@@ -176,7 +181,6 @@ export function Dashboard() {
                 </button>
               ))}
               <div className="pt-2 mt-2 border-t border-border">
-                <span className="block px-3 pb-1 text-xs text-text-muted">設定</span>
                 {settingsTabs.map((tab) => (
                   <button
                     key={tab.id}
@@ -191,6 +195,20 @@ export function Dashboard() {
                     <span>{tab.label}</span>
                   </button>
                 ))}
+              </div>
+              <div className="pt-2 mt-2 border-t border-border">
+                <span className="block px-3 pb-1 text-xs text-text-muted">AIアプリ</span>
+                <button
+                  onClick={() => handleTabChange(chatbotTab.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-card transition-colors duration-120 ${
+                    activeTab === chatbotTab.id
+                      ? 'text-text-primary bg-base-elevated'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-base-elevated'
+                  }`}
+                >
+                  {chatbotTab.icon}
+                  <span>{chatbotTab.label}</span>
+                </button>
               </div>
               {adminTabs.map((tab) => (
                 <button
@@ -284,12 +302,14 @@ export function Dashboard() {
               </div>
             </div>
           )}
-          {activeTab === 'analytics' && (
+          {/* Hidden: フィードバック機能はユーザー需要が来たら復活 */}
+          {/* {activeTab === 'analytics' && (
             <Analytics onBack={() => setActiveTab('traces')} />
-          )}
-          {activeTab === 'integrations' && (
+          )} */}
+          {/* Hidden: 連携タブは顧客需要が来たら復活 */}
+          {/* {activeTab === 'integrations' && (
             <Integrations onBack={() => setActiveTab('traces')} />
-          )}
+          )} */}
           {activeTab === 'settings' && <Settings />}
           {activeTab === 'playground' && (
             <Playground onBack={() => setActiveTab('apikeys')} />
