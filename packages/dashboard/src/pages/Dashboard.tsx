@@ -32,7 +32,8 @@ const settingsTabs: TabItem[] = [
   { id: 'apikeys', label: 'APIキー', icon: <Key className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'playground', label: 'API接続テスト', icon: <MessageSquare className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'integrations', label: '連携', icon: <Link2 className="w-4 h-4" strokeWidth={1.5} /> },
-  { id: 'members', label: 'メンバー', icon: <Users className="w-4 h-4" strokeWidth={1.5} /> },
+  // Hidden: メンバー機能は Enterprise 需要が来たら復活
+  // { id: 'members', label: 'メンバー', icon: <Users className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'settings', label: '設定', icon: <SettingsIcon className="w-4 h-4" strokeWidth={1.5} /> },
 ];
 
@@ -293,12 +294,13 @@ export function Dashboard() {
           {activeTab === 'playground' && (
             <Playground onBack={() => setActiveTab('apikeys')} />
           )}
-          {activeTab === 'members' && (
+          {/* Hidden: メンバー機能は Enterprise 需要が来たら復活 */}
+          {/* {activeTab === 'members' && (
             <Members
               workspaceId={workspaceId || 'default'}
               onBack={() => setActiveTab('traces')}
             />
-          )}
+          )} */}
           {activeTab === 'chatbot' && <ChatbotIndex />}
           {activeTab === 'admin' && isSystemAdmin && <AdminDashboard />}
         </ErrorBoundary>
