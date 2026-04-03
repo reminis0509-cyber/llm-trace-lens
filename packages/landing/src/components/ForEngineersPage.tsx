@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSeo } from '../hooks/useSeo';
 
 /* ──────────────────── Types ──────────────────── */
 
@@ -243,6 +244,13 @@ function GeminiBeforeAfter() {
 
 export default function ForEngineersPage() {
   const [provider, setProvider] = useState<Provider>('openai');
+
+  useSeo({
+    title: 'FujiTrace 技術詳細 | LLMオブザーバビリティ・PII検出・コスト分析',
+    description: 'FujiTraceの技術仕様。OpenAI・Anthropic・Gemini対応のLLMトレーシング、日本語PII検出15パターン以上、プロバイダー別コスト分析。エンジニア向け技術ドキュメント。',
+    url: 'https://fujitrace.jp/for-engineers',
+    ogTitle: 'FujiTrace 技術詳細 | エンジニア向け',
+  });
 
   const providerLabels: { key: Provider; label: string }[] = [
     { key: 'openai', label: 'OpenAI' },

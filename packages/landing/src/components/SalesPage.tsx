@@ -1,3 +1,5 @@
+import { useSeo } from '../hooks/useSeo';
+
 interface NavigationLinkProps {
   href: string;
   children: React.ReactNode;
@@ -122,6 +124,13 @@ const partnershipSteps = [
 ];
 
 export default function SalesPage() {
+  useSeo({
+    title: 'FujiTrace パートナープログラム | 販売代理店・リセラー募集',
+    description: 'FujiTraceの販売パートナープログラム。AI導入プラットフォームの代理店として、日本企業のAI活用を支援しませんか。獲得報酬・継続報酬の2段階報酬体系。',
+    url: 'https://fujitrace.jp/sales',
+    ogTitle: 'FujiTrace パートナープログラム',
+  });
+
   return (
     <section className="pt-32 pb-16 sm:pb-24 px-4 sm:px-6">
       <div className="section-container max-w-4xl mx-auto">

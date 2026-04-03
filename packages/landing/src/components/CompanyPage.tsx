@@ -1,3 +1,5 @@
+import { useSeo } from '../hooks/useSeo';
+
 interface NavigationLinkProps {
   href: string;
   children: React.ReactNode;
@@ -23,6 +25,13 @@ function NavigationLink({ href, children }: NavigationLinkProps) {
 }
 
 export default function CompanyPage() {
+  useSeo({
+    title: '会社概要 | 合同会社Reminis - FujiTrace運営会社',
+    description: 'FujiTraceを運営する合同会社Reminisの会社概要。東京都中央区銀座。すべての日本企業にAIを届けるミッションのもと、AI導入プラットフォームを提供。',
+    url: 'https://fujitrace.jp/company',
+    ogTitle: '会社概要 | 合同会社Reminis',
+  });
+
   return (
     <section className="pt-32 pb-16 sm:pb-24 px-4 sm:px-6">
       <div className="section-container max-w-3xl mx-auto">

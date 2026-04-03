@@ -14,6 +14,7 @@ import PrivacyPage from './components/PrivacyPage';
 import CompanyPage from './components/CompanyPage';
 import SalesPage from './components/SalesPage';
 import ForEngineersPage from './components/ForEngineersPage';
+import ChatbotPage from './components/ChatbotPage';
 import PiiDetection from './components/PiiDetection';
 import LiveTraceFeed from './components/LiveTraceFeed';
 import MidPageCTA from './components/MidPageCTA';
@@ -41,6 +42,8 @@ export default function App() {
     pageContent = <SalesPage />;
   } else if (currentPath === '/for-engineers') {
     pageContent = <ForEngineersPage />;
+  } else if (currentPath === '/chatbot') {
+    pageContent = <ChatbotPage />;
   } else {
     pageContent = (
       <>
