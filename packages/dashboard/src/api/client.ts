@@ -277,6 +277,7 @@ export const membersApi = {
 
 export interface PlanLimits {
   monthlyTraces: number;
+  dailyTraces: number;
   maxWorkspaces: number;
   maxMembers: number;
   retentionDays: number;
@@ -285,6 +286,20 @@ export interface PlanLimits {
   sso: boolean;
   sla: number | null;
   prioritySupport: boolean;
+}
+
+/** Daily usage fields returned for Free plan users */
+export interface DailyUsage {
+  dailyUsage: number;
+  dailyLimit: number;
+  resetsAt: string;
+}
+
+/** Monthly usage fields returned for paid plan users */
+export interface MonthlyUsage {
+  monthlyUsage: number;
+  monthlyLimit: number;
+  resetsAt: string;
 }
 
 export interface PlanInfo {
@@ -302,6 +317,10 @@ export interface PlanInfo {
     evaluationCount: number;
     evaluationLimit: number;
     month: string;
+    /** Present for Free plan users — daily trace usage */
+    daily?: DailyUsage;
+    /** Present for paid plan users — monthly trace usage */
+    monthly?: MonthlyUsage;
   };
 }
 

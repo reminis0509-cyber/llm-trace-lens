@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { planApi, type PlanInfo, type PlanLimits } from '../api/client';
+import { planApi, type PlanInfo, type PlanLimits, type DailyUsage, type MonthlyUsage } from '../api/client';
 import { useAuth } from './AuthContext';
 
 type PlanType = 'free' | 'pro' | 'enterprise';
@@ -8,6 +8,8 @@ interface PlanContextValue {
   planType: PlanType;
   limits: PlanLimits | null;
   usage: PlanInfo['usage'] | null;
+  dailyUsage: DailyUsage | null;
+  monthlyUsage: MonthlyUsage | null;
   retentionDays: number;
   loading: boolean;
   isFree: boolean;
@@ -19,6 +21,8 @@ const PlanContext = createContext<PlanContextValue>({
   planType: 'pro',
   limits: null,
   usage: null,
+  dailyUsage: null,
+  monthlyUsage: null,
   retentionDays: 90,
   loading: true,
   isFree: false,
@@ -35,6 +39,8 @@ export function PlanProvider({ children }: PlanProviderProps) {
   const [planType, setPlanType] = useState<PlanType>('pro');
   const [limits, setLimits] = useState<PlanLimits | null>(null);
   const [usage, setUsage] = useState<PlanInfo['usage'] | null>(null);
+  const [dailyUsage, setDailyUsage] = useState<DailyUsage | null>(null);
+  const [monthlyUsage, setMonthlyUsage] = useState<MonthlyUsage | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchPlan = useCallback(async () => {
@@ -42,6 +48,8 @@ export function PlanProvider({ children }: PlanProviderProps) {
       setPlanType('pro');
       setLimits(null);
       setUsage(null);
+      setDailyUsage(null);
+      setMonthlyUsage(null);
       setLoading(false);
       return;
     }
@@ -52,6 +60,8 @@ export function PlanProvider({ children }: PlanProviderProps) {
       setPlanType(type);
       setLimits(data.limits);
       setUsage(data.usage);
+      setDailyUsage(data.usage.daily ?? null);
+      setMonthlyUsage(data.usage.monthly ?? null);
     } catch {
       // Fail-open: never gate paying users on fetch error
       setPlanType('pro');
@@ -68,6 +78,8 @@ export function PlanProvider({ children }: PlanProviderProps) {
     planType,
     limits,
     usage,
+    dailyUsage,
+    monthlyUsage,
     retentionDays: limits?.retentionDays ?? 90,
     loading,
     isFree: planType === 'free',

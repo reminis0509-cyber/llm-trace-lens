@@ -10,7 +10,7 @@ import { randomUUID, timingSafeEqual, createHash } from 'crypto';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { listWorkspaces, getWorkspace } from '../kv/client.js';
 import { getWorkspacePlan, updateWorkspacePlan } from '../plans/storage.js';
-import { getUsageStats } from '../plans/usage.js';
+import { getUsageStats, getDailyUsageStats } from '../plans/usage.js';
 import { PLANS, type PlanType, getEffectiveLimits } from '../plans/index.js';
 import { getKnex } from '../storage/knex-client.js';
 import { kv } from '@vercel/kv';
@@ -304,15 +304,28 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
             expiresAt: plan.expiresAt,
             subscriptionId: plan.subscriptionId,
           },
-          usage: {
-            traceCount: usage.traceCount,
-            traceLimit: limits.monthlyTraces === Infinity ? null : limits.monthlyTraces,
-            tracePercentage: limits.monthlyTraces === Infinity
-              ? 0
-              : Math.round((usage.traceCount / limits.monthlyTraces) * 100),
-            evaluationCount: usage.evaluationCount,
-            month: usage.month,
-          },
+          usage: plan.planType === 'free'
+            ? await (async () => {
+                const daily = await getDailyUsageStats(wsId);
+                return {
+                  traceCount: daily.traceCount,
+                  traceLimit: limits.dailyTraces,
+                  tracePeriod: 'daily' as const,
+                  tracePercentage: Math.round((daily.traceCount / limits.dailyTraces) * 100),
+                  evaluationCount: usage.evaluationCount,
+                  date: daily.date,
+                };
+              })()
+            : {
+                traceCount: usage.traceCount,
+                traceLimit: limits.monthlyTraces === Infinity ? null : limits.monthlyTraces,
+                tracePeriod: 'monthly' as const,
+                tracePercentage: limits.monthlyTraces === Infinity
+                  ? 0
+                  : Math.round((usage.traceCount / limits.monthlyTraces) * 100),
+                evaluationCount: usage.evaluationCount,
+                month: usage.month,
+              },
           members,
         });
       }
@@ -360,16 +373,30 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
           customLimits: plan.customLimits,
         },
         limits,
-        usage: {
-          traceCount: usage.traceCount,
-          traceLimit: limits.monthlyTraces === Infinity ? null : limits.monthlyTraces,
-          tracePercentage: limits.monthlyTraces === Infinity
-            ? 0
-            : Math.round((usage.traceCount / limits.monthlyTraces) * 100),
-          evaluationCount: usage.evaluationCount,
-          evaluationLimit: limits.monthlyEvaluations === Infinity ? null : limits.monthlyEvaluations,
-          month: usage.month,
-        },
+        usage: plan.planType === 'free'
+          ? await (async () => {
+              const daily = await getDailyUsageStats(id);
+              return {
+                traceCount: daily.traceCount,
+                traceLimit: limits.dailyTraces,
+                tracePeriod: 'daily' as const,
+                tracePercentage: Math.round((daily.traceCount / limits.dailyTraces) * 100),
+                evaluationCount: usage.evaluationCount,
+                evaluationLimit: limits.monthlyEvaluations === Infinity ? null : limits.monthlyEvaluations,
+                date: daily.date,
+              };
+            })()
+          : {
+              traceCount: usage.traceCount,
+              traceLimit: limits.monthlyTraces === Infinity ? null : limits.monthlyTraces,
+              tracePeriod: 'monthly' as const,
+              tracePercentage: limits.monthlyTraces === Infinity
+                ? 0
+                : Math.round((usage.traceCount / limits.monthlyTraces) * 100),
+              evaluationCount: usage.evaluationCount,
+              evaluationLimit: limits.monthlyEvaluations === Infinity ? null : limits.monthlyEvaluations,
+              month: usage.month,
+            },
       });
     } catch (error) {
       console.error('[AdminDashboard] ワークスペース詳細取得失敗:', error);

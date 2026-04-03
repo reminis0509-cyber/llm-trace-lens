@@ -10,8 +10,10 @@
 export type PlanType = 'free' | 'pro' | 'enterprise';
 
 export interface PlanLimits {
-  /** 月間トレース数上限 */
+  /** 月間トレース数上限 (Pro/Enterprise用。Freeプランでは未使用: -1) */
   monthlyTraces: number;
+  /** 日次トレース数上限 (Freeプラン用。有料プランでは未使用: -1) */
+  dailyTraces: number;
   /** ワークスペース数上限 */
   maxWorkspaces: number;
   /** メンバー数上限 */
@@ -50,7 +52,8 @@ export const PLANS: Record<PlanType, PlanDefinition> = {
     nameJa: 'フリー',
     priceMonthly: 0,
     limits: {
-      monthlyTraces: 5000,
+      monthlyTraces: -1,
+      dailyTraces: 30,
       maxWorkspaces: 1,
       maxMembers: 2,
       retentionDays: 7,
@@ -69,6 +72,7 @@ export const PLANS: Record<PlanType, PlanDefinition> = {
     priceMonthly: 9800,
     limits: {
       monthlyTraces: 50000,
+      dailyTraces: -1,
       maxWorkspaces: 3,
       maxMembers: 10,
       retentionDays: 90,
@@ -87,6 +91,7 @@ export const PLANS: Record<PlanType, PlanDefinition> = {
     priceMonthly: null,
     limits: {
       monthlyTraces: Infinity,
+      dailyTraces: -1,
       maxWorkspaces: Infinity,
       maxMembers: Infinity,
       retentionDays: 365,

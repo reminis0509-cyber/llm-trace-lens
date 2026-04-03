@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { CreditCard, Database, Users, Shield, Clock, CheckCircle2, ArrowUpRight, Mail, Settings, Loader2, AlertTriangle, Calendar } from 'lucide-react';
+import { CreditCard, Database, Users, Shield, Clock, CheckCircle2, ArrowUpRight, Mail, Settings, Loader2, AlertTriangle, Calendar, RefreshCw } from 'lucide-react';
 import { billingApi, type BillingStatus } from '../api/billing';
+import type { DailyUsage, MonthlyUsage } from '../api/client';
 
 interface PlanLimits {
   monthlyTraces: number;
+  dailyTraces: number;
   maxWorkspaces: number;
   maxMembers: number;
   retentionDays: number;
@@ -37,6 +39,8 @@ interface PlanInfo {
     evaluationCount: number;
     evaluationLimit: number;
     month: string;
+    daily?: DailyUsage;
+    monthly?: MonthlyUsage;
   };
 }
 
@@ -401,30 +405,93 @@ export function PlanUsage() {
 
         {/* Usage Bars */}
         <div className="space-y-4">
-          {/* Trace Usage */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-sm text-text-secondary">{'\u6708\u9593\u30c8\u30ec\u30fc\u30b9'}</span>
-              <span className={`text-sm font-mono tabular-nums ${getUsageTextColor(tracePercentage)}`}>
-                {formatNumber(usage.traceCount)} / {formatNumber(limits.monthlyTraces)}
-              </span>
+          {/* Trace Usage — Daily for Free, Monthly for paid */}
+          {plan.planType === 'free' && usage.daily ? (
+            (() => {
+              const dailyPercentage = usage.daily.dailyLimit > 0
+                ? Math.min(100, (usage.daily.dailyUsage / usage.daily.dailyLimit) * 100)
+                : 0;
+              const dailyLimitReached = usage.daily.dailyUsage >= usage.daily.dailyLimit;
+              return (
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm text-text-secondary">本日のトレース</span>
+                    <span className={`text-sm font-mono tabular-nums ${getUsageTextColor(dailyPercentage)}`}>
+                      {formatNumber(usage.daily.dailyUsage)} / {formatNumber(usage.daily.dailyLimit)}
+                    </span>
+                  </div>
+                  <div className="h-2 bg-base-elevated rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${getUsageColor(dailyPercentage)}`}
+                      style={{ width: `${Math.max(1, dailyPercentage)}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <RefreshCw className="w-3 h-3 text-text-muted" strokeWidth={1.5} />
+                    <span className="text-xs text-text-muted">
+                      リセット: 明日 0:00 (JST)
+                    </span>
+                  </div>
+                  {dailyLimitReached && (
+                    <div className="mt-3 p-3 rounded-card bg-status-fail/10 border border-status-fail/20">
+                      <p className="text-xs text-status-fail mb-2">
+                        本日の上限に達しました。明日のリセットまでお待ちいただくか、プロプランへのアップグレードで無制限にご利用いただけます。
+                      </p>
+                      {stripeConfigured ? (
+                        <button
+                          onClick={handleUpgrade}
+                          disabled={upgrading}
+                          className="flex items-center gap-2 px-4 py-2 bg-accent text-base rounded-card text-sm font-medium hover:bg-accent/90 transition-colors duration-120 disabled:opacity-50"
+                        >
+                          {upgrading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
+                          ) : (
+                            <ArrowUpRight className="w-4 h-4" strokeWidth={1.5} />
+                          )}
+                          {upgrading ? '処理中...' : 'プロにアップグレード'}
+                        </button>
+                      ) : (
+                        <a
+                          href="mailto:contact@fujitrace.com?subject=FujiTrace%20Pro%E3%83%97%E3%83%A9%E3%83%B3%E3%81%AE%E3%81%8A%E5%95%8F%E3%81%84%E5%90%88%E3%82%8F%E3%81%9B"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-accent text-base rounded-card text-sm font-medium hover:bg-accent/90 transition-colors duration-120"
+                        >
+                          <ArrowUpRight className="w-4 h-4" strokeWidth={1.5} />
+                          アップグレード
+                        </a>
+                      )}
+                    </div>
+                  )}
+                  {!dailyLimitReached && dailyPercentage >= 90 && (
+                    <p className="text-xs text-status-fail mt-1">上限に近づいています。アップグレードを検討してください。</p>
+                  )}
+                </div>
+              );
+            })()
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-sm text-text-secondary">月間トレース</span>
+                <span className={`text-sm font-mono tabular-nums ${getUsageTextColor(tracePercentage)}`}>
+                  {formatNumber(usage.traceCount)} / {formatNumber(limits.monthlyTraces)}
+                </span>
+              </div>
+              <div className="h-2 bg-base-elevated rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${getUsageColor(tracePercentage)}`}
+                  style={{ width: `${Math.max(1, tracePercentage)}%` }}
+                />
+              </div>
+              {tracePercentage >= 90 && (
+                <p className="text-xs text-status-fail mt-1">上限に近づいています。アップグレードを検討してください。</p>
+              )}
             </div>
-            <div className="h-2 bg-base-elevated rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${getUsageColor(tracePercentage)}`}
-                style={{ width: `${Math.max(1, tracePercentage)}%` }}
-              />
-            </div>
-            {tracePercentage >= 90 && (
-              <p className="text-xs text-status-fail mt-1">{'\u4e0a\u9650\u306b\u8fd1\u3065\u3044\u3066\u3044\u307e\u3059\u3002\u30a2\u30c3\u30d7\u30b0\u30ec\u30fc\u30c9\u3092\u691c\u8a0e\u3057\u3066\u304f\u3060\u3055\u3044\u3002'}</p>
-            )}
-          </div>
+          )}
 
           {/* Evaluation Usage */}
           {limits.monthlyEvaluations > 0 && (
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-sm text-text-secondary">LLM-as-Judge {'\u8a55\u4fa1'}</span>
+                <span className="text-sm text-text-secondary">LLM-as-Judge 評価</span>
                 <span className={`text-sm font-mono tabular-nums ${getUsageTextColor(evalPercentage)}`}>
                   {formatNumber(usage.evaluationCount)} / {formatNumber(limits.monthlyEvaluations)}
                 </span>
@@ -472,7 +539,9 @@ export function PlanUsage() {
         </div>
 
         <p className="text-xs text-text-muted mt-4">
-          {usage.month} {'\u306e\u4f7f\u7528\u72b6\u6cc1 \u30fb \u6708\u521d\u306b\u30ea\u30bb\u30c3\u30c8'}
+          {plan.planType === 'free'
+            ? '日次使用状況 -- 毎日 0:00 (JST) にリセット'
+            : `${usage.month} の使用状況 -- 月初にリセット`}
         </p>
       </div>
 
@@ -509,7 +578,9 @@ export function PlanUsage() {
                 </div>
                 <ul className="space-y-2">
                   {[
-                    `\u6708\u9593 ${formatNumber(p.limits.monthlyTraces)} \u30c8\u30ec\u30fc\u30b9`,
+                    p.type === 'free'
+                      ? `日次 ${formatNumber(p.limits.dailyTraces ?? 30)} トレース`
+                      : `月間 ${formatNumber(p.limits.monthlyTraces)} トレース`,
                     p.limits.monthlyEvaluations === 0
                       ? 'LLM-as-Judge: \u306a\u3057'
                       : `LLM-as-Judge: ${formatNumber(p.limits.monthlyEvaluations)}\u56de/\u6708`,

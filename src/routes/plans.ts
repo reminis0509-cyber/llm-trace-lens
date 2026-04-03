@@ -5,7 +5,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { PLANS, type PlanType, getPlanNameJa, getEffectiveLimits } from '../plans/index.js';
 import { getWorkspacePlan, updateWorkspacePlan } from '../plans/storage.js';
-import { getUsageStats, getUsageStatsForMonth } from '../plans/usage.js';
+import { getUsageStats, getDailyUsageStats, getUsageStatsForMonth, getNextJSTMidnight, getNextMonthStart } from '../plans/usage.js';
 import { cleanupExpiredTraces } from '../plans/retention.js';
 import { getKnex } from '../storage/knex-client.js';
 
@@ -63,25 +63,62 @@ export default async function planRoutes(fastify: FastifyInstance) {
     const workspaceId = await resolveWorkspaceId(request);
     const plan = await getWorkspacePlan(workspaceId);
     const limits = getEffectiveLimits(plan);
+
+    const planInfo = {
+      type: plan.planType,
+      name: getPlanNameJa(plan.planType),
+      startedAt: plan.startedAt,
+      expiresAt: plan.expiresAt,
+    };
+
+    // Free plan: daily usage tracking
+    if (plan.planType === 'free') {
+      const dailyUsage = await getDailyUsageStats(workspaceId);
+      const monthlyUsage = await getUsageStats(workspaceId);
+
+      return {
+        plan: planInfo,
+        limits,
+        usage: {
+          traceCount: dailyUsage.traceCount,
+          traceLimit: limits.dailyTraces,
+          tracePeriod: 'daily' as const,
+          tracePercentage: Math.round((dailyUsage.traceCount / limits.dailyTraces) * 100),
+          date: dailyUsage.date,
+          resetsAt: getNextJSTMidnight(),
+          evaluationCount: monthlyUsage.evaluationCount,
+          evaluationLimit: limits.monthlyEvaluations === Infinity ? null : limits.monthlyEvaluations,
+          daily: {
+            dailyUsage: dailyUsage.traceCount,
+            dailyLimit: limits.dailyTraces,
+            resetsAt: getNextJSTMidnight(),
+          },
+        },
+      };
+    }
+
+    // Pro/Enterprise: monthly usage tracking
     const usage = await getUsageStats(workspaceId);
 
     return {
-      plan: {
-        type: plan.planType,
-        name: getPlanNameJa(plan.planType),
-        startedAt: plan.startedAt,
-        expiresAt: plan.expiresAt,
-      },
+      plan: planInfo,
       limits,
       usage: {
         traceCount: usage.traceCount,
         traceLimit: limits.monthlyTraces === Infinity ? null : limits.monthlyTraces,
+        tracePeriod: 'monthly' as const,
         tracePercentage: limits.monthlyTraces === Infinity
           ? 0
           : Math.round((usage.traceCount / limits.monthlyTraces) * 100),
         evaluationCount: usage.evaluationCount,
         evaluationLimit: limits.monthlyEvaluations === Infinity ? null : limits.monthlyEvaluations,
         month: usage.month,
+        resetsAt: getNextMonthStart(),
+        monthly: {
+          monthlyUsage: usage.traceCount,
+          monthlyLimit: limits.monthlyTraces === Infinity ? null : limits.monthlyTraces,
+          resetsAt: getNextMonthStart(),
+        },
       },
     };
   });

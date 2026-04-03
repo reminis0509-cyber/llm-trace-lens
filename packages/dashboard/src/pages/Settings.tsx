@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, DollarSign, Bell, Webhook } from 'lucide-react';
 import { PlanUsage } from './PlanUsage';
-import { usePlan } from '../contexts/PlanContext';
-import { FeatureGate } from '../components/FeatureGate';
 
 interface CostData {
   stats: {
@@ -21,8 +19,6 @@ interface SettingsProps {
 }
 
 export function Settings({ onBack }: SettingsProps) {
-  const { isFree } = usePlan();
-
   // Webhook state
   const [webhookUrl, setWebhookUrl] = useState('');
   const [selectedEvents, setSelectedEvents] = useState<string[]>(['BLOCK']);
@@ -240,11 +236,6 @@ export function Settings({ onBack }: SettingsProps) {
           </div>
 
           {Object.keys(costData.stats.byProvider).length > 0 && (
-            <FeatureGate
-              locked={isFree}
-              title="プロバイダー別コスト内訳"
-              description="コスト最適化のためにはProプランが必要です"
-            >
               <div className="mt-4 pt-4 border-t border-border">
                 <h4 className="text-sm font-medium text-text-secondary mb-3">プロバイダー別コスト</h4>
                 <div className="space-y-2">
@@ -263,7 +254,6 @@ export function Settings({ onBack }: SettingsProps) {
                   ))}
                 </div>
               </div>
-            </FeatureGate>
           )}
         </div>
       )}
