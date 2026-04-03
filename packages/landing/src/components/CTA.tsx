@@ -3,13 +3,17 @@ export default function CTA() {
     <section id="contact" className="py-16 sm:py-24 px-4 sm:px-6">
       <div className="section-container">
         <div className="surface-card p-6 sm:p-8 lg:p-12 text-center">
-          <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            AI事故が起きてからでは遅い。今日から備えを。
+          <h2 className="text-2xl sm:text-display-sm font-semibold text-text-primary mb-4">
+            AI事故が起きてからでは遅い。
+            <br className="sm:hidden" />
+            今日から備えを。
           </h2>
-          <p className="text-lg text-text-secondary mb-4 max-w-xl mx-auto">
+          <p className="text-lg text-text-secondary mb-4 max-w-2xl mx-auto leading-relaxed">
             クレジットカード不要で全機能をご利用いただけます。
-            <br className="hidden sm:block" />
-            取引先にも説明できるAIガバナンス体制を、30日間無料で構築してください。
+            <br className="hidden md:block" />
+            取引先にも説明できるAIガバナンス体制を、
+            <br className="hidden md:block" />
+            30日間無料で構築してください。
           </p>
           <div className="flex flex-wrap justify-center gap-4 mb-8 text-sm text-text-muted">
             <span className="flex items-center gap-1.5">

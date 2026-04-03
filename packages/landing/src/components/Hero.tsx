@@ -10,17 +10,19 @@ export default function Hero() {
           </div>
 
           {/* Main headline - AIを普及させる企業 */}
-          <h1 className="text-display-sm md:text-display font-semibold text-text-primary mb-6">
+          <h1 className="text-[2rem] sm:text-display-sm lg:text-display font-semibold text-text-primary mb-6 leading-[1.2]">
             AIを、安心して使える
             <br className="hidden sm:block" />
             日本にする。
           </h1>
 
           {/* Subheadline - AI導入の障壁を取り除く */}
-          <p className="text-lg text-text-secondary max-w-2xl mx-auto mb-8">
-            ハルシネーション監視、コスト可視化、情報漏洩防止 ——
-            <br className="hidden sm:block" />
-            AI導入の障壁をすべて取り除き、あなたの会社のAI活用を加速します。
+          <p className="text-lg text-text-secondary max-w-2xl mx-auto mb-8 leading-relaxed">
+            ハルシネーション監視、コスト可視化、情報漏洩防止。
+            <br className="hidden md:block" />
+            AI導入の障壁をすべて取り除き、
+            <br className="hidden md:block" />
+            あなたの会社のAI活用を加速します。
           </p>
 
           {/* Trust badges */}

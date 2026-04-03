@@ -24,11 +24,11 @@ export default {
           secondary: '#64748b',
           muted: '#94a3b8',
         },
-        // アクセント：深い青（信頼・誠実・日本企業向け）
+        // アクセント：深いネイビー（信頼・誠実・日本企業向け）
         accent: {
-          DEFAULT: '#2563eb',
-          dim: 'rgba(37, 99, 235, 0.08)',
-          hover: '#1d4ed8',
+          DEFAULT: '#1d3557',
+          dim: 'rgba(29, 53, 87, 0.08)',
+          hover: '#162a46',
         },
         // ステータス（ライトテーマ用に調整）
         status: {

@@ -7,8 +7,10 @@ export default function MidPageCTA() {
             <h3 className="text-lg font-semibold text-text-primary mb-1">
               AI事故が起きる前に、ガバナンス体制を整えませんか？
             </h3>
-            <p className="text-sm text-text-secondary">
-              30日間の無料トライアルで、AI通信の完全な可視化と保護を体験できます。クレジットカード不要。
+            <p className="text-sm text-text-secondary leading-relaxed">
+              30日間の無料トライアルで、AI通信の完全な可視化と保護を体験できます。
+              <br className="hidden sm:block" />
+              クレジットカード不要。
             </p>
           </div>
           <a

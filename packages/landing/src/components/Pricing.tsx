@@ -120,12 +120,14 @@ export default function Pricing() {
           <span className="inline-block px-3 py-1.5 text-xs text-text-muted label-spacing uppercase surface-card mb-6">
             Pricing
           </span>
-          <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            あなたの課題に合ったプランを選ぶ
+          <h2 className="text-2xl sm:text-display-sm font-semibold text-text-primary mb-4">
+            あなたの課題に合った
+            <br className="sm:hidden" />
+            プランを選ぶ
           </h2>
-          <p className="text-lg text-text-secondary max-w-xl mx-auto">
+          <p className="text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
             登録するだけでPro機能を30日間無料で体験できます。
-            <br className="hidden sm:block" />
+            <br className="hidden md:block" />
             まずは無料で始めて、AIの品質管理を実感してください。
           </p>
         </div>

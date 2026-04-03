@@ -146,11 +146,15 @@ export default function LiveTraceFeed() {
           <span className="inline-block px-3 py-1.5 text-xs text-text-muted label-spacing uppercase surface-card mb-6">
             LIVE DEMO
           </span>
-          <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            AIの全通信を、リアルタイムで監視
+          <h2 className="text-2xl sm:text-display-sm font-semibold text-text-primary mb-4">
+            AIの全通信を、
+            <br className="sm:hidden" />
+            リアルタイムで監視
           </h2>
-          <p className="text-lg text-text-secondary max-w-xl mx-auto">
-            FujiTraceはAIへの全リクエストを自動で記録・検証します。不正なリクエストは即座にブロック。
+          <p className="text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
+            FujiTraceはAIへの全リクエストを自動で記録・検証。
+            <br className="hidden md:block" />
+            不正なリクエストは即座にブロックします。
           </p>
         </div>
 

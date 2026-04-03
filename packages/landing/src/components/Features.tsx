@@ -42,11 +42,15 @@ export default function Features() {
           <span className="inline-block px-3 py-1.5 text-xs text-text-muted label-spacing uppercase surface-card mb-6">
             機能一覧
           </span>
-          <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            AIガバナンスに必要な全機能を搭載
+          <h2 className="text-2xl sm:text-display-sm font-semibold text-text-primary mb-4">
+            AIガバナンスに必要な
+            <br className="sm:hidden" />
+            全機能を搭載
           </h2>
-          <p className="text-lg text-text-secondary max-w-xl mx-auto">
-            AI活用のリスク管理・品質保証・コスト最適化をワンストップで実現
+          <p className="text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
+            AI活用のリスク管理・品質保証・コスト最適化を
+            <br className="hidden md:block" />
+            ワンストップで実現します。
           </p>
         </div>
 

@@ -25,11 +25,17 @@ export default function Solution() {
           <span className="inline-block px-3 py-1.5 text-xs text-text-muted label-spacing uppercase surface-card mb-6">
             解決策
           </span>
-          <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            FujiTrace で、AIガバナンスを確立する
+          <h2 className="text-2xl sm:text-display-sm font-semibold text-text-primary mb-4">
+            FujiTrace で、
+            <br className="sm:hidden" />
+            AIガバナンスを確立する
           </h2>
-          <p className="text-lg text-text-secondary max-w-xl mx-auto">
-            導入は最短即日。AIの全通信を自動で可視化・検証・保護し、経営に必要な透明性と安心を提供します
+          <p className="text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
+            導入は最短即日。
+            <br className="hidden md:block" />
+            AIの全通信を自動で可視化・検証・保護し、
+            <br className="hidden md:block" />
+            経営に必要な透明性と安心を提供します。
           </p>
         </div>
 

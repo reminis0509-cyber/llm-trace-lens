@@ -138,11 +138,15 @@ export default function ChatbotSection() {
           <span className="inline-block px-3 py-1.5 text-xs text-text-muted label-spacing uppercase surface-card mb-6">
             AIチャットbot
           </span>
-          <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            AIチャットbotを、今すぐあなたのサイトに。
+          <h2 className="text-2xl sm:text-display-sm font-semibold text-text-primary mb-4">
+            AIチャットbotを、
+            <br className="sm:hidden" />
+            今すぐあなたのサイトに。
           </h2>
-          <p className="text-lg text-text-secondary max-w-2xl mx-auto">
-            初期費用0円・月額0円。LLM API従量課金のみ。FujiTraceの品質監視が最初から組み込まれています。
+          <p className="text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
+            初期費用0円・月額0円。LLM API従量課金のみ。
+            <br className="hidden md:block" />
+            FujiTraceの品質監視が最初から組み込まれています。
           </p>
         </div>
 

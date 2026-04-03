@@ -261,11 +261,15 @@ export default function DemoShowcase() {
           <span className="inline-block px-3 py-1.5 text-xs text-text-muted label-spacing uppercase surface-card mb-6">
             管理画面
           </span>
-          <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            経営に必要なAI透明性を、リアルタイムで
+          <h2 className="text-2xl sm:text-display-sm font-semibold text-text-primary mb-4">
+            経営に必要なAI透明性を、
+            <br className="sm:hidden" />
+            リアルタイムで
           </h2>
-          <p className="text-lg text-text-secondary max-w-xl mx-auto">
-            AIへの入力・出力、品質スコア、コスト -- 経営判断に必要な全データをリアルタイムで把握できます
+          <p className="text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
+            AIへの入力・出力、品質スコア、コスト。
+            <br className="hidden md:block" />
+            経営判断に必要な全データをリアルタイムで把握できます。
           </p>
         </div>
 

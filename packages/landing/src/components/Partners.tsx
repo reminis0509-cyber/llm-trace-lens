@@ -62,13 +62,13 @@ export default function Partners() {
           <span className="inline-block px-3 py-1.5 text-xs text-text-muted label-spacing uppercase surface-card mb-6">
             Partner Program
           </span>
-          <h2 className="text-display-sm font-semibold text-text-primary mb-4">
+          <h2 className="text-2xl sm:text-display-sm font-semibold text-text-primary mb-4">
             パートナー企業募集
           </h2>
-          <p className="text-lg text-text-secondary max-w-2xl mx-auto">
+          <p className="text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
             AIエージェント販売チャネルとFujiTraceのセット販売で、
-            <br className="hidden sm:block" />
-            三方良しのビジネスモデルを実現します
+            <br className="hidden md:block" />
+            三方良しのビジネスモデルを実現します。
           </p>
         </div>
 

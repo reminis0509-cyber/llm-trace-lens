@@ -58,13 +58,19 @@ export default function PiiDetection() {
           <span className="inline-block px-3 py-1.5 text-xs text-status-block label-spacing uppercase surface-card mb-6">
             データ保護
           </span>
-          <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            企業の機密情報を、AIから自動で守る
+          <h2 className="text-2xl sm:text-display-sm font-semibold text-text-primary mb-4">
+            企業の機密情報を、
+            <br className="sm:hidden" />
+            AIから自動で守る
           </h2>
-          <p className="text-lg text-text-secondary max-w-2xl mx-auto">
-            設定不要。AIの入出力に含まれる個人情報・機密データを自動で検出・遮断。
-            <br className="hidden sm:block" />
-            セキュリティ専任者がいなくても、導入した瞬間から企業データを保護します。
+          <p className="text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
+            設定不要。AIの入出力に含まれる
+            <br className="hidden md:block" />
+            個人情報・機密データを自動で検出・遮断。
+            <br className="hidden md:block" />
+            セキュリティ専任者がいなくても、
+            <br className="hidden md:block" />
+            導入した瞬間から企業データを保護します。
           </p>
         </div>
 
@@ -137,8 +143,9 @@ export default function PiiDetection() {
           <h3 className="text-base font-medium text-text-primary mb-6 text-center">
             なぜ国産プラットフォームを選ぶべきか
           </h3>
-          <p className="text-base text-text-secondary max-w-2xl mx-auto text-center mb-8">
+          <p className="text-base text-text-secondary max-w-2xl mx-auto text-center mb-8 leading-relaxed">
             日本企業特有の規制・機密情報に対応し、データ主権を守りながら、
+            <br className="hidden md:block" />
             海外ツールでは実現できない安心と説明責任を提供します。
           </p>
           <div className="surface-card overflow-hidden">

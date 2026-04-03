@@ -26,11 +26,15 @@ export default function Problems() {
           <span className="inline-block px-3 py-1.5 text-xs text-text-muted label-spacing uppercase surface-card mb-6">
             課題
           </span>
-          <h2 className="text-display-sm font-semibold text-text-primary mb-4">
-            AI活用を阻む、経営リスクの正体
+          <h2 className="text-2xl sm:text-display-sm font-semibold text-text-primary mb-4">
+            AI活用を阻む、
+            <br className="sm:hidden" />
+            経営リスクの正体
           </h2>
-          <p className="text-lg text-text-secondary max-w-xl mx-auto">
-            生成AIの導入を検討されている経営者の方へ。以下のリスクが、AI戦略の推進を妨げていませんか？
+          <p className="text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
+            生成AIの導入を検討されている経営者の方へ。
+            <br className="hidden md:block" />
+            以下のリスクが、AI戦略の推進を妨げていませんか？
           </p>
         </div>
 
