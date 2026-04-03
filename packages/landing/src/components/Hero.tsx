@@ -6,21 +6,21 @@ export default function Hero() {
           {/* Eyebrow */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 surface-card text-sm mb-8">
             <span className="w-1.5 h-1.5 bg-accent rounded-full" />
-            <span className="text-text-muted">国産AIガバナンスプラットフォーム</span>
+            <span className="text-text-muted">すべての日本企業にAIを届ける</span>
           </div>
 
-          {/* Main headline - 生存欲求: 会社を守る */}
+          {/* Main headline - AIを普及させる企業 */}
           <h1 className="text-display-sm md:text-display font-semibold text-text-primary mb-6">
-            AI事故から、
+            AIを、安心して使える
             <br className="hidden sm:block" />
-            会社と信頼を守る。
+            日本にする。
           </h1>
 
-          {/* Subheadline - 3大欲求を網羅 */}
+          {/* Subheadline - AI導入の障壁を取り除く */}
           <p className="text-lg text-text-secondary max-w-2xl mx-auto mb-8">
-            ハルシネーション・情報漏洩・コスト超過 ——
+            ハルシネーション監視、コスト可視化、情報漏洩防止 ——
             <br className="hidden sm:block" />
-            AIのリスクを可視化・制御し、取引先にも説明できるガバナンス体制を構築します。
+            AI導入の障壁をすべて取り除き、あなたの会社のAI活用を加速します。
           </p>
 
           {/* Trust badges */}
