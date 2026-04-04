@@ -121,7 +121,8 @@ export async function createChatbot(data: CreateChatbotData, token?: string): Pr
     const error = await res.json().catch(() => ({ error: 'Request failed' }));
     throw new Error(error.message || error.error || 'チャットボットの作成に失敗しました');
   }
-  return res.json();
+  const json = await res.json();
+  return json.chatbot ?? json;
 }
 
 export async function fetchChatbot(id: string, token?: string): Promise<ChatbotConfig> {
@@ -134,7 +135,8 @@ export async function fetchChatbot(id: string, token?: string): Promise<ChatbotC
     const error = await res.json().catch(() => ({ error: 'Request failed' }));
     throw new Error(error.message || error.error || 'チャットボットの取得に失敗しました');
   }
-  return res.json();
+  const json = await res.json();
+  return json.chatbot ?? json;
 }
 
 export async function updateChatbot(id: string, data: Partial<ChatbotConfig>, token?: string): Promise<ChatbotConfig> {
@@ -149,7 +151,8 @@ export async function updateChatbot(id: string, data: Partial<ChatbotConfig>, to
     const error = await res.json().catch(() => ({ error: 'Request failed' }));
     throw new Error(error.message || error.error || 'チャットボットの更新に失敗しました');
   }
-  return res.json();
+  const json = await res.json();
+  return json.chatbot ?? json;
 }
 
 export async function deleteChatbot(id: string, token?: string): Promise<void> {
@@ -171,6 +174,7 @@ export async function publishChatbot(id: string, token?: string): Promise<{ publ
     method: 'POST',
     headers,
     credentials: 'include',
+    body: JSON.stringify({}),
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: 'Request failed' }));
