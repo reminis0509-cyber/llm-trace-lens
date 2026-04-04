@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSeo } from '../hooks/useSeo';
+import { trackDashboardConversion } from '../utils/gtag';
 
 /* ──────────────────── Types ──────────────────── */
 
@@ -325,7 +326,8 @@ export default function ChatbotPage() {
           </p>
           <div className="mt-8">
             <a
-              href="/dashboard"
+              href="/dashboard#chatbot"
+              onClick={trackDashboardConversion}
               className="inline-flex items-center justify-center bg-accent text-white rounded-card px-8 py-4 font-semibold hover:bg-accent-hover transition-colors duration-120"
               aria-label="まずは5分で体験する"
             >
@@ -472,7 +474,8 @@ export default function ChatbotPage() {
             初期費用0円・月額0円。まずは5分で体験してください。
           </p>
           <a
-            href="/dashboard"
+            href="/dashboard#chatbot"
+            onClick={trackDashboardConversion}
             className="inline-flex items-center justify-center bg-accent text-white rounded-card px-8 py-4 font-semibold hover:bg-accent-hover transition-colors duration-120"
             aria-label="無料で始める"
           >

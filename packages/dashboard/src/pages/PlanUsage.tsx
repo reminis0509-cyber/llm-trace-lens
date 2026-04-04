@@ -57,8 +57,8 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   return headers;
 }
 
-function formatNumber(n: number): string {
-  if (n === Infinity || n >= 999999999) return '\u7121\u5236\u9650';
+function formatNumber(n: number | null | undefined): string {
+  if (n == null || n === Infinity || n >= 999999999 || n === -1) return '\u7121\u5236\u9650';
   return n.toLocaleString('ja-JP');
 }
 

@@ -46,8 +46,15 @@ const adminTab: TabItem = {
   id: 'admin', label: '管理', icon: <Shield className="w-4 h-4" strokeWidth={1.5} />,
 };
 
+function getInitialTab(): Tab {
+  const hash = window.location.hash.replace('#', '');
+  const validTabs: Tab[] = ['traces', 'stats', 'analytics', 'chatbot', 'integrations', 'settings', 'apikeys', 'playground', 'members', 'admin'];
+  if (validTabs.includes(hash as Tab)) return hash as Tab;
+  return 'traces';
+}
+
 export function Dashboard() {
-  const [activeTab, setActiveTab] = useState<Tab>('traces');
+  const [activeTab, setActiveTab] = useState<Tab>(getInitialTab);
   const [selectedTrace, setSelectedTrace] = useState<Trace | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [statsRefreshTrigger, setStatsRefreshTrigger] = useState(0);
@@ -104,6 +111,21 @@ export function Dashboard() {
                 )}
               </button>
             ))}
+            <button
+              key={chatbotTab.id}
+              onClick={() => setActiveTab(chatbotTab.id)}
+              className={`relative h-full px-4 text-nav flex items-center gap-2 transition-colors duration-120 ${
+                activeTab === chatbotTab.id
+                  ? 'text-text-primary'
+                  : 'text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              {chatbotTab.icon}
+              <span className="hidden xl:inline">{chatbotTab.label}</span>
+              {activeTab === chatbotTab.id && (
+                <span className="absolute bottom-0 left-0 right-0 h-px bg-text-primary" />
+              )}
+            </button>
             <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
             {settingsTabs.map((tab) => (
               <button
