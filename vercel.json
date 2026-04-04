@@ -12,6 +12,7 @@
     { "source": "/company", "destination": "/index.html" },
     { "source": "/sales", "destination": "/index.html" },
     { "source": "/for-engineers", "destination": "/index.html" },
+    { "source": "/chatbot", "destination": "/index.html" },
     { "source": "/dashboard/(.*)", "destination": "/dashboard/index.html" },
     { "source": "/dashboard", "destination": "/dashboard/index.html" }
   ]
