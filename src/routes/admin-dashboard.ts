@@ -208,14 +208,27 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
 
     try {
       const workspaceIds = await listWorkspaces();
+      const db = getKnex();
 
       // プラン分布とMRR計算
       const planDistribution: Record<string, number> = { free: 0, pro: 0, enterprise: 0 };
       let mrr = 0;
       let totalTraces = 0;
 
+      // 新規ワークスペース集計用
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      let newWorkspacesThisWeek = 0;
+      let newWorkspacesThisMonth = 0;
+
       for (const wsId of workspaceIds) {
-        const plan = await getWorkspacePlan(wsId);
+        const [workspace, plan, usage] = await Promise.all([
+          getWorkspace(wsId),
+          getWorkspacePlan(wsId),
+          getUsageStats(wsId),
+        ]);
+
         planDistribution[plan.planType] = (planDistribution[plan.planType] || 0) + 1;
 
         const planDef = PLANS[plan.planType];
@@ -223,8 +236,45 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
           mrr += planDef.priceMonthly;
         }
 
-        const usage = await getUsageStats(wsId);
         totalTraces += usage.traceCount;
+
+        // 新規ワークスペースのカウント
+        if (workspace?.created_at) {
+          const createdAt = new Date(workspace.created_at);
+          if (createdAt >= sevenDaysAgo) {
+            newWorkspacesThisWeek++;
+          }
+          if (createdAt >= thirtyDaysAgo) {
+            newWorkspacesThisMonth++;
+          }
+        }
+      }
+
+      // チャットボット統計（テーブルが存在しない場合に備えてtry/catch）
+      let totalChatbots = 0;
+      let publishedChatbots = 0;
+      let totalSessions = 0;
+      let totalMessages = 0;
+      try {
+        const cbRows = await db('chatbots').count('* as count').first();
+        totalChatbots = Number(cbRows?.count || 0);
+        const pubRows = await db('chatbots').where('is_published', true).count('* as count').first();
+        publishedChatbots = Number(pubRows?.count || 0);
+        const sesRows = await db('chat_sessions').count('* as count').first();
+        totalSessions = Number(sesRows?.count || 0);
+        const msgRows = await db('chat_messages').count('* as count').first();
+        totalMessages = Number(msgRows?.count || 0);
+      } catch {
+        // chatbot関連テーブルが存在しない場合は0のまま
+      }
+
+      // メンバー数集計
+      let totalMembers = 0;
+      try {
+        const memRows = await db('workspace_users').count('* as count').first();
+        totalMembers = Number(memRows?.count || 0);
+      } catch {
+        // workspace_usersテーブルが存在しない場合は0のまま
       }
 
       return reply.send({
@@ -232,6 +282,15 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
         planDistribution,
         mrr,
         totalTraces,
+        totalMembers,
+        newWorkspacesThisWeek,
+        newWorkspacesThisMonth,
+        chatbotStats: {
+          totalChatbots,
+          publishedChatbots,
+          totalSessions,
+          totalMessages,
+        },
       });
     } catch (error) {
       console.error('[AdminDashboard] 統計取得失敗:', error);
@@ -271,6 +330,21 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
           members = rows.map(r => ({ email: r.email, role: r.role }));
         } catch {
           // workspace_users table may not exist yet — return empty
+        }
+
+        // チャットボット統計（ワークスペース単位）
+        let chatbot = { count: 0, publishedCount: 0, totalSessions: 0, totalMessages: 0 };
+        try {
+          const cbCount = await db('chatbots').where('workspace_id', wsId).count('* as count').first();
+          chatbot.count = Number(cbCount?.count || 0);
+          const pubCount = await db('chatbots').where('workspace_id', wsId).where('is_published', true).count('* as count').first();
+          chatbot.publishedCount = Number(pubCount?.count || 0);
+          const sesCount = await db('chat_sessions').where('workspace_id', wsId).count('* as count').first();
+          chatbot.totalSessions = Number(sesCount?.count || 0);
+          const msgCount = await db('chat_messages').where('workspace_id', wsId).count('* as count').first();
+          chatbot.totalMessages = Number(msgCount?.count || 0);
+        } catch {
+          // chatbot関連テーブルが存在しない場合はデフォルト値のまま
         }
 
         // Fetch companyName from KV workspace info
@@ -327,6 +401,7 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
                 month: usage.month,
               },
           members,
+          chatbot,
         });
       }
 
@@ -360,6 +435,45 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
       }
 
       const limits = getEffectiveLimits(plan);
+      const db = getKnex();
+
+      // チャットボット一覧（ワークスペース詳細用）
+      let chatbots: Array<{ id: string; name: string; isPublished: boolean; model: string; sessionCount: number; messageCount: number }> = [];
+      try {
+        const cbRows: Array<{ id: string; name: string; is_published: boolean; model: string }> = await db('chatbots')
+          .where('workspace_id', id)
+          .select('id', 'name', 'is_published', 'model');
+        for (const cb of cbRows) {
+          const sesCount = await db('chat_sessions').where('chatbot_id', cb.id).count('* as count').first();
+          const msgCount = await db('chat_messages').where('chatbot_id', cb.id).count('* as count').first();
+          chatbots.push({
+            id: cb.id,
+            name: cb.name,
+            isPublished: cb.is_published,
+            model: cb.model,
+            sessionCount: Number(sesCount?.count || 0),
+            messageCount: Number(msgCount?.count || 0),
+          });
+        }
+      } catch {
+        // chatbot関連テーブルが存在しない場合は空配列のまま
+      }
+
+      // APIキー一覧
+      let apiKeys: Array<{ name: string; isActive: boolean; createdAt: string; lastUsedAt: string | null }> = [];
+      try {
+        const keyRows: Array<{ name: string; is_active: boolean; created_at: string; last_used_at: string | null }> = await db('api_keys')
+          .where('workspace_id', id)
+          .select('name', 'is_active', 'created_at', 'last_used_at');
+        apiKeys = keyRows.map(k => ({
+          name: k.name,
+          isActive: k.is_active,
+          createdAt: k.created_at,
+          lastUsedAt: k.last_used_at,
+        }));
+      } catch {
+        // api_keysテーブルが存在しない場合は空配列のまま
+      }
 
       return reply.send({
         id,
@@ -397,10 +511,60 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
               evaluationLimit: limits.monthlyEvaluations === Infinity ? null : limits.monthlyEvaluations,
               month: usage.month,
             },
+        chatbots,
+        apiKeys,
       });
     } catch (error) {
       console.error('[AdminDashboard] ワークスペース詳細取得失敗:', error);
       return reply.code(500).send({ error: 'ワークスペース詳細の取得に失敗しました' });
+    }
+  });
+
+  /**
+   * GET /api/admin/stats/registrations
+   * 過去30日間の日別登録数推移
+   *
+   * Response (200): { registrations: Array<{ date: string, count: number }> }
+   * Response (403): { error: string }
+   * Response (500): { error: string }
+   */
+  fastify.get('/api/admin/stats/registrations', async (request: FastifyRequest, reply: FastifyReply) => {
+    if (!await isValidAdminToken(request)) {
+      return reply.code(403).send({ error: '管理者権限が必要です' });
+    }
+
+    try {
+      const workspaceIds = await listWorkspaces();
+      const dailyCounts: Record<string, number> = {};
+
+      // 過去30日分を0で初期化
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().slice(0, 10); // YYYY-MM-DD
+        dailyCounts[key] = 0;
+      }
+
+      // ワークスペースのcreated_atで日別カウント
+      for (const wsId of workspaceIds) {
+        const workspace = await getWorkspace(wsId);
+        if (workspace?.created_at) {
+          const dateKey = new Date(workspace.created_at).toISOString().slice(0, 10);
+          if (dateKey in dailyCounts) {
+            dailyCounts[dateKey]++;
+          }
+        }
+      }
+
+      // 日付順の配列に変換
+      const registrations = Object.entries(dailyCounts)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([date, count]) => ({ date, count }));
+
+      return reply.send({ registrations });
+    } catch (error) {
+      fastify.log.error({ err: error }, '[AdminDashboard] 登録推移取得失敗');
+      return reply.code(500).send({ error: '登録推移の取得に失敗しました' });
     }
   });
 

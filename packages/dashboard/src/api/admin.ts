@@ -28,6 +28,15 @@ export interface AdminOverviewStats {
   planDistribution: Record<string, number>;
   mrr: number;
   totalTraces: number;
+  totalMembers: number;
+  newWorkspacesThisWeek: number;
+  newWorkspacesThisMonth: number;
+  chatbotStats: {
+    totalChatbots: number;
+    publishedChatbots: number;
+    totalSessions: number;
+    totalMessages: number;
+  };
 }
 
 export type WorkspaceStatus = 'trial' | 'active' | 'expired' | 'free';
@@ -58,6 +67,12 @@ export interface AdminWorkspace {
     evaluationCount: number;
     month: string;
   };
+  chatbot: {
+    count: number;
+    publishedCount: number;
+    totalSessions: number;
+    totalMessages: number;
+  };
 }
 
 export interface AdminWorkspaceDetail extends AdminWorkspace {
@@ -72,6 +87,25 @@ export interface AdminWorkspaceDetail extends AdminWorkspace {
     sla: number | null;
     prioritySupport: boolean;
   };
+  chatbots: Array<{
+    id: string;
+    name: string;
+    isPublished: boolean;
+    model: string;
+    sessionCount: number;
+    messageCount: number;
+  }>;
+  apiKeys: Array<{
+    name: string;
+    isActive: boolean;
+    createdAt: string;
+    lastUsedAt: string | null;
+  }>;
+}
+
+export interface RegistrationData {
+  date: string;
+  count: number;
 }
 
 // ---- Admin API ----
@@ -181,6 +215,23 @@ export const adminApi = {
       throw new Error(error.message || error.error || '会社名の更新に失敗しました');
     }
     return res.json();
+  },
+
+  /**
+   * Get registration trend data
+   */
+  getRegistrations: async (): Promise<RegistrationData[]> => {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE}/api/admin/stats/registrations`, {
+      headers,
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.message || error.error || '登録推移の取得に失敗しました');
+    }
+    const data = await res.json();
+    return data.registrations || [];
   },
 
   /**

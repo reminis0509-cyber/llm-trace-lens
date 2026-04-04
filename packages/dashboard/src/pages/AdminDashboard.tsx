@@ -3,8 +3,18 @@ import {
   Shield, Building2, TrendingUp, Activity,
   ChevronRight, X, Search, Users, Calendar,
   ArrowUpDown, Clock, Edit3, Check, Save,
+  MessageSquare, UserPlus, Key, Bot,
+  BarChart3,
 } from 'lucide-react';
-import { adminApi, type AdminOverviewStats, type AdminWorkspace, type WorkspaceStatus } from '../api/admin';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  adminApi,
+  type AdminOverviewStats,
+  type AdminWorkspace,
+  type AdminWorkspaceDetail,
+  type WorkspaceStatus,
+  type RegistrationData,
+} from '../api/admin';
 
 // ---- Helpers ----
 
@@ -90,16 +100,55 @@ function setAdminNote(workspaceId: string, note: string): void {
   }
 }
 
+// ---- Stat Card ----
+
+function StatCard({ icon, label, value, color }: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  color?: string;
+}) {
+  return (
+    <div className="surface-card p-4">
+      <div className="flex items-center gap-2 mb-2">
+        {icon}
+        <span className="text-xs text-text-muted">{label}</span>
+      </div>
+      <p className={`text-2xl font-mono tabular-nums ${color || 'text-text-primary'}`}>
+        {typeof value === 'number' ? formatNumber(value) : value}
+      </p>
+    </div>
+  );
+}
+
+// ---- Usage Bar ----
+
+function UsageBar({ percentage }: { percentage: number }) {
+  const clampedPct = Math.min(100, Math.max(0, percentage));
+  const barColor = clampedPct >= 90 ? 'bg-status-fail' : clampedPct >= 70 ? 'bg-yellow-500' : 'bg-accent';
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-1.5 bg-base-elevated rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${barColor}`} style={{ width: `${clampedPct}%` }} />
+      </div>
+      <span className="text-xs text-text-muted font-mono tabular-nums w-8 text-right">{clampedPct}%</span>
+    </div>
+  );
+}
+
 // ---- Component ----
 
 export function AdminDashboard() {
   const [stats, setStats] = useState<AdminOverviewStats | null>(null);
   const [workspaces, setWorkspaces] = useState<AdminWorkspace[]>([]);
+  const [registrations, setRegistrations] = useState<RegistrationData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Detail modal
   const [selectedWsId, setSelectedWsId] = useState<string | null>(null);
+  const [wsDetail, setWsDetail] = useState<AdminWorkspaceDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [editingCompanyName, setEditingCompanyName] = useState(false);
   const [companyNameDraft, setCompanyNameDraft] = useState('');
   const [companyNameSaving, setCompanyNameSaving] = useState(false);
@@ -117,12 +166,14 @@ export function AdminDashboard() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [statsData, workspacesData] = await Promise.all([
+      const [statsData, workspacesData, registrationsData] = await Promise.all([
         adminApi.getOverviewStats(),
         adminApi.getWorkspaces(),
+        adminApi.getRegistrations(),
       ]);
       setStats(statsData);
       setWorkspaces(workspacesData);
+      setRegistrations(registrationsData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'データの取得に失敗しました');
     } finally {
@@ -145,12 +196,10 @@ export function AdminDashboard() {
   const filteredWorkspaces = useMemo(() => {
     let result = [...workspaces];
 
-    // Status filter
     if (statusFilter !== 'all') {
       result = result.filter(w => w.status === statusFilter);
     }
 
-    // Search filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(w =>
@@ -161,7 +210,6 @@ export function AdminDashboard() {
       );
     }
 
-    // Sort
     result.sort((a, b) => {
       switch (sortKey) {
         case 'createdAt': {
@@ -184,24 +232,34 @@ export function AdminDashboard() {
     return result;
   }, [workspaces, statusFilter, searchQuery, sortKey]);
 
-  // Detail modal workspace
+  // Detail modal workspace (from list data, before detail fetch)
   const selectedWs = useMemo(() => {
     if (!selectedWsId) return null;
     return workspaces.find(w => w.id === selectedWsId) || null;
   }, [selectedWsId, workspaces]);
 
-  // When opening detail modal, load note
-  const openDetail = useCallback((wsId: string) => {
+  const openDetail = useCallback(async (wsId: string) => {
     setSelectedWsId(wsId);
     setNoteText(getAdminNote(wsId));
     setEditingCompanyName(false);
     const ws = workspaces.find(w => w.id === wsId);
     setCompanyNameDraft(ws?.companyName || '');
+    setWsDetail(null);
+    setDetailLoading(true);
+    try {
+      const detail = await adminApi.getWorkspaceDetail(wsId);
+      setWsDetail(detail);
+    } catch {
+      // Fall back to list data
+    } finally {
+      setDetailLoading(false);
+    }
   }, [workspaces]);
 
   const closeDetail = useCallback(() => {
     setSelectedWsId(null);
     setEditingCompanyName(false);
+    setWsDetail(null);
   }, []);
 
   const handleSaveCompanyName = async () => {
@@ -252,7 +310,7 @@ export function AdminDashboard() {
           </div>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[0, 1, 2, 3].map(i => (
+          {[0, 1, 2, 3, 4, 5, 6, 7].map(i => (
             <div key={i} className="surface-card p-4 animate-pulse">
               <div className="h-4 bg-base-elevated rounded w-20 mb-3" />
               <div className="h-7 bg-base-elevated rounded w-16" />
@@ -315,51 +373,105 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* Summary Stats */}
+      {/* Summary Stats - 2 rows of 4 */}
       {stats && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="surface-card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Building2 className="w-4 h-4 text-text-muted" strokeWidth={1.5} />
-              <span className="text-xs text-text-muted">総顧客数</span>
-            </div>
-            <p className="text-2xl font-mono tabular-nums text-text-primary">
-              {stats.totalWorkspaces}
-            </p>
+          <StatCard
+            icon={<Building2 className="w-4 h-4 text-text-muted" strokeWidth={1.5} />}
+            label="総顧客数"
+            value={stats.totalWorkspaces}
+          />
+          <StatCard
+            icon={<Clock className="w-4 h-4 text-blue-400" strokeWidth={1.5} />}
+            label="トライアル中"
+            value={computedStats.trialCount}
+            color="text-blue-400"
+          />
+          <StatCard
+            icon={<Activity className="w-4 h-4 text-emerald-400" strokeWidth={1.5} />}
+            label="有料プラン"
+            value={computedStats.paidCount}
+            color="text-emerald-400"
+          />
+          <StatCard
+            icon={<TrendingUp className="w-4 h-4 text-accent" strokeWidth={1.5} />}
+            label="MRR"
+            value={`¥${formatNumber(stats.mrr)}`}
+          />
+          <StatCard
+            icon={<UserPlus className="w-4 h-4 text-orange-400" strokeWidth={1.5} />}
+            label="今週の新規登録"
+            value={stats.newWorkspacesThisWeek}
+            color="text-orange-400"
+          />
+          <StatCard
+            icon={<Users className="w-4 h-4 text-text-muted" strokeWidth={1.5} />}
+            label="総メンバー数"
+            value={stats.totalMembers}
+          />
+          <StatCard
+            icon={<Bot className="w-4 h-4 text-violet-400" strokeWidth={1.5} />}
+            label="チャットボット"
+            value={`${stats.chatbotStats.publishedChatbots} / ${stats.chatbotStats.totalChatbots}`}
+            color="text-violet-400"
+          />
+          <StatCard
+            icon={<MessageSquare className="w-4 h-4 text-cyan-400" strokeWidth={1.5} />}
+            label="チャットセッション"
+            value={stats.chatbotStats.totalSessions}
+            color="text-cyan-400"
+          />
+        </div>
+      )}
+
+      {/* Registration Trend Chart */}
+      {registrations.length > 0 && (
+        <div className="surface-card p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="w-4 h-4 text-text-muted" strokeWidth={1.5} />
+            <h3 className="text-sm font-medium text-text-primary">新規登録推移 (過去30日)</h3>
+            {stats && (
+              <span className="text-xs text-text-muted ml-auto">
+                今月: {stats.newWorkspacesThisMonth}件
+              </span>
+            )}
           </div>
-          <div className="surface-card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="w-4 h-4 text-blue-400" strokeWidth={1.5} />
-              <span className="text-xs text-text-muted">トライアル中</span>
-            </div>
-            <p className="text-2xl font-mono tabular-nums text-blue-400">
-              {computedStats.trialCount}
-            </p>
-          </div>
-          <div className="surface-card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Activity className="w-4 h-4 text-emerald-400" strokeWidth={1.5} />
-              <span className="text-xs text-text-muted">有料プラン</span>
-            </div>
-            <p className="text-2xl font-mono tabular-nums text-emerald-400">
-              {computedStats.paidCount}
-            </p>
-          </div>
-          <div className="surface-card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="w-4 h-4 text-accent" strokeWidth={1.5} />
-              <span className="text-xs text-text-muted">MRR</span>
-            </div>
-            <p className="text-2xl font-mono tabular-nums text-text-primary">
-              ¥{formatNumber(stats.mrr)}
-            </p>
+          <div className="h-40">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={registrations} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 10, fill: 'var(--color-text-muted)' }}
+                  tickFormatter={(v: string) => v.slice(5)} // MM-DD
+                  interval="preserveStartEnd"
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: 'var(--color-text-muted)' }}
+                  allowDecimals={false}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'var(--color-base-surface)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                  }}
+                  labelFormatter={(v: string) => v}
+                  formatter={(value: number) => [`${value}件`, '新規登録']}
+                />
+                <Bar dataKey="count" fill="var(--color-accent)" radius={[2, 2, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       )}
 
       {/* Filter / Search Bar */}
       <div className="surface-card p-4 space-y-3">
-        {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" strokeWidth={1.5} />
           <input
@@ -372,7 +484,6 @@ export function AdminDashboard() {
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          {/* Status filter buttons */}
           <div className="flex flex-wrap gap-1.5">
             {statusFilters.map(f => (
               <button
@@ -389,7 +500,6 @@ export function AdminDashboard() {
             ))}
           </div>
 
-          {/* Sort */}
           <div className="flex items-center gap-2">
             <ArrowUpDown className="w-3.5 h-3.5 text-text-muted" strokeWidth={1.5} />
             <select
@@ -429,6 +539,8 @@ export function AdminDashboard() {
                   <th className="text-left px-6 py-3 text-xs text-text-muted font-medium">ステータス</th>
                   <th className="text-left px-6 py-3 text-xs text-text-muted font-medium hidden md:table-cell">プラン</th>
                   <th className="text-left px-6 py-3 text-xs text-text-muted font-medium hidden lg:table-cell">メンバー</th>
+                  <th className="text-left px-4 py-3 text-xs text-text-muted font-medium hidden lg:table-cell">チャットボット</th>
+                  <th className="text-left px-4 py-3 text-xs text-text-muted font-medium hidden xl:table-cell">使用状況</th>
                   <th className="text-left px-6 py-3 text-xs text-text-muted font-medium hidden sm:table-cell">登録日</th>
                   <th className="text-right px-6 py-3 text-xs text-text-muted font-medium">操作</th>
                 </tr>
@@ -472,6 +584,26 @@ export function AdminDashboard() {
                               {ws.members[0].email}
                             </span>
                           )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 hidden lg:table-cell">
+                        {ws.chatbot.count > 0 ? (
+                          <div className="flex items-center gap-1.5">
+                            <Bot className="w-3.5 h-3.5 text-violet-400" strokeWidth={1.5} />
+                            <span className="text-xs text-text-secondary font-mono tabular-nums">
+                              {ws.chatbot.count}
+                            </span>
+                            <span className="text-xs text-text-muted">
+                              ({ws.chatbot.totalSessions}セッション)
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-text-muted">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 hidden xl:table-cell">
+                        <div className="w-24">
+                          <UsageBar percentage={ws.usage.tracePercentage} />
                         </div>
                       </td>
                       <td className="px-6 py-3 hidden sm:table-cell">
@@ -633,6 +765,99 @@ export function AdminDashboard() {
                   )}
                 </div>
               </div>
+
+              {/* Usage */}
+              <div className="pt-4 border-t border-border">
+                <p className="text-xs text-text-muted mb-2">使用状況</p>
+                <div className="space-y-2">
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-text-secondary">トレース</span>
+                      <span className="text-text-muted font-mono tabular-nums">
+                        {formatNumber(selectedWs.usage.traceCount)} / {selectedWs.usage.traceLimit !== null ? formatNumber(selectedWs.usage.traceLimit) : '無制限'}
+                      </span>
+                    </div>
+                    <UsageBar percentage={selectedWs.usage.tracePercentage} />
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-text-secondary">評価 (LLM-as-Judge)</span>
+                    <span className="text-text-muted font-mono tabular-nums">
+                      {formatNumber(selectedWs.usage.evaluationCount)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Chatbots */}
+              <div className="pt-4 border-t border-border">
+                <div className="flex items-center gap-2 mb-2">
+                  <Bot className="w-4 h-4 text-violet-400" strokeWidth={1.5} />
+                  <p className="text-xs text-text-muted">
+                    チャットボット
+                    <span className="font-mono tabular-nums ml-1">({selectedWs.chatbot.count})</span>
+                  </p>
+                </div>
+                {detailLoading ? (
+                  <div className="h-8 bg-base-elevated rounded animate-pulse" />
+                ) : wsDetail && wsDetail.chatbots && wsDetail.chatbots.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {wsDetail.chatbots.map(cb => (
+                      <div key={cb.id} className="flex items-center justify-between px-3 py-2 bg-base-elevated rounded-card">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-xs text-text-primary truncate">{cb.name}</span>
+                          {cb.isPublished && (
+                            <span className="px-1.5 py-0.5 text-[10px] rounded border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                              公開中
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-text-muted shrink-0 ml-2">
+                          <span className="font-mono tabular-nums">{cb.sessionCount}セッション</span>
+                          <span className="font-mono tabular-nums">{cb.messageCount}メッセージ</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : selectedWs.chatbot.count > 0 ? (
+                  <div className="text-xs text-text-muted px-3 py-2 bg-base-elevated rounded-card">
+                    {selectedWs.chatbot.count}個のチャットボット / {selectedWs.chatbot.totalSessions}セッション / {selectedWs.chatbot.totalMessages}メッセージ
+                  </div>
+                ) : (
+                  <p className="text-xs text-text-muted">チャットボットなし</p>
+                )}
+              </div>
+
+              {/* API Keys */}
+              {wsDetail && wsDetail.apiKeys && wsDetail.apiKeys.length > 0 && (
+                <div className="pt-4 border-t border-border">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Key className="w-4 h-4 text-text-muted" strokeWidth={1.5} />
+                    <p className="text-xs text-text-muted">
+                      APIキー
+                      <span className="font-mono tabular-nums ml-1">({wsDetail.apiKeys.length})</span>
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    {wsDetail.apiKeys.map((key, idx) => (
+                      <div key={idx} className="flex items-center justify-between px-3 py-1.5 bg-base-elevated rounded-card">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-text-secondary">{key.name || 'API Key'}</span>
+                          <span className={`px-1.5 py-0.5 text-[10px] rounded border ${
+                            key.isActive
+                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                              : 'bg-status-fail/20 text-status-fail border-status-fail/30'
+                          }`}>
+                            {key.isActive ? '有効' : '無効'}
+                          </span>
+                        </div>
+                        <span className="text-xs text-text-muted font-mono tabular-nums">
+                          {key.lastUsedAt ? `最終使用: ${formatDate(key.lastUsedAt)}` : '未使用'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Members */}
               <div className="pt-4 border-t border-border">
