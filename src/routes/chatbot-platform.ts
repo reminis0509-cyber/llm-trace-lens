@@ -14,11 +14,13 @@ import {
   createDocument,
   listDocuments,
   deleteDocument,
+  deleteDocumentsByType,
   listSessions,
   getSessionMessages,
   getChatbotStats,
   getChatbotByPublishKey,
   getExchangeRate,
+  processCrawl,
 } from '../chatbot/index.js';
 import { reply as chatReply } from '../chatbot/chat-engine.js';
 import { processDocument } from '../chatbot/rag/pipeline.js';
@@ -48,6 +50,18 @@ const updateChatbotSchema = z.object({
   rate_limit_per_minute: z.number().min(1).max(100).optional(),
   daily_message_limit: z.number().min(10).max(100000).optional(),
   monthly_token_budget: z.number().min(0).optional(),
+  // Design customization
+  widget_secondary_color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  widget_border_radius: z.enum(['sharp', 'rounded', 'pill']).optional(),
+  widget_header_text: z.string().max(100).optional(),
+  widget_font: z.enum(['system', 'noto-sans-jp', 'hiragino']).optional(),
+  widget_bubble_icon: z.enum(['chat', 'question', 'headset', 'custom']).optional(),
+  widget_bubble_icon_url: z.string().url().max(500).optional().nullable(),
+  widget_window_size: z.enum(['compact', 'standard', 'large']).optional(),
+});
+
+const crawlRequestSchema = z.object({
+  url: z.string().url().max(2000),
 });
 
 const widgetChatSchema = z.object({
@@ -272,6 +286,102 @@ export async function chatbotPlatformRoutes(fastify: FastifyInstance): Promise<v
     return reply.send({ rate });
   });
 
+  // ═══ Crawl APIs ═══
+
+  /**
+   * POST /api/chatbots/:id/crawl
+   * Start HP auto-learning crawl.
+   * Request: { url: string }
+   * Response: 202 { success: true, message: string }
+   */
+  fastify.post('/api/chatbots/:id/crawl', async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {
+    try {
+      const workspaceId = await resolveWorkspaceId(request);
+      if (!workspaceId) return reply.code(401).send({ error: 'Unauthorized' });
+
+      const chatbot = await getChatbot(request.params.id, workspaceId);
+      if (!chatbot) return reply.code(404).send({ error: 'チャットボットが見つかりません' });
+
+      const parsed = crawlRequestSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: 'URLが無効です', details: parsed.error.errors });
+      }
+
+      // Prevent double crawl
+      if (chatbot.crawl_status === 'crawling') {
+        return reply.code(409).send({ error: 'クロールは既に実行中です' });
+      }
+
+      // Start async crawl (do not await)
+      processCrawl(chatbot.id, workspaceId, parsed.data.url).catch(err => {
+        request.log.error({ err, chatbotId: chatbot.id }, 'クロールパイプラインエラー');
+      });
+
+      return reply.code(202).send({ success: true, message: 'クロールを開始しました' });
+    } catch (err) {
+      request.log.error({ err }, 'クロール開始エラー');
+      return reply.code(500).send({ error: 'クロールの開始に失敗しました' });
+    }
+  });
+
+  /**
+   * GET /api/chatbots/:id/crawl/status
+   * Get current crawl status and progress.
+   * Response: { crawl_url, crawl_status, crawl_progress, crawl_error, crawled_at }
+   */
+  fastify.get('/api/chatbots/:id/crawl/status', async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {
+    try {
+      const workspaceId = await resolveWorkspaceId(request);
+      if (!workspaceId) return reply.code(401).send({ error: 'Unauthorized' });
+
+      const chatbot = await getChatbot(request.params.id, workspaceId);
+      if (!chatbot) return reply.code(404).send({ error: 'チャットボットが見つかりません' });
+
+      return reply.send({
+        crawl_url: chatbot.crawl_url,
+        crawl_status: chatbot.crawl_status,
+        crawl_progress: chatbot.crawl_progress ? JSON.parse(chatbot.crawl_progress) : null,
+        crawl_error: chatbot.crawl_error,
+        crawled_at: chatbot.crawled_at,
+      });
+    } catch (err) {
+      request.log.error({ err }, 'クロールステータス取得エラー');
+      return reply.code(500).send({ error: 'ステータスの取得に失敗しました' });
+    }
+  });
+
+  /**
+   * DELETE /api/chatbots/:id/crawl
+   * Delete all URL-type documents and reset crawl fields.
+   * Response: { success: true, deleted_count: number }
+   */
+  fastify.delete('/api/chatbots/:id/crawl', async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {
+    try {
+      const workspaceId = await resolveWorkspaceId(request);
+      if (!workspaceId) return reply.code(401).send({ error: 'Unauthorized' });
+
+      const chatbot = await getChatbot(request.params.id, workspaceId);
+      if (!chatbot) return reply.code(404).send({ error: 'チャットボットが見つかりません' });
+
+      // Delete all url-type documents and their chunks
+      const deletedCount = await deleteDocumentsByType(chatbot.id, workspaceId, 'url');
+
+      // Reset crawl fields
+      await updateChatbot(chatbot.id, workspaceId, {
+        crawl_url: null,
+        crawl_status: null,
+        crawl_progress: null,
+        crawl_error: null,
+        crawled_at: null,
+      });
+
+      return reply.send({ success: true, deleted_count: deletedCount });
+    } catch (err) {
+      request.log.error({ err }, 'クロールデータ削除エラー');
+      return reply.code(500).send({ error: 'クロールデータの削除に失敗しました' });
+    }
+  });
+
   // ═══ Widget APIs (publish key auth, no workspace auth) ═══
 
   // Get widget config
@@ -302,6 +412,13 @@ export async function chatbotPlatformRoutes(fastify: FastifyInstance): Promise<v
       widget_color: chatbot.widget_color,
       widget_position: chatbot.widget_position,
       widget_logo_url: chatbot.widget_logo_url,
+      widget_secondary_color: chatbot.widget_secondary_color,
+      widget_border_radius: chatbot.widget_border_radius,
+      widget_header_text: chatbot.widget_header_text,
+      widget_font: chatbot.widget_font,
+      widget_bubble_icon: chatbot.widget_bubble_icon,
+      widget_bubble_icon_url: chatbot.widget_bubble_icon_url,
+      widget_window_size: chatbot.widget_window_size,
     });
   });
 

@@ -26,6 +26,20 @@ export interface Chatbot {
   rate_limit_per_minute: number;
   daily_message_limit: number;
   monthly_token_budget: number | null;
+  // Crawler fields
+  crawl_url: string | null;
+  crawl_status: 'pending' | 'crawling' | 'completed' | 'error' | null;
+  crawl_progress: string | null;
+  crawl_error: string | null;
+  crawled_at: string | null;
+  // Design customization fields
+  widget_secondary_color: string;
+  widget_border_radius: string;
+  widget_header_text: string | null;
+  widget_font: string;
+  widget_bubble_icon: string;
+  widget_bubble_icon_url: string | null;
+  widget_window_size: string;
   created_at: string;
   updated_at: string;
 }
@@ -40,6 +54,7 @@ export interface Document {
   chunk_count: number;
   status: 'processing' | 'ready' | 'error';
   error_message: string | null;
+  source_url: string | null;
   created_at: string;
 }
 
@@ -411,6 +426,70 @@ export async function getExchangeRate(date?: string): Promise<ExchangeRate | nul
   }
   // Get latest
   return knex('exchange_rates').orderBy('date', 'desc').first() || null;
+}
+
+// ─── Crawler ────────────────────────────────────────────────────────
+
+export async function updateCrawlStatus(
+  chatbotId: string,
+  workspaceId: string,
+  status: 'pending' | 'crawling' | 'completed' | 'error',
+  progress?: string,
+  error?: string
+): Promise<void> {
+  const knex = getKnex();
+  const update: Record<string, unknown> = {
+    crawl_status: status,
+    updated_at: new Date().toISOString(),
+  };
+  if (progress !== undefined) update.crawl_progress = progress;
+  if (error !== undefined) update.crawl_error = error;
+  if (status === 'completed') update.crawled_at = new Date().toISOString();
+  await knex('chatbots').where({ id: chatbotId, workspace_id: workspaceId }).update(update);
+}
+
+export async function createDocumentFromUrl(
+  chatbotId: string,
+  workspaceId: string,
+  data: { url: string; title: string; content_size: number }
+): Promise<Document> {
+  const knex = getKnex();
+  const id = generateId();
+
+  await knex('documents').insert({
+    id,
+    chatbot_id: chatbotId,
+    workspace_id: workspaceId,
+    filename: data.title,
+    file_type: 'url',
+    file_size: data.content_size,
+    chunk_count: 0,
+    status: 'processing',
+    source_url: data.url,
+    created_at: new Date().toISOString(),
+  });
+
+  return knex('documents').where({ id }).first() as Promise<Document>;
+}
+
+export async function deleteDocumentsByType(
+  chatbotId: string,
+  workspaceId: string,
+  fileType: string
+): Promise<number> {
+  const knex = getKnex();
+  // First delete associated chunks
+  const docIds = await knex('documents')
+    .where({ chatbot_id: chatbotId, workspace_id: workspaceId, file_type: fileType })
+    .pluck('id');
+
+  if (docIds.length > 0) {
+    await knex('document_chunks').whereIn('document_id', docIds).delete();
+  }
+
+  return knex('documents')
+    .where({ chatbot_id: chatbotId, workspace_id: workspaceId, file_type: fileType })
+    .delete();
 }
 
 // ─── Stats ───────────────────────────────────────────────────────────

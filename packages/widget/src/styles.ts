@@ -3,6 +3,7 @@ export function getStyles(): string {
     :host {
       --ft-primary-color: #2563eb;
       --ft-primary-hover: #1d4ed8;
+      --ft-secondary-color: #f3f4f6;
       --ft-bg-color: #ffffff;
       --ft-text-color: #1a1a2e;
       --ft-text-secondary: #6b7280;
@@ -10,19 +11,21 @@ export function getStyles(): string {
       --ft-input-bg: #f9fafb;
       --ft-user-msg-bg: var(--ft-primary-color);
       --ft-user-msg-color: #ffffff;
-      --ft-assistant-msg-bg: #f3f4f6;
+      --ft-assistant-msg-bg: var(--ft-secondary-color);
       --ft-assistant-msg-color: #1a1a2e;
-      --ft-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+      --ft-shadow: 0 2px 12px rgba(0, 0, 0, 0.10);
       --ft-bubble-size: 56px;
       --ft-font-family: system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', 'Segoe UI', sans-serif;
       --ft-radius: 16px;
       --ft-radius-sm: 12px;
+      --ft-window-width: 380px;
+      --ft-window-height: 520px;
 
       position: fixed;
       z-index: 2147483647;
       font-family: var(--ft-font-family);
       font-size: 14px;
-      line-height: 1.5;
+      line-height: 1.7;
       color: var(--ft-text-color);
       box-sizing: border-box;
     }
@@ -102,11 +105,12 @@ export function getStyles(): string {
     /* ---- Chat Window ---- */
     .ft-window {
       position: absolute;
-      width: 380px;
-      height: 520px;
+      width: var(--ft-window-width);
+      height: var(--ft-window-height);
       background: var(--ft-bg-color);
       border-radius: var(--ft-radius);
       box-shadow: var(--ft-shadow);
+      border: 1px solid var(--ft-border-color);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -209,10 +213,10 @@ export function getStyles(): string {
 
     .ft-msg {
       max-width: 85%;
-      padding: 10px 14px;
+      padding: 12px 16px;
       border-radius: var(--ft-radius-sm);
       font-size: 14px;
-      line-height: 1.6;
+      line-height: 1.7;
       word-wrap: break-word;
       white-space: pre-wrap;
     }
@@ -347,11 +351,12 @@ export function getStyles(): string {
     /* ---- Powered By ---- */
     .ft-powered {
       text-align: center;
-      padding: 6px 16px 10px;
-      font-size: 11px;
+      padding: 4px 16px 8px;
+      font-size: 10px;
       color: var(--ft-text-secondary);
       background: var(--ft-bg-color);
       flex-shrink: 0;
+      opacity: 0.7;
     }
 
     .ft-powered a {

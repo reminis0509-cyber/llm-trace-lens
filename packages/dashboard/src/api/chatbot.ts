@@ -35,6 +35,18 @@ export interface ChatbotConfig {
   widget_color: string;
   widget_position: string;
   widget_logo_url: string | null;
+  widget_secondary_color: string | null;
+  widget_border_radius: 'sharp' | 'rounded' | 'pill';
+  widget_header_text: string | null;
+  widget_font: 'system' | 'noto-sans-jp' | 'hiragino';
+  widget_bubble_icon: 'chat' | 'question' | 'headset' | 'custom';
+  widget_bubble_icon_url: string | null;
+  widget_window_size: 'compact' | 'standard' | 'large';
+  crawl_url: string | null;
+  crawl_status: 'idle' | 'pending' | 'crawling' | 'completed' | 'error' | null;
+  crawl_progress: number | null;
+  crawl_error: string | null;
+  crawled_at: string | null;
   publish_key: string | null;
   is_published: boolean;
   allowed_origins: string | null;
@@ -43,6 +55,16 @@ export interface ChatbotConfig {
   monthly_token_budget: number | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface CrawlStatus {
+  crawl_status: 'idle' | 'pending' | 'crawling' | 'completed' | 'error';
+  crawl_progress: number;
+  crawl_error: string | null;
+  crawled_at: string | null;
+  pages_found?: number;
+  pages_processed?: number;
+  current_url?: string;
 }
 
 export interface ChatbotDocument {
@@ -286,4 +308,46 @@ export async function fetchExchangeRate(token?: string): Promise<ExchangeRate> {
     throw new Error(error.message || error.error || '為替レートの取得に失敗しました');
   }
   return res.json();
+}
+
+// ---- Crawl API Functions ----
+
+export async function startCrawl(chatbotId: string, url: string, token?: string): Promise<void> {
+  const headers = await getAuthHeaders(token);
+  const res = await fetch(`${API_BASE}/api/chatbots/${chatbotId}/crawl`, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: JSON.stringify({ url }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(error.message || error.error || 'クロールの開始に失敗しました');
+  }
+}
+
+export async function fetchCrawlStatus(chatbotId: string, token?: string): Promise<CrawlStatus> {
+  const headers = await getAuthHeaders(token);
+  const res = await fetch(`${API_BASE}/api/chatbots/${chatbotId}/crawl`, {
+    headers,
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(error.message || error.error || 'クロール状態の取得に失敗しました');
+  }
+  return res.json();
+}
+
+export async function deleteCrawlData(chatbotId: string, token?: string): Promise<void> {
+  const headers = await getAuthHeaders(token);
+  const res = await fetch(`${API_BASE}/api/chatbots/${chatbotId}/crawl`, {
+    method: 'DELETE',
+    headers,
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(error.message || error.error || 'クロールデータの削除に失敗しました');
+  }
 }

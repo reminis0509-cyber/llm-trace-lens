@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
-import { createChatbot } from '../../api/chatbot';
+import { ArrowLeft, Loader2, AlertCircle, Globe } from 'lucide-react';
+import { createChatbot, startCrawl } from '../../api/chatbot';
 import type { ChatbotConfig, CreateChatbotData } from '../../api/chatbot';
 
 interface ChatbotCreateProps {
@@ -13,6 +13,7 @@ export function ChatbotCreate({ onBack, onCreated }: ChatbotCreateProps) {
   const [systemPrompt, setSystemPrompt] = useState('');
   const [tone, setTone] = useState<'polite' | 'casual' | 'business'>('polite');
   const [welcomeMessage, setWelcomeMessage] = useState('');
+  const [crawlUrl, setCrawlUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +33,16 @@ export function ChatbotCreate({ onBack, onCreated }: ChatbotCreateProps) {
       if (welcomeMessage.trim()) data.welcome_message = welcomeMessage.trim();
 
       const chatbot = await createChatbot(data);
+
+      // Start crawl if URL provided
+      if (crawlUrl.trim()) {
+        try {
+          await startCrawl(chatbot.id, crawlUrl.trim());
+        } catch {
+          // Crawl failure is non-blocking; user can retry in settings
+        }
+      }
+
       onCreated(chatbot);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'チャットボットの作成に失敗しました');
@@ -121,6 +132,27 @@ export function ChatbotCreate({ onBack, onCreated }: ChatbotCreateProps) {
             placeholder="例: こんにちは！何かお手伝いできることはありますか？"
             rows={2}
             className="w-full px-3 py-2 bg-base-elevated border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 resize-y"
+          />
+        </div>
+
+        {/* HP Auto-Learning */}
+        <div className="border border-border rounded-lg p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-text-muted" />
+            <label htmlFor="chatbot-crawl-url" className="text-sm font-medium text-text-primary">
+              HPから自動学習（オプション）
+            </label>
+          </div>
+          <p className="text-xs text-text-muted">
+            URLを入力すると、Webサイトのコンテンツを自動的に取得して学習します
+          </p>
+          <input
+            id="chatbot-crawl-url"
+            type="url"
+            value={crawlUrl}
+            onChange={(e) => setCrawlUrl(e.target.value)}
+            placeholder="https://example.com"
+            className="w-full px-3 py-2 bg-base-elevated border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
           />
         </div>
 

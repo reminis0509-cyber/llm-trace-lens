@@ -4,6 +4,13 @@ export interface WidgetConfig {
   widget_color: string;
   widget_position: 'bottom-right' | 'bottom-left';
   widget_logo_url: string | null;
+  widget_secondary_color: string | null;
+  widget_border_radius: 'sharp' | 'rounded' | 'pill' | null;
+  widget_header_text: string | null;
+  widget_font: 'system' | 'noto-sans-jp' | 'hiragino' | null;
+  widget_bubble_icon: 'chat' | 'question' | 'headset' | 'custom' | null;
+  widget_bubble_icon_url: string | null;
+  widget_window_size: 'compact' | 'standard' | 'large' | null;
 }
 
 export interface ChatResponse {
