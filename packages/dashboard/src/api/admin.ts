@@ -36,6 +36,8 @@ export interface AdminOverviewStats {
     publishedChatbots: number;
     totalSessions: number;
     totalMessages: number;
+    workspacesWithChatbots: number;
+    workspacesWithPublishedChatbots: number;
   };
 }
 

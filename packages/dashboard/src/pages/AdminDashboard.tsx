@@ -3,7 +3,7 @@ import {
   Shield, Building2, TrendingUp, Activity,
   ChevronRight, X, Search, Users, Calendar,
   ArrowUpDown, Clock, Edit3, Check, Save,
-  MessageSquare, UserPlus, Key, Bot,
+  UserPlus, Key, Bot,
   BarChart3,
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -411,14 +411,14 @@ export function AdminDashboard() {
           />
           <StatCard
             icon={<Bot className="w-4 h-4 text-violet-400" strokeWidth={1.5} />}
-            label="チャットボット"
-            value={`${stats.chatbotStats.publishedChatbots} / ${stats.chatbotStats.totalChatbots}`}
+            label="Chatbot作成者数"
+            value={stats.chatbotStats.workspacesWithChatbots}
             color="text-violet-400"
           />
           <StatCard
-            icon={<MessageSquare className="w-4 h-4 text-cyan-400" strokeWidth={1.5} />}
-            label="チャットセッション"
-            value={stats.chatbotStats.totalSessions}
+            icon={<Key className="w-4 h-4 text-cyan-400" strokeWidth={1.5} />}
+            label="Chatbot公開者数"
+            value={stats.chatbotStats.workspacesWithPublishedChatbots}
             color="text-cyan-400"
           />
         </div>

@@ -255,6 +255,8 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
       let publishedChatbots = 0;
       let totalSessions = 0;
       let totalMessages = 0;
+      let workspacesWithChatbots = 0;
+      let workspacesWithPublishedChatbots = 0;
       try {
         const cbRows = await db('chatbots').count('* as count').first();
         totalChatbots = Number(cbRows?.count || 0);
@@ -264,6 +266,10 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
         totalSessions = Number(sesRows?.count || 0);
         const msgRows = await db('chat_messages').count('* as count').first();
         totalMessages = Number(msgRows?.count || 0);
+        const wcRows = await db('chatbots').countDistinct('workspace_id as count').first();
+        workspacesWithChatbots = Number(wcRows?.count || 0);
+        const wpcRows = await db('chatbots').where('is_published', true).countDistinct('workspace_id as count').first();
+        workspacesWithPublishedChatbots = Number(wpcRows?.count || 0);
       } catch {
         // chatbot関連テーブルが存在しない場合は0のまま
       }
@@ -290,6 +296,8 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
           publishedChatbots,
           totalSessions,
           totalMessages,
+          workspacesWithChatbots,
+          workspacesWithPublishedChatbots,
         },
       });
     } catch (error) {
