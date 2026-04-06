@@ -279,7 +279,7 @@ export async function hpGenerateRoutes(fastify: FastifyInstance): Promise<void> 
       request.log.error({ err }, 'HP生成エラー');
       return reply.code(500).send({
         error: 'HP生成中にエラーが発生しました。',
-        detail: message,
+        detail: process.env.NODE_ENV !== 'production' ? message : undefined,
       });
     }
   });
