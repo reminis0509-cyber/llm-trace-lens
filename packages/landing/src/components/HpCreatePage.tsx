@@ -9,6 +9,36 @@ function replaceAll(source: string, search: string, replacement: string): string
   return source.split(search).join(replacement);
 }
 
+/**
+ * Read Supabase session from localStorage to get auth headers.
+ * Dashboard and LP share the same domain, so localStorage is shared.
+ */
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  try {
+    // Supabase stores session in localStorage with a key pattern
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const email = parsed?.user?.email;
+          const userId = parsed?.user?.id;
+          if (email) headers['X-User-Email'] = email;
+          if (userId) headers['X-User-ID'] = userId;
+        }
+        break;
+      }
+    }
+  } catch {
+    // localStorage not available or parse error — skip auth
+  }
+  return headers;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
@@ -823,7 +853,7 @@ export default function HpCreatePage() {
       setProgress(10);
       const apiResponse = await fetch('/api/hp-generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         credentials: 'include',
         body: JSON.stringify({
           business_name: formData.businessName,
@@ -833,10 +863,10 @@ export default function HpCreatePage() {
             phone: formData.phone,
             hours: formData.hours,
             catchcopy: formData.catchcopy,
-            menuItems: formData.menuItems.filter((m) => m.name.trim()),
+            menu_items: formData.menuItems.filter((m) => m.name.trim()),
             stylists: formData.stylists.filter((s) => s.name.trim()),
             services: formData.services.filter((s) => s.name.trim()),
-            representativeName: formData.representativeName,
+            representative_name: formData.representativeName,
             qualification: formData.qualification,
           },
         }),
