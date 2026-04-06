@@ -140,9 +140,28 @@ function buildSystemPrompt(businessName: string, info: HpGenerateBody['business_
 }
 
 /**
+ * Ensure hp_generations table exists (auto-create if missing).
+ */
+async function ensureHpGenerationsTable(): Promise<void> {
+  const db = getKnex();
+  const exists = await db.schema.hasTable('hp_generations');
+  if (!exists) {
+    await db.schema.createTable('hp_generations', (table) => {
+      table.string('id').primary();
+      table.string('workspace_id').notNullable().index();
+      table.string('template').notNullable();
+      table.string('business_name').notNullable();
+      table.string('chatbot_id').notNullable();
+      table.timestamp('created_at').defaultTo(db.fn.now());
+    });
+  }
+}
+
+/**
  * Get the count of HP generations for a workspace.
  */
 async function getHpGenerationCount(workspaceId: string): Promise<number> {
+  await ensureHpGenerationsTable();
   const db = getKnex();
   const result = await db('hp_generations')
     .where({ workspace_id: workspaceId })
@@ -160,6 +179,7 @@ async function recordHpGeneration(
   businessName: string,
   chatbotId: string,
 ): Promise<void> {
+  await ensureHpGenerationsTable();
   const db = getKnex();
   const id = crypto.randomUUID();
   await db('hp_generations').insert({
@@ -255,9 +275,11 @@ export async function hpGenerateRoutes(fastify: FastifyInstance): Promise<void> 
       });
 
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       request.log.error({ err }, 'HP生成エラー');
       return reply.code(500).send({
         error: 'HP生成中にエラーが発生しました。',
+        detail: process.env.NODE_ENV !== 'production' ? message : undefined,
       });
     }
   });
