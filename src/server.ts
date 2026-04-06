@@ -34,6 +34,7 @@ import billingRoutes from './routes/billing.js';
 import chatbotRoutes from './routes/chatbot.js';
 import researchRoutes from './routes/research.js';
 import chatbotPlatformRoutes from './routes/chatbot-platform.js';
+import hpGenerateRoutes from './routes/hp-generate.js';
 import { startExchangeRateScheduler, stopExchangeRateScheduler } from './chatbot/exchange-rate.js';
 import { closeKnex } from './storage/knex-client.js';
 
@@ -204,6 +205,9 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
 
   // Register chatbot platform routes (dashboard + widget APIs)
   await chatbotPlatformRoutes(fastify);
+
+  // Register HP (homepage) generation routes
+  await hpGenerateRoutes(fastify);
 
   // Register main routes
   await registerRoutes(fastify);

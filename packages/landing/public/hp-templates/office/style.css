@@ -1,0 +1,55 @@
+/* Professional Office Template — Custom Styles */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hero gradient */
+.hero-bg {
+  background: linear-gradient(135deg, #1B2A4A 0%, #243B67 50%, #2D4A7A 100%);
+}
+
+/* CSS-only hamburger menu */
+.nav-toggle-checkbox {
+  display: none;
+}
+
+.nav-menu-mobile {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.nav-toggle-checkbox:checked ~ .nav-menu-mobile {
+  max-height: 250px;
+}
+
+.nav-toggle-checkbox:checked ~ .nav-toggle-label span:nth-child(1) {
+  transform: rotate(45deg) translate(4px, 4px);
+}
+
+.nav-toggle-checkbox:checked ~ .nav-toggle-label span:nth-child(2) {
+  opacity: 0;
+}
+
+.nav-toggle-checkbox:checked ~ .nav-toggle-label span:nth-child(3) {
+  transform: rotate(-45deg) translate(4px, -4px);
+}
+
+/* Service card hover */
+.service-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(27, 42, 74, 0.08);
+}
+
+/* Focus styles for accessibility */
+a:focus-visible,
+button:focus-visible,
+label:focus-visible {
+  outline: 2px solid #C9A84C;
+  outline-offset: 2px;
+}

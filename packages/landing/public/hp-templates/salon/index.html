@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{business_name}}</title>
+  <meta name="description" content="{{business_name}} - {{catchcopy}}">
+  <meta property="og:title" content="{{business_name}}">
+  <meta property="og:description" content="{{catchcopy}}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#D4A5A5',
+            accent: '#B76E79',
+            body: '#333333',
+          },
+          fontFamily: {
+            sans: ['"Noto Sans JP"', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="font-sans text-body bg-white">
+
+  <!-- Header -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-primary/20">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <a href="#" class="text-accent font-bold text-lg tracking-wide">{{business_name}}</a>
+      <input type="checkbox" id="nav-toggle" class="nav-toggle-checkbox">
+      <label for="nav-toggle" class="nav-toggle-label md:hidden cursor-pointer flex flex-col gap-1.5 p-2">
+        <span class="block w-6 h-0.5 bg-accent transition-transform"></span>
+        <span class="block w-6 h-0.5 bg-accent transition-opacity"></span>
+        <span class="block w-6 h-0.5 bg-accent transition-transform"></span>
+      </label>
+      <nav class="nav-menu hidden md:flex items-center gap-8">
+        <a href="#menu" class="text-body/60 hover:text-accent text-sm transition-colors">施術メニュー</a>
+        <a href="#stylists" class="text-body/60 hover:text-accent text-sm transition-colors">スタイリスト</a>
+        <a href="#access" class="text-body/60 hover:text-accent text-sm transition-colors">アクセス</a>
+        <a href="#contact" class="text-body/60 hover:text-accent text-sm transition-colors">お問い合わせ</a>
+      </nav>
+    </div>
+    <nav class="nav-menu-mobile md:hidden">
+      <div class="px-4 pb-4 flex flex-col gap-3 bg-white/95">
+        <a href="#menu" class="text-body/60 hover:text-accent text-sm transition-colors">施術メニュー</a>
+        <a href="#stylists" class="text-body/60 hover:text-accent text-sm transition-colors">スタイリスト</a>
+        <a href="#access" class="text-body/60 hover:text-accent text-sm transition-colors">アクセス</a>
+        <a href="#contact" class="text-body/60 hover:text-accent text-sm transition-colors">お問い合わせ</a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero-bg min-h-[80vh] flex items-center justify-center text-center px-4 pt-16">
+    <div class="max-w-2xl">
+      <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-accent mb-4 tracking-tight">{{business_name}}</h1>
+      <p class="text-lg md:text-xl text-body/70 mb-8">{{catchcopy}}</p>
+      <a href="#contact" class="inline-block bg-accent text-white font-bold px-8 py-3 rounded-full hover:bg-accent/90 transition-colors text-sm tracking-wide">ご予約はこちら</a>
+    </div>
+  </section>
+
+  <!-- Menu -->
+  <section id="menu" class="py-20 px-4">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-2xl md:text-3xl font-bold text-accent text-center mb-6">施術メニュー</h2>
+      <div class="w-12 h-0.5 bg-primary mx-auto mb-12"></div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Item 1 -->
+        <div class="menu-card bg-white rounded-xl border border-primary/30 overflow-hidden hover:border-accent/50 transition-colors">
+          <div class="w-full h-40 bg-primary/10 flex items-center justify-center text-body/20 text-sm">写真</div>
+          <div class="p-5">
+            <h3 class="font-bold text-body text-base mb-1">{{menu_item_1_name}}</h3>
+            <p class="text-accent font-medium text-sm">{{menu_item_1_price}}</p>
+          </div>
+        </div>
+        <!-- Item 2 -->
+        <div class="menu-card bg-white rounded-xl border border-primary/30 overflow-hidden hover:border-accent/50 transition-colors">
+          <div class="w-full h-40 bg-primary/10 flex items-center justify-center text-body/20 text-sm">写真</div>
+          <div class="p-5">
+            <h3 class="font-bold text-body text-base mb-1">{{menu_item_2_name}}</h3>
+            <p class="text-accent font-medium text-sm">{{menu_item_2_price}}</p>
+          </div>
+        </div>
+        <!-- Item 3 -->
+        <div class="menu-card bg-white rounded-xl border border-primary/30 overflow-hidden hover:border-accent/50 transition-colors">
+          <div class="w-full h-40 bg-primary/10 flex items-center justify-center text-body/20 text-sm">写真</div>
+          <div class="p-5">
+            <h3 class="font-bold text-body text-base mb-1">{{menu_item_3_name}}</h3>
+            <p class="text-accent font-medium text-sm">{{menu_item_3_price}}</p>
+          </div>
+        </div>
+        <!-- Item 4 -->
+        <div class="menu-card bg-white rounded-xl border border-primary/30 overflow-hidden hover:border-accent/50 transition-colors">
+          <div class="w-full h-40 bg-primary/10 flex items-center justify-center text-body/20 text-sm">写真</div>
+          <div class="p-5">
+            <h3 class="font-bold text-body text-base mb-1">{{menu_item_4_name}}</h3>
+            <p class="text-accent font-medium text-sm">{{menu_item_4_price}}</p>
+          </div>
+        </div>
+        <!-- Item 5 -->
+        <div class="menu-card bg-white rounded-xl border border-primary/30 overflow-hidden hover:border-accent/50 transition-colors">
+          <div class="w-full h-40 bg-primary/10 flex items-center justify-center text-body/20 text-sm">写真</div>
+          <div class="p-5">
+            <h3 class="font-bold text-body text-base mb-1">{{menu_item_5_name}}</h3>
+            <p class="text-accent font-medium text-sm">{{menu_item_5_price}}</p>
+          </div>
+        </div>
+        <!-- Item 6 -->
+        <div class="menu-card bg-white rounded-xl border border-primary/30 overflow-hidden hover:border-accent/50 transition-colors">
+          <div class="w-full h-40 bg-primary/10 flex items-center justify-center text-body/20 text-sm">写真</div>
+          <div class="p-5">
+            <h3 class="font-bold text-body text-base mb-1">{{menu_item_6_name}}</h3>
+            <p class="text-accent font-medium text-sm">{{menu_item_6_price}}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stylists -->
+  <section id="stylists" class="py-20 px-4 bg-primary/5">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="text-2xl md:text-3xl font-bold text-accent text-center mb-6">スタイリスト紹介</h2>
+      <div class="w-12 h-0.5 bg-primary mx-auto mb-12"></div>
+      <div class="grid sm:grid-cols-2 gap-8 max-w-2xl mx-auto">
+        <!-- Stylist 1 -->
+        <div class="text-center">
+          <div class="w-24 h-24 rounded-full bg-primary/20 mx-auto mb-4 flex items-center justify-center text-accent font-bold text-xl stylist-avatar">
+            S1
+          </div>
+          <h3 class="font-bold text-body text-lg mb-1">{{stylist_1_name}}</h3>
+          <p class="text-body/50 text-sm">スタイリスト</p>
+        </div>
+        <!-- Stylist 2 -->
+        <div class="text-center">
+          <div class="w-24 h-24 rounded-full bg-primary/20 mx-auto mb-4 flex items-center justify-center text-accent font-bold text-xl stylist-avatar">
+            S2
+          </div>
+          <h3 class="font-bold text-body text-lg mb-1">{{stylist_2_name}}</h3>
+          <p class="text-body/50 text-sm">スタイリスト</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Access -->
+  <section id="access" class="py-20 px-4">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="text-2xl md:text-3xl font-bold text-accent text-center mb-6">アクセス</h2>
+      <div class="w-12 h-0.5 bg-primary mx-auto mb-12"></div>
+      <div class="grid md:grid-cols-2 gap-8 items-start">
+        <div>
+          <p class="text-body/80 leading-relaxed mb-2">
+            <span class="font-medium text-body">住所:</span> {{address}}
+          </p>
+          <p class="text-body/80 leading-relaxed mb-2">
+            <span class="font-medium text-body">電話:</span> {{phone}}
+          </p>
+          <p class="text-body/80 leading-relaxed">
+            <span class="font-medium text-body">営業時間:</span> {{hours}}
+          </p>
+        </div>
+        <div class="w-full h-64 bg-primary/5 border border-primary/20 rounded-xl flex items-center justify-center text-body/20 text-sm">
+          Google Maps埋め込み予定
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section id="contact" class="py-20 px-4 bg-accent text-white">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="text-2xl md:text-3xl font-bold mb-6">ご予約・お問い合わせ</h2>
+      <div class="w-12 h-0.5 bg-white/40 mx-auto mb-10"></div>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-8">
+        <div>
+          <p class="text-white/70 text-sm mb-1">お電話でのご予約</p>
+          <p class="text-2xl font-bold tracking-wide">TEL {{phone}}</p>
+        </div>
+        <div class="hidden sm:block w-px h-12 bg-white/20"></div>
+        <div>
+          <p class="text-white/70 text-sm mb-1">営業時間</p>
+          <p class="text-lg font-medium">{{hours}}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-body text-white/40 text-center py-6 px-4 text-xs">
+    <p>&copy; {{business_name}} All Rights Reserved.</p>
+  </footer>
+
+  <!-- FujiTrace AIチャットbot -->
+  <script
+    src="https://fujitrace.jp/widget.js"
+    data-key="{{chatbot_publish_key}}"
+    data-theme="auto"
+    data-position="bottom-right"
+    async
+  ></script>
+</body>
+</html>

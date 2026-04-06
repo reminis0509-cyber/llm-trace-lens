@@ -29,6 +29,7 @@ export default function Header() {
     { label: '導入方法', href: '#getting-started' },
     { label: '料金', href: '#pricing' },
     { label: '生成AI', href: '/chatbot' },
+    { label: 'HP無料制作', href: '/hp-create' },
     { label: '技術詳細', href: '/for-engineers' },
   ];
 

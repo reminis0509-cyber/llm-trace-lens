@@ -1,0 +1,64 @@
+/* Salon Template — Custom Styles */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hero gradient */
+.hero-bg {
+  background: linear-gradient(180deg, #F5E6E8 0%, #FFFFFF 100%);
+}
+
+/* CSS-only hamburger menu */
+.nav-toggle-checkbox {
+  display: none;
+}
+
+.nav-menu-mobile {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.nav-toggle-checkbox:checked ~ .nav-menu-mobile {
+  max-height: 200px;
+}
+
+.nav-toggle-checkbox:checked ~ .nav-toggle-label span:nth-child(1) {
+  transform: rotate(45deg) translate(4px, 4px);
+}
+
+.nav-toggle-checkbox:checked ~ .nav-toggle-label span:nth-child(2) {
+  opacity: 0;
+}
+
+.nav-toggle-checkbox:checked ~ .nav-toggle-label span:nth-child(3) {
+  transform: rotate(-45deg) translate(4px, -4px);
+}
+
+/* Menu card hover */
+.menu-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.menu-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(183, 110, 121, 0.1);
+}
+
+/* Stylist avatar */
+.stylist-avatar {
+  transition: transform 0.2s ease;
+}
+
+.stylist-avatar:hover {
+  transform: scale(1.05);
+}
+
+/* Focus styles for accessibility */
+a:focus-visible,
+button:focus-visible,
+label:focus-visible {
+  outline: 2px solid #B76E79;
+  outline-offset: 2px;
+}

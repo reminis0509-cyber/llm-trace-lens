@@ -1,0 +1,54 @@
+/* Restaurant Template — Custom Styles */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hero gradient */
+.hero-bg {
+  background: linear-gradient(135deg, #3E2723 0%, #5D4037 40%, #795548 70%, #A1887F 100%);
+}
+
+/* CSS-only hamburger menu */
+.nav-toggle-checkbox {
+  display: none;
+}
+
+.nav-menu-mobile {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.nav-toggle-checkbox:checked ~ .nav-menu-mobile {
+  max-height: 200px;
+}
+
+.nav-toggle-checkbox:checked ~ .nav-toggle-label span:nth-child(1) {
+  transform: rotate(45deg) translate(4px, 4px);
+}
+
+.nav-toggle-checkbox:checked ~ .nav-toggle-label span:nth-child(2) {
+  opacity: 0;
+}
+
+.nav-toggle-checkbox:checked ~ .nav-toggle-label span:nth-child(3) {
+  transform: rotate(-45deg) translate(4px, -4px);
+}
+
+/* Menu card hover */
+.menu-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.menu-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Focus styles for accessibility */
+a:focus-visible,
+button:focus-visible,
+label:focus-visible {
+  outline: 2px solid #D4A843;
+  outline-offset: 2px;
+}
