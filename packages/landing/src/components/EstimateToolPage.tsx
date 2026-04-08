@@ -118,12 +118,24 @@ interface CheckIssue {
   message: string;
 }
 
+interface ArithmeticCheck {
+  ok: boolean;
+  expected_subtotal?: number;
+  actual_subtotal?: number;
+  expected_tax?: number;
+  actual_tax?: number;
+  expected_total?: number;
+  actual_total?: number;
+  message?: string;
+}
+
 interface CheckResult {
   status: 'ok' | 'warning' | 'error';
   critical_issues: CheckIssue[];
   warnings: CheckIssue[];
-  suggestions: string[];
-  responsibility_notice: string;
+  suggestions: (string | CheckIssue)[];
+  responsibility_notice?: string;
+  arithmetic_check?: ArithmeticCheck;
 }
 
 interface ChatMessage {
@@ -144,11 +156,7 @@ interface CreateApiResponse {
   estimate?: EstimateData;
   next_question?: string;
   trace_id?: string;
-}
-
-interface CheckApiResponse {
-  check_result: CheckResult;
-  trace_id: string;
+  verification?: CheckResult;
 }
 
 /* ------------------------------------------------------------------ */
@@ -198,6 +206,19 @@ function todayString(): string {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}${m}${day}`;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Analytics                                                          */
+/* ------------------------------------------------------------------ */
+
+type TrackPayload = Record<string, string | number | boolean | null | undefined>;
+
+function trackEvent(eventName: string, payload: TrackPayload = {}): void {
+  // Placeholder for PostHog / GA4. Swap the console.log with the real SDK call
+  // when analytics is wired up (see docs/ファネル設計_AI見積書.md).
+  // eslint-disable-next-line no-console
+  console.log('[event]', eventName, payload);
 }
 
 /* ------------------------------------------------------------------ */
@@ -631,17 +652,42 @@ function EstimateCheckResultCard({ result }: { result: CheckResult }) {
     error: 'bg-red-50 border-red-200 text-red-800',
   };
   const statusLabel: Record<CheckResult['status'], string> = {
-    ok: '問題は検出されませんでした',
-    warning: '注意事項があります',
-    error: '重大な問題が検出されました',
+    ok: '✅ 問題は検出されませんでした',
+    warning: '⚠️ 注意事項があります',
+    error: '⚠️ 重大な問題が検出されました',
   };
+
+  const handleProClick = () => {
+    trackEvent('conversion.pro.click', { from: 'estimate_tool_verify_card' });
+  };
+
+  const suggestionToText = (s: string | CheckIssue): string =>
+    typeof s === 'string' ? s : s.message;
 
   return (
     <section
       className={`border rounded-lg p-5 mt-4 ${statusStyles[result.status]}`}
       aria-label="AIチェック結果"
+      role="alert"
     >
       <h3 className="text-base font-bold mb-3">AIチェック結果: {statusLabel[result.status]}</h3>
+
+      {result.arithmetic_check && result.arithmetic_check.ok === false && (
+        <div className="mb-4 bg-white border border-red-200 rounded px-3 py-2 text-sm text-slate-800">
+          <p className="font-semibold text-red-700 mb-1">算術検証エラー</p>
+          <p className="leading-relaxed">
+            {result.arithmetic_check.message ??
+              '合計金額の計算に不整合があります。明細を再確認してください。'}
+          </p>
+          {(result.arithmetic_check.expected_total !== undefined ||
+            result.arithmetic_check.actual_total !== undefined) && (
+            <p className="text-xs text-slate-600 mt-1">
+              期待値: {formatYen(result.arithmetic_check.expected_total)} /
+              実際: {formatYen(result.arithmetic_check.actual_total)}
+            </p>
+          )}
+        </div>
+      )}
 
       {result.critical_issues.length > 0 && (
         <div className="mb-4">
@@ -682,7 +728,7 @@ function EstimateCheckResultCard({ result }: { result: CheckResult }) {
           <h4 className="text-sm font-bold text-slate-700 mb-2">改善提案</h4>
           <ul className="list-disc pl-5 space-y-1 text-sm text-slate-800">
             {result.suggestions.map((s, idx) => (
-              <li key={idx}>{s}</li>
+              <li key={idx}>{suggestionToText(s)}</li>
             ))}
           </ul>
         </div>
@@ -694,6 +740,29 @@ function EstimateCheckResultCard({ result }: { result: CheckResult }) {
           <p className="leading-relaxed">{result.responsibility_notice}</p>
         </div>
       )}
+
+      {/* Pro upsell footer — さりげない訴求 (判断C3) */}
+      <div className="mt-5 pt-4 border-t border-slate-300/60">
+        <div className="flex items-start gap-2 text-sm text-slate-700">
+          <span aria-hidden="true">💡</span>
+          <div className="flex-1">
+            <p className="leading-relaxed">
+              このチェックは無料版で1回のみ実行されました。
+              <br className="hidden sm:inline" />
+              <span className="text-slate-600">
+                Proでは全AI出力を継続監視し、過去のパターンと照合して異常を自動検出します。
+              </span>
+            </p>
+            <a
+              href="/pricing"
+              onClick={handleProClick}
+              className="inline-block mt-2 text-blue-700 hover:text-blue-900 font-medium text-sm underline-offset-2 hover:underline"
+            >
+              FujiTrace Pro を見る →
+            </a>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
@@ -797,10 +866,11 @@ export default function EstimateToolPage() {
 
   // Check / pdf state
   const [checkResult, setCheckResult] = useState<CheckResult | null>(null);
-  const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState<string | null>(null);
   const [pdfDownloading, setPdfDownloading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  // 判断B: PDF DL を critical 時にブロックする承知チェックボックス
+  const [acknowledgeDownload, setAcknowledgeDownload] = useState(false);
 
   // Auth check
   useEffect(() => {
@@ -875,8 +945,36 @@ export default function EstimateToolPage() {
         }
         if (json.data.estimate) {
           setEstimate(json.data.estimate);
-          // Reset prior check result whenever estimate changes
+          // Reset prior check result & acknowledgement whenever a new estimate arrives
           setCheckResult(null);
+          setAcknowledgeDownload(false);
+          setCheckError(null);
+          setPdfError(null);
+          trackEvent('tool.estimate.generate.success', {
+            trace_id: json.data.trace_id ?? null,
+            total: json.data.estimate.total,
+            item_count: json.data.estimate.items?.length ?? 0,
+          });
+          // 自動検証結果が同梱されていればそのまま表示
+          if (json.data.verification) {
+            const verification = json.data.verification;
+            setCheckResult(verification);
+            trackEvent('tool.estimate.verify.complete', {
+              trace_id: json.data.trace_id ?? null,
+              status: verification.status,
+              critical_count: verification.critical_issues?.length ?? 0,
+              warning_count: verification.warnings?.length ?? 0,
+            });
+            if (
+              verification.status === 'error' ||
+              (verification.critical_issues && verification.critical_issues.length > 0)
+            ) {
+              trackEvent('tool.estimate.verify.critical', {
+                trace_id: json.data.trace_id ?? null,
+                critical_count: verification.critical_issues?.length ?? 0,
+              });
+            }
+          }
         }
         if (json.data.next_question) {
           setChatMessages((prev) => [
@@ -901,39 +999,6 @@ export default function EstimateToolPage() {
     },
     [chatMessages, primaryBusinessInfo],
   );
-
-  // Run AI check
-  const handleRunCheck = useCallback(async () => {
-    if (!estimate) {
-      setCheckError('先に見積書を生成してください');
-      return;
-    }
-    setCheckError(null);
-    setChecking(true);
-    try {
-      const res = await fetch('/api/tools/estimate/check', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          estimate,
-          // Include the active business profile so the AI checker can verify
-          // invoice number / address etc that are not part of the estimate
-          // JSON itself. The backend looks this up server-side.
-          ...(primaryBusinessInfo ? { business_info_id: primaryBusinessInfo.id } : {}),
-        }),
-      });
-      const json: ApiEnvelope<CheckApiResponse> = await res.json();
-      if (!res.ok || !json.success || !json.data) {
-        setCheckError(json.error ?? 'AIチェックに失敗しました');
-        return;
-      }
-      setCheckResult(json.data.check_result);
-    } catch {
-      setCheckError('通信エラーが発生しました');
-    } finally {
-      setChecking(false);
-    }
-  }, [estimate, primaryBusinessInfo]);
 
   // Download PDF
   const downloadPdf = useCallback(async () => {
@@ -967,25 +1032,33 @@ export default function EstimateToolPage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      trackEvent('tool.estimate.download', {
+        status: checkResult?.status ?? 'unknown',
+        acknowledged: acknowledgeDownload,
+      });
     } catch {
       setPdfError('通信エラーが発生しました');
     } finally {
       setPdfDownloading(false);
     }
-  }, [estimate]);
+  }, [estimate, checkResult, acknowledgeDownload]);
+
+  // 判断B: critical 時は承知チェックボックスを経由して DL
+  const hasCriticalIssues = useMemo(
+    () =>
+      checkResult !== null &&
+      (checkResult.status === 'error' || checkResult.critical_issues.length > 0),
+    [checkResult],
+  );
+
+  const pdfButtonDisabled =
+    !estimate || pdfDownloading || chatPending || (hasCriticalIssues && !acknowledgeDownload);
 
   const handlePdfClick = useCallback(() => {
-    const hasErrors =
-      checkResult !== null &&
-      (checkResult.status === 'error' || checkResult.critical_issues.length > 0);
-    if (hasErrors) {
-      const ok = window.confirm(
-        'AIチェックで重大な問題が検出されています。本当にPDF出力しますか？',
-      );
-      if (!ok) return;
-    }
+    if (!estimate) return;
+    if (hasCriticalIssues && !acknowledgeDownload) return;
     void downloadPdf();
-  }, [checkResult, downloadPdf]);
+  }, [estimate, hasCriticalIssues, acknowledgeDownload, downloadPdf]);
 
   if (!authChecked) {
     return (
@@ -1113,41 +1186,71 @@ export default function EstimateToolPage() {
                       </div>
                     </div>
 
+                    {/* Verification in progress (判断C) */}
+                    {chatPending && estimate && (
+                      <div
+                        className="mt-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800 flex items-center gap-2"
+                        role="status"
+                        aria-live="polite"
+                      >
+                        <span
+                          className="inline-block w-3 h-3 rounded-full bg-blue-500 animate-pulse"
+                          aria-hidden="true"
+                        />
+                        AIが見積書を検証中...
+                      </div>
+                    )}
+
+                    {/* 自動検証結果カード (見積書プレビュー直下) */}
+                    {checkResult && <EstimateCheckResultCard result={checkResult} />}
+
                     {/* Action bar */}
-                    <div className="mt-6 sticky bottom-0 bg-white border-t border-slate-200 py-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-end">
+                    <div className="mt-6 sticky bottom-0 bg-white border-t border-slate-200 py-4 flex flex-col gap-3">
                       {(checkError || pdfError) && (
                         <div
-                          className="text-xs text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2 sm:mr-auto"
+                          className="text-xs text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2"
                           role="alert"
                         >
                           {checkError ?? pdfError}
                         </div>
                       )}
-                      <button
-                        type="button"
-                        onClick={handleRunCheck}
-                        disabled={!estimate || checking}
-                        className="bg-white border border-blue-600 text-blue-700 font-medium px-5 py-2.5 rounded-lg hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-                      >
-                        {checking ? 'AIチェック中...' : 'AIチェック実行'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handlePdfClick}
-                        disabled={!estimate || pdfDownloading}
-                        className={`font-medium px-5 py-2.5 rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed ${
-                          checkResult !== null &&
-                          (checkResult.status === 'error' ||
-                            checkResult.critical_issues.length > 0)
-                            ? 'bg-amber-600 text-white hover:bg-amber-700'
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
-                        }`}
-                      >
-                        {pdfDownloading ? 'PDF生成中...' : 'PDF出力'}
-                      </button>
-                    </div>
 
-                    {checkResult && <EstimateCheckResultCard result={checkResult} />}
+                      {/* 判断B: critical 時のみ承知チェックボックスを出現 */}
+                      {hasCriticalIssues && (
+                        <label className="flex items-start gap-2 text-sm text-slate-800 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                          <input
+                            type="checkbox"
+                            checked={acknowledgeDownload}
+                            onChange={(e) => setAcknowledgeDownload(e.target.checked)}
+                            className="mt-0.5 h-4 w-4 accent-red-600"
+                            aria-label="重大な問題を確認し、自己責任でダウンロードすることに同意する"
+                          />
+                          <span className="leading-relaxed">
+                            内容を確認し、<strong>自己責任でダウンロードします</strong>
+                            <br className="sm:hidden" />
+                            <span className="text-xs text-slate-600">
+                              （AIチェックで重大な問題が検出されています）
+                            </span>
+                          </span>
+                        </label>
+                      )}
+
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={handlePdfClick}
+                          disabled={pdfButtonDisabled}
+                          className={`font-medium px-5 py-2.5 rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed ${
+                            hasCriticalIssues
+                              ? 'bg-amber-600 text-white hover:bg-amber-700'
+                              : 'bg-blue-600 text-white hover:bg-blue-700'
+                          }`}
+                          aria-label="見積書をPDF形式でダウンロード"
+                        >
+                          {pdfDownloading ? 'PDF生成中...' : 'PDF出力'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

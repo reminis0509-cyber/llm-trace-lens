@@ -31,9 +31,24 @@ import {
   parseLlmJson,
   ensureAiToolsTables,
 } from './_shared.js';
+import type { FastifyBaseLogger } from 'fastify';
 import { getKnex } from '../../storage/knex-client.js';
 import { formatMarketRatesForPrompt } from './market-rates.js';
 import type { CheckResult, EstimateData, BusinessInfoRecord } from '../../types/ai-tools.js';
+
+/**
+ * Result of running the inline verification pipeline. Exported so that
+ * callers (e.g. estimate-create) can embed the outcome into their own
+ * response payload without performing an extra HTTP round-trip.
+ */
+export interface EstimateVerificationOutcome {
+  check_result: CheckResult;
+  trace_id: string | null;
+  arithmetic_check: {
+    ok: boolean;
+    issues: Array<{ field: string; severity: 'error'; message: string }>;
+  };
+}
 
 const estimateItemSchema = z.object({
   name: z.string(),
@@ -122,106 +137,23 @@ export default async function estimateCheckRoute(fastify: FastifyInstance): Prom
         return reply.code(429).send({ success: false, error: quota.error });
       }
 
-      // Optionally load the business info record so the LLM can verify
-      // invoice number / address / contact fields that the estimate JSON
-      // does not carry by itself.
-      let businessInfo: BusinessInfoRecord | null = null;
-      if (business_info_id) {
-        try {
-          await ensureAiToolsTables();
-          const db = getKnex();
-          const row = await db<BusinessInfoRecord>('user_business_info')
-            .where({ id: business_info_id, workspace_id: workspaceId })
-            .first();
-          businessInfo = row ?? null;
-        } catch (lookupErr) {
-          request.log.warn({ lookupErr }, 'estimate/check business_info lookup failed');
-        }
-      }
-
-      const template = loadPromptTemplate('estimate/check.md');
-      const systemPrompt = renderTemplate(template, {
-        estimate_json: JSON.stringify(estimate, null, 2),
-        industry: industry || '指定なし',
-        market_rate_data: formatMarketRatesForPrompt(industry),
-        business_info_json: businessInfo
-          ? JSON.stringify(
-              {
-                company_name: businessInfo.company_name,
-                address: businessInfo.address,
-                phone: businessInfo.phone,
-                email: businessInfo.email,
-                invoice_number: businessInfo.invoice_number,
-                bank_name: businessInfo.bank_name,
-                bank_branch: businessInfo.bank_branch,
-                account_type: businessInfo.account_type,
-                account_number: businessInfo.account_number,
-                account_holder: businessInfo.account_holder,
-              },
-              null,
-              2,
-            )
-          : '未登録',
+      const outcome = await runEstimateVerification(fastify, {
+        workspaceId,
+        estimate,
+        industry,
+        businessInfoId: business_info_id,
+        log: request.log,
+        actionTag: 'estimate.check',
       });
 
-      const messages = [
-        { role: 'system' as const, content: systemPrompt },
-        {
-          role: 'user' as const,
-          content: '上記の見積書をチェックして、JSON形式で結果を返してください。',
-        },
-      ];
-
-      const llm = await callLlmViaProxy(fastify, messages, {
-        model: process.env.AI_TOOLS_MODEL || 'gpt-4o-mini',
-        temperature: 0.1,
-        maxTokens: 2048,
-      });
-
-      let checkResult: CheckResult;
-      try {
-        checkResult = parseLlmJson<CheckResult>(llm.content);
-      } catch (parseErr) {
-        request.log.error({ parseErr, raw: llm.content }, 'estimate/check JSON parse failed');
-        return reply.code(502).send({
-          success: false,
-          error: 'AIの出力を解析できませんでした。もう一度お試しください。',
-        });
-      }
-
-      // Defensive defaults so the frontend always has the expected shape
-      checkResult.critical_issues ??= [];
-      checkResult.warnings ??= [];
-      checkResult.suggestions ??= [];
-      checkResult.responsibility_notice ??=
-        'この見積書を送付する前に、金額・宛先・インボイス番号を必ず再確認してください。';
-
-      // Deterministic arithmetic verification is the source of truth for
-      // calculation fields. The LLM frequently hallucinates "計算が合わない"
-      // even when numbers match, so we strip any LLM-reported arithmetic
-      // critical_issues whose field is covered by verifyArithmetic, then
-      // append the deterministic results (which may be empty).
-      const localIssues = verifyArithmetic(estimate);
-      const localFields = new Set(localIssues.map((i) => i.field));
-      checkResult.critical_issues = filterArithmeticHallucinations(
-        checkResult.critical_issues,
-        localFields,
-      );
-      if (localIssues.length > 0) {
-        checkResult.critical_issues.push(...localIssues);
-        checkResult.status = 'error';
-      } else if (checkResult.critical_issues.length === 0) {
-        // If no real critical issues remain, downgrade status to ok/warning.
-        checkResult.status = checkResult.warnings.length > 0 ? 'warning' : 'ok';
-      }
-
-      await recordUsage(workspaceId, 'estimate', 'check', llm.traceId);
+      await recordUsage(workspaceId, 'estimate', 'check', outcome.trace_id);
 
       return reply.code(200).send({
         success: true,
         data: {
-          check_result: checkResult,
-          trace_id: llm.traceId,
+          check_result: outcome.check_result,
+          trace_id: outcome.trace_id,
+          arithmetic_check: outcome.arithmetic_check,
         },
       });
     } catch (err) {
@@ -234,6 +166,136 @@ export default async function estimateCheckRoute(fastify: FastifyInstance): Prom
       });
     }
   });
+}
+
+/**
+ * Parameters for `runEstimateVerification`. `log` is optional — when omitted
+ * the function uses `console`-free silent fallbacks for warnings that are
+ * non-fatal (business info lookup failure etc).
+ */
+export interface RunEstimateVerificationParams {
+  workspaceId: string;
+  estimate: EstimateData;
+  industry?: string;
+  businessInfoId?: string;
+  log?: Pick<FastifyBaseLogger, 'info' | 'warn' | 'error'>;
+  /**
+   * Caller identifier logged for trace correlation. Allows distinguishing
+   * between manual checks (`estimate.check`) and inline verification
+   * (`estimate.verify_inline`) in application logs without changing the
+   * recordUsage action taxonomy.
+   */
+  actionTag?: 'estimate.check' | 'estimate.verify_inline';
+}
+
+/**
+ * Run the full estimate verification pipeline:
+ *   1. Load business info (optional)
+ *   2. LLM review via FujiTrace proxy
+ *   3. Deterministic arithmetic check
+ *   4. Merge + hallucination filter
+ *
+ * Does NOT call `recordUsage` — the caller is responsible for quota accounting.
+ * Exported so that `estimate-create.ts` can run verification inline.
+ */
+export async function runEstimateVerification(
+  fastify: FastifyInstance,
+  params: RunEstimateVerificationParams,
+): Promise<EstimateVerificationOutcome> {
+  const { workspaceId, estimate, industry, businessInfoId, log, actionTag } = params;
+
+  // 1. Optional business info lookup
+  let businessInfo: BusinessInfoRecord | null = null;
+  if (businessInfoId) {
+    try {
+      await ensureAiToolsTables();
+      const db = getKnex();
+      const row = await db<BusinessInfoRecord>('user_business_info')
+        .where({ id: businessInfoId, workspace_id: workspaceId })
+        .first();
+      businessInfo = row ?? null;
+    } catch (lookupErr) {
+      log?.warn({ lookupErr }, 'estimate verification business_info lookup failed');
+    }
+  }
+
+  // 2. Build prompt
+  const template = loadPromptTemplate('estimate/check.md');
+  const systemPrompt = renderTemplate(template, {
+    estimate_json: JSON.stringify(estimate, null, 2),
+    industry: industry || '指定なし',
+    market_rate_data: formatMarketRatesForPrompt(industry),
+    business_info_json: businessInfo
+      ? JSON.stringify(
+          {
+            company_name: businessInfo.company_name,
+            address: businessInfo.address,
+            phone: businessInfo.phone,
+            email: businessInfo.email,
+            invoice_number: businessInfo.invoice_number,
+            bank_name: businessInfo.bank_name,
+            bank_branch: businessInfo.bank_branch,
+            account_type: businessInfo.account_type,
+            account_number: businessInfo.account_number,
+            account_holder: businessInfo.account_holder,
+          },
+          null,
+          2,
+        )
+      : '未登録',
+  });
+
+  const messages = [
+    { role: 'system' as const, content: systemPrompt },
+    {
+      role: 'user' as const,
+      content: '上記の見積書をチェックして、JSON形式で結果を返してください。',
+    },
+  ];
+
+  // 3. LLM call (auto-traced via FujiTrace proxy)
+  log?.info(
+    { action: actionTag ?? 'estimate.check', workspaceId },
+    'estimate verification LLM call starting',
+  );
+  const llm = await callLlmViaProxy(fastify, messages, {
+    model: process.env.AI_TOOLS_MODEL || 'gpt-4o-mini',
+    temperature: 0.1,
+    maxTokens: 2048,
+  });
+
+  // 4. Parse LLM output (throws on failure — caller decides how to handle)
+  const checkResult = parseLlmJson<CheckResult>(llm.content);
+
+  // Defensive defaults so the frontend always has the expected shape
+  checkResult.critical_issues ??= [];
+  checkResult.warnings ??= [];
+  checkResult.suggestions ??= [];
+  checkResult.responsibility_notice ??=
+    'この見積書を送付する前に、金額・宛先・インボイス番号を必ず再確認してください。';
+
+  // 5. Deterministic arithmetic verification (source of truth for calc fields)
+  const localIssues = verifyArithmetic(estimate);
+  const localFields = new Set(localIssues.map((i) => i.field));
+  checkResult.critical_issues = filterArithmeticHallucinations(
+    checkResult.critical_issues,
+    localFields,
+  );
+  if (localIssues.length > 0) {
+    checkResult.critical_issues.push(...localIssues);
+    checkResult.status = 'error';
+  } else if (checkResult.critical_issues.length === 0) {
+    checkResult.status = checkResult.warnings.length > 0 ? 'warning' : 'ok';
+  }
+
+  return {
+    check_result: checkResult,
+    trace_id: llm.traceId,
+    arithmetic_check: {
+      ok: localIssues.length === 0,
+      issues: localIssues,
+    },
+  };
 }
 
 /**

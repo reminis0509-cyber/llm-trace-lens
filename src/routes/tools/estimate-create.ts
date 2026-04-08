@@ -6,19 +6,40 @@
  * Request:
  *   {
  *     conversation_history: Array<{ role: 'user' | 'assistant', content: string }>,
- *     business_info_id: string
+ *     business_info_id: string,
+ *     industry?: string   // optional; used for inline market-rate verification
  *   }
  *
  * Response (200):
  *   {
- *     estimate: EstimateData,
- *     next_question?: string,
- *     trace_id: string
+ *     success: true,
+ *     data: {
+ *       estimate: EstimateData | null,
+ *       next_question: string | null,
+ *       trace_id: string | null,
+ *       verification: {
+ *         status: 'ok' | 'warning' | 'error',
+ *         critical_issues: CheckIssue[],
+ *         warnings: CheckIssue[],
+ *         suggestions: string[],
+ *         responsibility_notice: string,
+ *         arithmetic_check: { ok: boolean, issues: Array<{ field, severity, message }> },
+ *         trace_id: string | null,
+ *         reason?: string   // only set when inline verification failed
+ *       }
+ *     }
  *   }
+ *
+ * The `verification` field is populated automatically — the caller does NOT
+ * need to make a second `/api/tools/estimate/check` request. If the
+ * downstream LLM verification call fails (timeout, parse error, etc.),
+ * `verification.status` is set to `'error'` with a `reason` field but the
+ * estimate itself is still returned.
  *
  * Auth: workspace (header / middleware).
  * Rate limit: 10 req / hour / workspace.
  * Free plan: 10 ai_tools_usage events / month / workspace.
+ *   NOTE: create + inline verification count as a SINGLE usage event.
  */
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
@@ -33,17 +54,64 @@ import {
   parseLlmJson,
   ensureAiToolsTables,
 } from './_shared.js';
-import type { EstimateData, BusinessInfoRecord } from '../../types/ai-tools.js';
+import type { CheckResult, EstimateData, BusinessInfoRecord } from '../../types/ai-tools.js';
+import { runEstimateVerification } from './estimate-check.js';
 
 const messageSchema = z.object({
   role: z.enum(['user', 'assistant']),
   content: z.string().min(1).max(8000),
 });
 
+// Prompt-injection hardening for `industry` mirrors estimate-check.ts.
+const industrySchema = z
+  .string()
+  .max(50)
+  .regex(/^[\p{L}\p{N}\s・()（）]+$/u, {
+    message: 'industry に使用できない文字が含まれています',
+  })
+  .optional();
+
 const requestSchema = z.object({
   conversation_history: z.array(messageSchema).min(1).max(50),
   business_info_id: z.string().min(1),
+  industry: industrySchema,
 });
+
+/**
+ * Verification payload returned alongside the generated estimate. The LLM
+ * review fields (`critical_issues` / `warnings` / `suggestions` /
+ * `responsibility_notice` / `status`) match the existing `CheckResult`
+ * contract consumed by the frontend. `arithmetic_check` is an additional
+ * deterministic audit trail; if inline verification failed (LLM timeout
+ * etc.) `status = 'error'` and `reason` carries the failure cause.
+ */
+interface VerificationPayload {
+  status: CheckResult['status'];
+  critical_issues: CheckResult['critical_issues'];
+  warnings: CheckResult['warnings'];
+  suggestions: CheckResult['suggestions'];
+  responsibility_notice: CheckResult['responsibility_notice'];
+  arithmetic_check: {
+    ok: boolean;
+    issues: Array<{ field: string; severity: 'error'; message: string }>;
+  };
+  trace_id: string | null;
+  reason?: string;
+}
+
+function emptyVerificationError(reason: string): VerificationPayload {
+  return {
+    status: 'error',
+    critical_issues: [],
+    warnings: [],
+    suggestions: [],
+    responsibility_notice:
+      '自動検証を実行できませんでした。見積書を送付する前に必ず内容を再確認してください。',
+    arithmetic_check: { ok: false, issues: [] },
+    trace_id: null,
+    reason,
+  };
+}
 
 interface CreateLlmOutput {
   estimate?: EstimateData;
@@ -85,7 +153,7 @@ export default async function estimateCreateRoute(fastify: FastifyInstance): Pro
           details: parsed.error.errors,
         });
       }
-      const { conversation_history, business_info_id } = parsed.data;
+      const { conversation_history, business_info_id, industry } = parsed.data;
 
       // 3. Free-plan quota check
       const quota = await enforceFreeQuota(workspaceId);
@@ -153,16 +221,48 @@ export default async function estimateCreateRoute(fastify: FastifyInstance): Pro
         });
       }
 
-      // 8. Record usage
+      // 8. 自動検証（インライン実行）
+      // 戦略要件: 検証は必ず自動で走る必要がある（docs/戦略_2026.md 7.8.1）。
+      // LLM タイムアウト等で検証が失敗しても、見積書生成自体は成功として返す。
+      let verification: VerificationPayload;
+      try {
+        const outcome = await runEstimateVerification(fastify, {
+          workspaceId,
+          estimate: output.estimate,
+          industry,
+          businessInfoId: business_info_id,
+          log: request.log,
+          actionTag: 'estimate.verify_inline',
+        });
+        verification = {
+          status: outcome.check_result.status,
+          critical_issues: outcome.check_result.critical_issues,
+          warnings: outcome.check_result.warnings,
+          suggestions: outcome.check_result.suggestions,
+          responsibility_notice: outcome.check_result.responsibility_notice,
+          arithmetic_check: outcome.arithmetic_check,
+          trace_id: outcome.trace_id,
+        };
+      } catch (verifyErr) {
+        const reason = verifyErr instanceof Error ? verifyErr.message : String(verifyErr);
+        request.log.error(
+          { verifyErr, action: 'estimate.verify_inline' },
+          'inline verification failed; returning estimate without verification',
+        );
+        verification = emptyVerificationError(reason);
+      }
+
+      // 9. Record usage — create + inline verification は 1 カウント合算
       await recordUsage(workspaceId, 'estimate', 'create', llm.traceId);
 
-      // 9. Respond
+      // 10. Respond
       return reply.code(200).send({
         success: true,
         data: {
           estimate: output.estimate,
           next_question: output.next_question ?? null,
           trace_id: llm.traceId,
+          verification,
         },
       });
     } catch (err) {
