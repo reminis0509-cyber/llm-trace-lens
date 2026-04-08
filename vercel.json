@@ -19,6 +19,8 @@
     { "source": "/for-engineers", "destination": "/index.html" },
     { "source": "/chatbot", "destination": "/index.html" },
     { "source": "/hp-create", "destination": "/index.html" },
+    { "source": "/tools", "destination": "/index.html" },
+    { "source": "/tools/(.*)", "destination": "/index.html" },
     { "source": "/dashboard/(.*)", "destination": "/dashboard/index.html" },
     { "source": "/dashboard", "destination": "/dashboard/index.html" }
   ]
