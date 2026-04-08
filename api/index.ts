@@ -22,6 +22,7 @@ import adminDashboardRoutes from '../src/routes/admin-dashboard.js';
 import billingRoutes from '../src/routes/billing.js';
 import chatbotPlatformRoutes from '../src/routes/chatbot-platform.js';
 import hpGenerateRoutes from '../src/routes/hp-generate.js';
+import toolsRoutes from '../src/routes/tools/index.js';
 import rbacPlugin from '../src/middleware/rbac.js';
 import { budgetGuardMiddleware } from '../src/middleware/budget-guard.js';
 
@@ -67,6 +68,7 @@ async function getApp() {
     await researchRoutes(app);
     await chatbotPlatformRoutes(app);
     await hpGenerateRoutes(app);
+    await toolsRoutes(app);
     await registerRoutes(app);
 
     await app.ready();
