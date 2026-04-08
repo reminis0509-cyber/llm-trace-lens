@@ -1,6 +1,6 @@
 /**
  * Shared helpers for FujiTrace AI Tools routes.
- * - Workspace resolution (mirrors hp-generate.ts pattern)
+ * - Workspace resolution
  * - Prompt template loader
  * - Free-tier monthly quota check
  * - Usage recording

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 
 /* ------------------------------------------------------------------ */
-/*  Auth helpers (mirrors HpCreatePage.tsx pattern)                    */
+/*  Auth helpers                                                       */
 /* ------------------------------------------------------------------ */
 
 function getAuthHeaders(): Record<string, string> {

@@ -15,7 +15,6 @@ import CompanyPage from './components/CompanyPage';
 import SalesPage from './components/SalesPage';
 import ForEngineersPage from './components/ForEngineersPage';
 import ChatbotPage from './components/ChatbotPage';
-import HpCreatePage from './components/HpCreatePage';
 import ToolsIndexPage from './components/ToolsIndexPage';
 import EstimateToolPage from './components/EstimateToolPage';
 import PiiDetection from './components/PiiDetection';
@@ -47,8 +46,6 @@ export default function App() {
     pageContent = <ForEngineersPage />;
   } else if (currentPath === '/chatbot') {
     pageContent = <ChatbotPage />;
-  } else if (currentPath === '/hp-create') {
-    pageContent = <HpCreatePage />;
   } else if (currentPath === '/tools') {
     pageContent = <ToolsIndexPage />;
   } else if (currentPath === '/tools/estimate') {

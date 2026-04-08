@@ -36,11 +36,6 @@ const aiMenuEntries: AiMenuEntry[] = [
     href: '/chatbot',
     description: '自社サイトに組み込めるAIチャット',
   },
-  {
-    label: 'HP無料制作',
-    href: '/hp-create',
-    description: 'テンプレートから即日ホームページ作成',
-  },
   { isDivider: true },
   {
     label: 'すべてのAIツールを見る',
