@@ -3,6 +3,11 @@
   "installCommand": "npm install && cd packages/landing && npm install && cd ../dashboard && npm install",
   "buildCommand": "npm run build:all",
   "outputDirectory": "build",
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "assets/fonts/**"
+    }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.ts" },
     { "source": "/v1/(.*)", "destination": "/api/index.ts" },

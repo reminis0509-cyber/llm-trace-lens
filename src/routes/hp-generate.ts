@@ -80,11 +80,19 @@ type HpGenerateBody = z.infer<typeof hpGenerateSchema>;
 
 /**
  * Resolve workspaceId from request context.
- * Same pattern as chatbot-platform.ts resolveWorkspaceId().
+ *
+ * SECURITY: Strict authentication policy — NEVER returns a `'default'`
+ * fallback. If the caller is logged in but has no workspace_users record,
+ * this function returns `null` and the route MUST respond with 401 and a
+ * message instructing the user to complete initial workspace setup via
+ * /dashboard (QA finding H-1). The previous `'default'` fallback
+ * cross-contaminated data between unrelated users.
  */
-async function resolveWorkspaceId(request: FastifyRequest): Promise<string | null> {
+async function resolveWorkspaceId(request: FastifyRequest): Promise<
+  { ok: true; workspaceId: string } | { ok: false; reason: 'unauthenticated' | 'no_workspace' }
+> {
   if (request.workspace?.workspaceId) {
-    return request.workspace.workspaceId;
+    return { ok: true, workspaceId: request.workspace.workspaceId };
   }
 
   const userEmail = request.user?.email ||
@@ -97,24 +105,21 @@ async function resolveWorkspaceId(request: FastifyRequest): Promise<string | nul
         .orderBy('created_at', 'asc')
         .first();
       if (membership?.workspace_id) {
-        return membership.workspace_id as string;
+        return { ok: true, workspaceId: membership.workspace_id as string };
       }
     } catch {
-      // DB lookup failed
+      // DB lookup failed, fall through
     }
+    // Logged in but no workspace row found.
+    return { ok: false, reason: 'no_workspace' };
   }
 
   const workspaceHeader = request.headers['x-workspace-id'] as string | undefined;
   if (workspaceHeader) {
-    return workspaceHeader;
+    return { ok: true, workspaceId: workspaceHeader };
   }
 
-  const userId = request.headers['x-user-id'] as string | undefined;
-  if (userId || userEmail) {
-    return 'default';
-  }
-
-  return null;
+  return { ok: false, reason: 'unauthenticated' };
 }
 
 /**
@@ -218,13 +223,19 @@ export async function hpGenerateRoutes(fastify: FastifyInstance): Promise<void> 
     },
   }, async (request, reply) => {
     try {
-      // 1. Resolve workspace (auth check)
-      const workspaceId = await resolveWorkspaceId(request);
-      if (!workspaceId) {
+      // 1. Resolve workspace (auth check) — strict 401 policy (QA H-1)
+      const resolved = await resolveWorkspaceId(request);
+      if (!resolved.ok) {
+        if (resolved.reason === 'no_workspace') {
+          return reply.code(401).send({
+            error: 'ワークスペース未設定です。/dashboard から初回セットアップを完了してください。',
+          });
+        }
         return reply.code(401).send({
           error: '認証が必要です。ログインしてください。',
         });
       }
+      const workspaceId = resolved.workspaceId;
 
       // 2. Validate request body
       const parsed = hpGenerateSchema.safeParse(request.body);

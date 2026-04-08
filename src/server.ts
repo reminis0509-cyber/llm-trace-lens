@@ -35,6 +35,7 @@ import chatbotRoutes from './routes/chatbot.js';
 import researchRoutes from './routes/research.js';
 import chatbotPlatformRoutes from './routes/chatbot-platform.js';
 import hpGenerateRoutes from './routes/hp-generate.js';
+import toolsRoutes from './routes/tools/index.js';
 import { startExchangeRateScheduler, stopExchangeRateScheduler } from './chatbot/exchange-rate.js';
 import { closeKnex } from './storage/knex-client.js';
 
@@ -208,6 +209,9 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
 
   // Register HP (homepage) generation routes
   await hpGenerateRoutes(fastify);
+
+  // Register FujiTrace AI Tools routes (estimate/, business-info, etc.)
+  await toolsRoutes(fastify);
 
   // Register main routes
   await registerRoutes(fastify);

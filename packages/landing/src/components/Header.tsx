@@ -1,8 +1,60 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+
+type NavItem = {
+  label: string;
+  href: string;
+};
+
+type AiToolItem = {
+  label: string;
+  href: string;
+  description: string;
+  isNew?: boolean;
+  isDivider?: false;
+};
+
+type AiMenuEntry = AiToolItem | { isDivider: true };
+
+const navItems: NavItem[] = [
+  { label: '課題', href: '#problems' },
+  { label: '解決策', href: '#solution' },
+  { label: '機能', href: '#features' },
+  { label: '導入方法', href: '#getting-started' },
+  { label: '料金', href: '#pricing' },
+  { label: '技術詳細', href: '/for-engineers' },
+];
+
+const aiMenuEntries: AiMenuEntry[] = [
+  {
+    label: 'AI見積書作成＆チェック',
+    href: '/tools/estimate',
+    description: '見積書を自動生成・内容を自動チェック',
+    isNew: true,
+  },
+  {
+    label: '生成AIチャットボット',
+    href: '/chatbot',
+    description: '自社サイトに組み込めるAIチャット',
+  },
+  {
+    label: 'HP無料制作',
+    href: '/hp-create',
+    description: 'テンプレートから即日ホームページ作成',
+  },
+  { isDivider: true },
+  {
+    label: 'すべてのAIツールを見る',
+    href: '/tools',
+    description: 'FujiTraceが提供するAI搭載ツール一覧',
+  },
+];
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isAiMenuOpen, setIsAiMenuOpen] = useState(false);
+  const aiMenuRef = useRef<HTMLDivElement>(null);
+  const aiCloseTimer = useRef<number | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -22,16 +74,43 @@ export default function Header() {
     return () => { document.body.style.overflow = ''; };
   }, [isMenuOpen]);
 
-  const navItems = [
-    { label: '課題', href: '#problems' },
-    { label: '解決策', href: '#solution' },
-    { label: '機能', href: '#features' },
-    { label: '導入方法', href: '#getting-started' },
-    { label: '料金', href: '#pricing' },
-    { label: '生成AI', href: '/chatbot' },
-    { label: 'HP無料制作', href: '/hp-create' },
-    { label: '技術詳細', href: '/for-engineers' },
-  ];
+  // Close AI dropdown on Escape or outside click
+  useEffect(() => {
+    if (!isAiMenuOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsAiMenuOpen(false);
+    };
+    const handleClick = (e: MouseEvent) => {
+      if (aiMenuRef.current && !aiMenuRef.current.contains(e.target as Node)) {
+        setIsAiMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    window.addEventListener('mousedown', handleClick);
+    return () => {
+      window.removeEventListener('keydown', handleKey);
+      window.removeEventListener('mousedown', handleClick);
+    };
+  }, [isAiMenuOpen]);
+
+  const clearAiCloseTimer = useCallback(() => {
+    if (aiCloseTimer.current !== null) {
+      window.clearTimeout(aiCloseTimer.current);
+      aiCloseTimer.current = null;
+    }
+  }, []);
+
+  const handleAiEnter = useCallback(() => {
+    clearAiCloseTimer();
+    setIsAiMenuOpen(true);
+  }, [clearAiCloseTimer]);
+
+  const handleAiLeave = useCallback(() => {
+    clearAiCloseTimer();
+    aiCloseTimer.current = window.setTimeout(() => {
+      setIsAiMenuOpen(false);
+    }, 150);
+  }, [clearAiCloseTimer]);
 
   return (
     <>
@@ -51,7 +130,77 @@ export default function Header() {
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center h-full">
-              {navItems.map((item) => (
+              {navItems.slice(0, 5).map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  className="relative h-full px-3 xl:px-4 text-sm text-text-secondary hover:text-text-primary transition-colors duration-120 flex items-center"
+                >
+                  {item.label}
+                </a>
+              ))}
+
+              {/* AI搭載システム dropdown */}
+              <div
+                ref={aiMenuRef}
+                className="relative h-full flex items-center"
+                onMouseEnter={handleAiEnter}
+                onMouseLeave={handleAiLeave}
+              >
+                <button
+                  type="button"
+                  className="relative h-full px-3 xl:px-4 text-sm text-text-secondary hover:text-text-primary transition-colors duration-120 flex items-center gap-1"
+                  aria-expanded={isAiMenuOpen}
+                  aria-haspopup="menu"
+                  onClick={() => setIsAiMenuOpen((v) => !v)}
+                >
+                  AI搭載システム
+                  <svg
+                    className={`w-3 h-3 transition-transform duration-150 ${isAiMenuOpen ? 'rotate-180' : ''}`}
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+
+                {isAiMenuOpen && (
+                  <div
+                    role="menu"
+                    aria-label="AI搭載システム"
+                    className="absolute top-full left-0 mt-1 w-80 bg-white border border-border rounded-card shadow-lg py-2"
+                  >
+                    {aiMenuEntries.map((entry, idx) => {
+                      if ('isDivider' in entry && entry.isDivider) {
+                        return <div key={`divider-${idx}`} className="my-2 border-t border-border" />;
+                      }
+                      const tool = entry as AiToolItem;
+                      return (
+                        <a
+                          key={tool.href}
+                          href={tool.href}
+                          role="menuitem"
+                          className="block px-4 py-2.5 hover:bg-base-elevated transition-colors duration-120"
+                          onClick={() => setIsAiMenuOpen(false)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-text-primary">{tool.label}</span>
+                            {tool.isNew && (
+                              <span className="bg-accent text-white text-xs px-1.5 py-0.5 rounded-full font-semibold">
+                                NEW
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-text-tertiary mt-0.5">{tool.description}</p>
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {navItems.slice(5).map((item) => (
                 <a
                   key={item.label}
                   href={item.href}
@@ -103,7 +252,7 @@ export default function Header() {
           className="fixed inset-0 top-14 z-40 lg:hidden overflow-y-auto bg-white"
         >
           <nav className="flex flex-col gap-1 px-6 py-4">
-            {navItems.map((item) => (
+            {navItems.slice(0, 5).map((item) => (
               <a
                 key={item.label}
                 href={item.href}
@@ -113,6 +262,51 @@ export default function Header() {
                 {item.label}
               </a>
             ))}
+
+            {/* AI搭載システム section */}
+            <div className="mt-3 pt-3 border-t border-border">
+              <div className="px-3 py-2 text-xs text-text-tertiary uppercase tracking-wide font-semibold">
+                AI搭載システム
+              </div>
+              {aiMenuEntries.map((entry, idx) => {
+                if ('isDivider' in entry && entry.isDivider) {
+                  return <div key={`m-divider-${idx}`} className="my-2 border-t border-border mx-3" />;
+                }
+                const tool = entry as AiToolItem;
+                return (
+                  <a
+                    key={tool.href}
+                    href={tool.href}
+                    className="block px-3 py-3 hover:bg-base-elevated rounded-card transition-colors duration-120"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-base text-text-primary">{tool.label}</span>
+                      {tool.isNew && (
+                        <span className="bg-accent text-white text-xs px-1.5 py-0.5 rounded-full font-semibold">
+                          NEW
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-text-tertiary mt-0.5">{tool.description}</p>
+                  </a>
+                );
+              })}
+            </div>
+
+            <div className="mt-3 pt-3 border-t border-border">
+              {navItems.slice(5).map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  className="block px-3 py-3 text-base text-text-secondary hover:text-text-primary hover:bg-base-elevated rounded-card transition-colors duration-120"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item.label}
+                </a>
+              ))}
+            </div>
+
             <div className="mt-4 pt-4 border-t border-border flex flex-col gap-3">
               <a
                 href="/dashboard"
