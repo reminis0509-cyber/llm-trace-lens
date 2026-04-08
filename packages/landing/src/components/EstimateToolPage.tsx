@@ -844,6 +844,441 @@ function EstimateChat({ messages, onSend, pending }: EstimateChatProps) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Estimate Form (Form-First UX, 2026-04-09)                          */
+/* ------------------------------------------------------------------ */
+
+function defaultEstimateNumber(): string {
+  return `EST-${todayString()}-001`;
+}
+
+function defaultIssueDate(): string {
+  const d = new Date();
+  return d.toISOString().slice(0, 10);
+}
+
+function defaultValidUntil(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return d.toISOString().slice(0, 10);
+}
+
+function emptyItem(): EstimateItem {
+  return {
+    name: '',
+    description: '',
+    quantity: 1,
+    unit: '式',
+    unit_price: 0,
+    tax_rate: 10,
+    subtotal: 0,
+  };
+}
+
+function emptyEstimateData(): EstimateData {
+  return {
+    estimate_number: defaultEstimateNumber(),
+    issue_date: defaultIssueDate(),
+    valid_until: defaultValidUntil(),
+    client: {
+      company_name: '',
+      contact_person: '',
+      honorific: '御中',
+    },
+    subject: '',
+    items: [emptyItem()],
+    subtotal: 0,
+    tax_amount: 0,
+    total: 0,
+    delivery_date: '',
+    payment_terms: '',
+    notes: '',
+  };
+}
+
+function recomputeTotals(data: EstimateData): EstimateData {
+  const items = data.items.map((it) => ({
+    ...it,
+    subtotal: Math.round((Number(it.quantity) || 0) * (Number(it.unit_price) || 0)),
+  }));
+  const subtotal = items.reduce((sum, it) => sum + it.subtotal, 0);
+  const tax_amount = items.reduce(
+    (sum, it) => sum + Math.floor((it.subtotal * (Number(it.tax_rate) || 0)) / 100),
+    0,
+  );
+  const total = subtotal + tax_amount;
+  return { ...data, items, subtotal, tax_amount, total };
+}
+
+interface EstimateFormProps {
+  data: EstimateData;
+  onChange: (next: EstimateData) => void;
+  onVerify: () => void;
+  verifying: boolean;
+  validationError: string | null;
+}
+
+function EstimateForm({
+  data,
+  onChange,
+  onVerify,
+  verifying,
+  validationError,
+}: EstimateFormProps) {
+  const inputClass =
+    'w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
+
+  const updateField = <K extends keyof EstimateData>(field: K, value: EstimateData[K]) => {
+    onChange(recomputeTotals({ ...data, [field]: value }));
+  };
+
+  const updateClient = <K extends keyof EstimateClient>(field: K, value: EstimateClient[K]) => {
+    onChange(recomputeTotals({ ...data, client: { ...data.client, [field]: value } }));
+  };
+
+  const updateItem = <K extends keyof EstimateItem>(
+    index: number,
+    field: K,
+    value: EstimateItem[K],
+  ) => {
+    const items = data.items.slice();
+    items[index] = { ...items[index], [field]: value };
+    onChange(recomputeTotals({ ...data, items }));
+  };
+
+  const addItem = () => {
+    onChange(recomputeTotals({ ...data, items: [...data.items, emptyItem()] }));
+  };
+
+  const removeItem = (index: number) => {
+    if (data.items.length <= 1) return;
+    const items = data.items.slice();
+    items.splice(index, 1);
+    onChange(recomputeTotals({ ...data, items }));
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    onVerify();
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6" aria-label="見積書フォーム">
+      {/* Header section: subject / dates / number */}
+      <fieldset className="space-y-4">
+        <legend className="text-base font-semibold text-slate-800 mb-1">基本情報</legend>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="ef-subject">
+            件名 <span className="text-red-600">*</span>
+          </label>
+          <input
+            id="ef-subject"
+            type="text"
+            className={inputClass}
+            value={data.subject}
+            onChange={(e) => updateField('subject', e.target.value)}
+            placeholder="例: 〇〇システム開発一式"
+            required
+          />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="ef-number">
+              見積番号
+            </label>
+            <input
+              id="ef-number"
+              type="text"
+              className={inputClass}
+              value={data.estimate_number}
+              onChange={(e) => updateField('estimate_number', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="ef-issue">
+              発行日
+            </label>
+            <input
+              id="ef-issue"
+              type="date"
+              className={inputClass}
+              value={data.issue_date}
+              onChange={(e) => updateField('issue_date', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="ef-valid">
+              有効期限
+            </label>
+            <input
+              id="ef-valid"
+              type="date"
+              className={inputClass}
+              value={data.valid_until}
+              onChange={(e) => updateField('valid_until', e.target.value)}
+            />
+          </div>
+        </div>
+      </fieldset>
+
+      {/* Client section */}
+      <fieldset className="space-y-4">
+        <legend className="text-base font-semibold text-slate-800 mb-1">宛先</legend>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="ef-client-company">
+              会社名 <span className="text-red-600">*</span>
+            </label>
+            <input
+              id="ef-client-company"
+              type="text"
+              className={inputClass}
+              value={data.client.company_name}
+              onChange={(e) => updateClient('company_name', e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="ef-client-honorific">
+              敬称
+            </label>
+            <select
+              id="ef-client-honorific"
+              className={inputClass}
+              value={data.client.honorific}
+              onChange={(e) => updateClient('honorific', e.target.value)}
+            >
+              <option value="御中">御中</option>
+              <option value="様">様</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="ef-client-contact">
+            担当者名
+          </label>
+          <input
+            id="ef-client-contact"
+            type="text"
+            className={inputClass}
+            value={data.client.contact_person}
+            onChange={(e) => updateClient('contact_person', e.target.value)}
+            placeholder="例: 山田 太郎"
+          />
+        </div>
+      </fieldset>
+
+      {/* Items section */}
+      <fieldset className="space-y-3">
+        <legend className="text-base font-semibold text-slate-800 mb-1">明細</legend>
+        <div className="space-y-3">
+          {data.items.map((item, idx) => (
+            <div
+              key={idx}
+              className="border border-slate-200 rounded-lg p-4 bg-slate-50/50 space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-600">明細 {idx + 1}</span>
+                <button
+                  type="button"
+                  onClick={() => removeItem(idx)}
+                  disabled={data.items.length <= 1}
+                  className="text-xs text-red-600 hover:text-red-800 disabled:text-slate-400 disabled:cursor-not-allowed"
+                  aria-label={`明細 ${idx + 1} を削除`}
+                >
+                  行を削除
+                </button>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1" htmlFor={`ef-item-name-${idx}`}>
+                  品名 <span className="text-red-600">*</span>
+                </label>
+                <input
+                  id={`ef-item-name-${idx}`}
+                  type="text"
+                  className={inputClass}
+                  value={item.name}
+                  onChange={(e) => updateItem(idx, 'name', e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1" htmlFor={`ef-item-desc-${idx}`}>
+                  説明
+                </label>
+                <input
+                  id={`ef-item-desc-${idx}`}
+                  type="text"
+                  className={inputClass}
+                  value={item.description}
+                  onChange={(e) => updateItem(idx, 'description', e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1" htmlFor={`ef-item-qty-${idx}`}>
+                    数量
+                  </label>
+                  <input
+                    id={`ef-item-qty-${idx}`}
+                    type="number"
+                    min={0}
+                    step={1}
+                    className={inputClass}
+                    value={item.quantity}
+                    onChange={(e) => updateItem(idx, 'quantity', Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1" htmlFor={`ef-item-unit-${idx}`}>
+                    単位
+                  </label>
+                  <input
+                    id={`ef-item-unit-${idx}`}
+                    type="text"
+                    className={inputClass}
+                    value={item.unit}
+                    onChange={(e) => updateItem(idx, 'unit', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1" htmlFor={`ef-item-price-${idx}`}>
+                    単価
+                  </label>
+                  <input
+                    id={`ef-item-price-${idx}`}
+                    type="number"
+                    min={0}
+                    step={1}
+                    className={inputClass}
+                    value={item.unit_price}
+                    onChange={(e) => updateItem(idx, 'unit_price', Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1" htmlFor={`ef-item-tax-${idx}`}>
+                    税率
+                  </label>
+                  <select
+                    id={`ef-item-tax-${idx}`}
+                    className={inputClass}
+                    value={item.tax_rate}
+                    onChange={(e) => updateItem(idx, 'tax_rate', Number(e.target.value))}
+                  >
+                    <option value={10}>10%</option>
+                    <option value={8}>8%</option>
+                    <option value={0}>0%</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">小計</label>
+                  <div
+                    className="w-full border border-slate-200 bg-slate-100 rounded-md px-3 py-2 text-sm text-slate-800 text-right tabular-nums"
+                    aria-label={`明細 ${idx + 1} の小計`}
+                  >
+                    {formatYen(item.subtotal)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={addItem}
+          className="text-sm text-blue-700 hover:text-blue-900 font-medium border border-dashed border-blue-300 hover:border-blue-500 rounded-md px-4 py-2 w-full"
+        >
+          ＋ 行を追加
+        </button>
+      </fieldset>
+
+      {/* Footer fields */}
+      <fieldset className="space-y-4">
+        <legend className="text-base font-semibold text-slate-800 mb-1">取引条件</legend>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="ef-delivery">
+              納期
+            </label>
+            <input
+              id="ef-delivery"
+              type="text"
+              className={inputClass}
+              value={data.delivery_date}
+              onChange={(e) => updateField('delivery_date', e.target.value)}
+              placeholder="例: 2026年5月末日"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="ef-payment">
+              支払条件
+            </label>
+            <input
+              id="ef-payment"
+              type="text"
+              className={inputClass}
+              value={data.payment_terms}
+              onChange={(e) => updateField('payment_terms', e.target.value)}
+              placeholder="例: 月末締め翌月末払い"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="ef-notes">
+            備考
+          </label>
+          <textarea
+            id="ef-notes"
+            className={`${inputClass} min-h-[80px]`}
+            value={data.notes}
+            onChange={(e) => updateField('notes', e.target.value)}
+          />
+        </div>
+      </fieldset>
+
+      {/* Live totals summary */}
+      <div
+        className="border border-slate-300 rounded-lg bg-slate-50 p-4"
+        aria-label="合計金額サマリー"
+        aria-live="polite"
+      >
+        <div className="flex justify-between text-sm text-slate-700 mb-1">
+          <span>小計</span>
+          <span className="tabular-nums">{formatYen(data.subtotal)}</span>
+        </div>
+        <div className="flex justify-between text-sm text-slate-700 mb-2">
+          <span>消費税</span>
+          <span className="tabular-nums">{formatYen(data.tax_amount)}</span>
+        </div>
+        <div className="flex justify-between text-base font-bold text-slate-900 border-t border-slate-300 pt-2">
+          <span>合計</span>
+          <span className="tabular-nums text-blue-700">{formatYen(data.total)}</span>
+        </div>
+      </div>
+
+      {validationError && (
+        <div
+          className="bg-red-50 border border-red-200 rounded-md px-4 py-3 text-sm text-red-700"
+          role="alert"
+        >
+          {validationError}
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          disabled={verifying}
+          className="bg-blue-600 text-white font-medium px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+          aria-label="見積書をAIで検証する"
+        >
+          {verifying ? 'AIが検証中...' : '見積書を検証'}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
 
@@ -858,11 +1293,18 @@ export default function EstimateToolPage() {
   const [businessLoading, setBusinessLoading] = useState(true);
   const [businessLoadError, setBusinessLoadError] = useState<string | null>(null);
 
-  // Chat / estimate state
+  // Form state (form-first UX, 2026-04-09)
+  const [estimateForm, setEstimateForm] = useState<EstimateData>(() =>
+    recomputeTotals(emptyEstimateData()),
+  );
+  const [formValidationError, setFormValidationError] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
+
+  // Chat / estimate state (chat is now an optional side-panel assistant)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [estimate, setEstimate] = useState<EstimateData | null>(null);
   const [chatPending, setChatPending] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
+  const [chatPanelOpen, setChatPanelOpen] = useState(false);
 
   // Check / pdf state
   const [checkResult, setCheckResult] = useState<CheckResult | null>(null);
@@ -871,6 +1313,9 @@ export default function EstimateToolPage() {
   const [pdfError, setPdfError] = useState<string | null>(null);
   // 判断B: PDF DL を critical 時にブロックする承知チェックボックス
   const [acknowledgeDownload, setAcknowledgeDownload] = useState(false);
+
+  // The estimate used for downstream actions (PDF) is the form data itself.
+  const estimate: EstimateData = estimateForm;
 
   // Auth check
   useEffect(() => {
@@ -918,7 +1363,7 @@ export default function EstimateToolPage() {
     });
   }, []);
 
-  // Chat send handler
+  // Chat send handler (assistant side-panel — does NOT overwrite the form)
   const handleSendMessage = useCallback(
     async (content: string) => {
       if (!primaryBusinessInfo) {
@@ -943,39 +1388,8 @@ export default function EstimateToolPage() {
           setChatError(json.error ?? 'AI応答の取得に失敗しました');
           return;
         }
-        if (json.data.estimate) {
-          setEstimate(json.data.estimate);
-          // Reset prior check result & acknowledgement whenever a new estimate arrives
-          setCheckResult(null);
-          setAcknowledgeDownload(false);
-          setCheckError(null);
-          setPdfError(null);
-          trackEvent('tool.estimate.generate.success', {
-            trace_id: json.data.trace_id ?? null,
-            total: json.data.estimate.total,
-            item_count: json.data.estimate.items?.length ?? 0,
-          });
-          // 自動検証結果が同梱されていればそのまま表示
-          if (json.data.verification) {
-            const verification = json.data.verification;
-            setCheckResult(verification);
-            trackEvent('tool.estimate.verify.complete', {
-              trace_id: json.data.trace_id ?? null,
-              status: verification.status,
-              critical_count: verification.critical_issues?.length ?? 0,
-              warning_count: verification.warnings?.length ?? 0,
-            });
-            if (
-              verification.status === 'error' ||
-              (verification.critical_issues && verification.critical_issues.length > 0)
-            ) {
-              trackEvent('tool.estimate.verify.critical', {
-                trace_id: json.data.trace_id ?? null,
-                critical_count: verification.critical_issues?.length ?? 0,
-              });
-            }
-          }
-        }
+        // Form-first UX: do NOT auto-apply json.data.estimate to the form.
+        // The chat panel is now strictly an advisor — the form is the source of truth.
         if (json.data.next_question) {
           setChatMessages((prev) => [
             ...prev,
@@ -987,7 +1401,7 @@ export default function EstimateToolPage() {
             {
               role: 'assistant',
               content:
-                '見積書のドラフトを生成しました。右のプレビューをご確認のうえ、必要なら追加の指示を入力してください。',
+                'ご相談ありがとうございます。フォームの内容はそのまま保持しています。アドバイスを参考に必要であれば直接修正してください。',
             },
           ]);
         }
@@ -999,6 +1413,104 @@ export default function EstimateToolPage() {
     },
     [chatMessages, primaryBusinessInfo],
   );
+
+  // Form change handler — clears stale verification when the user edits.
+  const handleFormChange = useCallback((next: EstimateData) => {
+    setEstimateForm(next);
+    setCheckResult(null);
+    setCheckError(null);
+    setAcknowledgeDownload(false);
+    setPdfError(null);
+  }, []);
+
+  // Form-side AI verification handler
+  const handleVerifyEstimate = useCallback(async () => {
+    setFormValidationError(null);
+    setCheckError(null);
+    setPdfError(null);
+
+    // Client-side validation
+    if (!estimateForm.subject.trim()) {
+      setFormValidationError('件名を入力してください');
+      return;
+    }
+    if (!estimateForm.client.company_name.trim()) {
+      setFormValidationError('宛先の会社名を入力してください');
+      return;
+    }
+    if (!estimateForm.items.length) {
+      setFormValidationError('明細を1行以上入力してください');
+      return;
+    }
+    for (let i = 0; i < estimateForm.items.length; i += 1) {
+      const it = estimateForm.items[i];
+      if (!it.name.trim()) {
+        setFormValidationError(`明細 ${i + 1} の品名を入力してください`);
+        return;
+      }
+      if (!(it.quantity > 0)) {
+        setFormValidationError(`明細 ${i + 1} の数量は1以上にしてください`);
+        return;
+      }
+    }
+
+    const normalized = recomputeTotals(estimateForm);
+    setEstimateForm(normalized);
+
+    setVerifying(true);
+    trackEvent('tool.estimate.verify.form_submit', {
+      item_count: normalized.items.length,
+      total: normalized.total,
+    });
+    try {
+      const res = await fetch('/api/tools/estimate/check', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          estimate: normalized,
+          business_info_id: primaryBusinessInfo?.id,
+        }),
+      });
+      const json: ApiEnvelope<{
+        check_result: CheckResult;
+        trace_id: string | null;
+        arithmetic_check?: ArithmeticCheck;
+      }> = await res.json();
+      if (!res.ok || !json.success || !json.data) {
+        setCheckError(json.error ?? 'AIチェックに失敗しました');
+        return;
+      }
+      const verification = json.data.check_result;
+      // Surface arithmetic_check from the top-level field on the envelope
+      // through the same CheckResult shape used by the card.
+      if (json.data.arithmetic_check && !verification.arithmetic_check) {
+        verification.arithmetic_check = {
+          ok: json.data.arithmetic_check.ok,
+        };
+      }
+      setCheckResult(verification);
+      setAcknowledgeDownload(false);
+      trackEvent('tool.estimate.verify.complete', {
+        trace_id: json.data.trace_id ?? null,
+        status: verification.status,
+        critical_count: verification.critical_issues?.length ?? 0,
+        warning_count: verification.warnings?.length ?? 0,
+      });
+      if (
+        verification.status === 'error' ||
+        (verification.critical_issues && verification.critical_issues.length > 0)
+      ) {
+        trackEvent('tool.estimate.verify.critical', {
+          trace_id: json.data.trace_id ?? null,
+          critical_count: verification.critical_issues?.length ?? 0,
+        });
+      }
+    } catch {
+      setCheckError('通信エラーが発生しました');
+    } finally {
+      setVerifying(false);
+    }
+  }, [estimateForm, primaryBusinessInfo]);
 
   // Download PDF
   const downloadPdf = useCallback(async () => {
@@ -1052,7 +1564,11 @@ export default function EstimateToolPage() {
   );
 
   const pdfButtonDisabled =
-    !estimate || pdfDownloading || chatPending || (hasCriticalIssues && !acknowledgeDownload);
+    !estimate ||
+    pdfDownloading ||
+    verifying ||
+    !checkResult ||
+    (hasCriticalIssues && !acknowledgeDownload);
 
   const handlePdfClick = useCallback(() => {
     if (!estimate) return;
@@ -1093,8 +1609,8 @@ export default function EstimateToolPage() {
             <nav className="flex gap-1 -mb-px" aria-label="タブ">
               {(
                 [
-                  { key: 'business-info', label: '事業情報' },
                   { key: 'create', label: '新規作成' },
+                  { key: 'business-info', label: '事業情報' },
                   { key: 'history', label: '履歴' },
                 ] as Array<{ key: TabKey; label: string }>
               ).map((tab) => (
@@ -1159,26 +1675,20 @@ export default function EstimateToolPage() {
                   </div>
                 ) : (
                   <div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                      <div className="lg:col-span-3">
                         <h2 className="text-sm font-semibold text-slate-700 mb-2">
-                          AIとの対話
+                          見積書フォーム
                         </h2>
-                        <EstimateChat
-                          messages={chatMessages}
-                          onSend={handleSendMessage}
-                          pending={chatPending}
+                        <EstimateForm
+                          data={estimateForm}
+                          onChange={handleFormChange}
+                          onVerify={handleVerifyEstimate}
+                          verifying={verifying}
+                          validationError={formValidationError}
                         />
-                        {chatError && (
-                          <div
-                            className="mt-2 bg-red-50 border border-red-200 rounded-md px-3 py-2 text-xs text-red-700"
-                            role="alert"
-                          >
-                            {chatError}
-                          </div>
-                        )}
                       </div>
-                      <div>
+                      <div className="lg:col-span-2">
                         <h2 className="text-sm font-semibold text-slate-700 mb-2">
                           見積書プレビュー
                         </h2>
@@ -1186,10 +1696,10 @@ export default function EstimateToolPage() {
                       </div>
                     </div>
 
-                    {/* Verification in progress (判断C) */}
-                    {chatPending && estimate && (
+                    {/* Verification in progress */}
+                    {verifying && (
                       <div
-                        className="mt-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800 flex items-center gap-2"
+                        className="mt-6 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800 flex items-center gap-2"
                         role="status"
                         aria-live="polite"
                       >
@@ -1201,8 +1711,21 @@ export default function EstimateToolPage() {
                       </div>
                     )}
 
-                    {/* 自動検証結果カード (見積書プレビュー直下) */}
-                    {checkResult && <EstimateCheckResultCard result={checkResult} />}
+                    {/* AI verification result — large area, FujiTrace differentiator */}
+                    {checkResult && (
+                      <div className="mt-8">
+                        <div className="border-l-4 border-blue-600 pl-4 mb-3">
+                          <h2 className="text-xl font-bold text-slate-900">
+                            AIによる検証結果
+                          </h2>
+                          <p className="text-sm text-slate-600 mt-1">
+                            FujiTrace が4つの観点で自動チェックしました:
+                            算術・相場・記載漏れ・インボイス制度
+                          </p>
+                        </div>
+                        <EstimateCheckResultCard result={checkResult} />
+                      </div>
+                    )}
 
                     {/* Action bar */}
                     <div className="mt-6 sticky bottom-0 bg-white border-t border-slate-200 py-4 flex flex-col gap-3">
@@ -1233,6 +1756,12 @@ export default function EstimateToolPage() {
                             </span>
                           </span>
                         </label>
+                      )}
+
+                      {!checkResult && !verifying && (
+                        <p className="text-xs text-slate-500">
+                          PDF出力の前に「見積書を検証」ボタンでAIチェックを実行してください。
+                        </p>
                       )}
 
                       <div className="flex justify-end">
@@ -1266,6 +1795,95 @@ export default function EstimateToolPage() {
             )}
           </div>
         </section>
+
+        {/* Floating AI Assistant button + side drawer (chat is demoted to advisor) */}
+        {activeTab === 'create' && primaryBusinessInfo && (
+          <>
+            {!chatPanelOpen && (
+              <button
+                type="button"
+                onClick={() => {
+                  setChatPanelOpen(true);
+                  trackEvent('tool.estimate.chat_panel.open', {});
+                }}
+                className="fixed bottom-6 right-6 z-30 bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-3 rounded-full shadow-lg flex items-center gap-2 text-sm"
+                aria-label="AIアシスタントを開く"
+              >
+                <span aria-hidden="true">💬</span>
+                AIアシスタント
+              </button>
+            )}
+            {chatPanelOpen && (
+              <>
+                <div
+                  className="fixed inset-0 bg-black/30 z-30 md:hidden"
+                  onClick={() => setChatPanelOpen(false)}
+                  aria-hidden="true"
+                />
+                <aside
+                  className="fixed inset-0 md:inset-auto md:top-20 md:right-4 md:bottom-4 md:w-[400px] z-40 bg-white border border-slate-200 md:rounded-lg shadow-2xl flex flex-col"
+                  role="dialog"
+                  aria-label="AIアシスタント"
+                >
+                  <header className="border-b border-slate-200 p-3 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900">AIアシスタント</h3>
+                      <p className="text-xs text-slate-500">フォームの内容は上書きされません</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setChatPanelOpen(false)}
+                      className="text-slate-500 hover:text-slate-800 text-xl leading-none px-2"
+                      aria-label="アシスタントを閉じる"
+                    >
+                      ×
+                    </button>
+                  </header>
+
+                  {chatMessages.length === 0 && (
+                    <div className="border-b border-slate-200 p-3 space-y-2">
+                      <p className="text-xs text-slate-500 mb-1">こんなことを聞けます:</p>
+                      {[
+                        'この案件、業界相場から見て妥当ですか?',
+                        '値引きを求められたら、いくらまで下げても損しませんか?',
+                        'この顧客向けにもっと説得力のある書き方は?',
+                      ].map((q, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            void handleSendMessage(q);
+                          }}
+                          disabled={chatPending}
+                          className="block w-full text-left text-xs bg-slate-50 hover:bg-blue-50 hover:text-blue-700 border border-slate-200 hover:border-blue-300 rounded-md px-3 py-2 transition-colors disabled:opacity-60"
+                        >
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex-1 overflow-hidden">
+                    <EstimateChat
+                      messages={chatMessages}
+                      onSend={handleSendMessage}
+                      pending={chatPending}
+                    />
+                  </div>
+
+                  {chatError && (
+                    <div
+                      className="m-3 bg-red-50 border border-red-200 rounded-md px-3 py-2 text-xs text-red-700"
+                      role="alert"
+                    >
+                      {chatError}
+                    </div>
+                  )}
+                </aside>
+              </>
+            )}
+          </>
+        )}
     </div>
   );
 }
