@@ -27,12 +27,17 @@
  *
  * Templates `simple` and `formal` are TODO and currently fall back to `standard`.
  */
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyBaseLogger, FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
+// Static import so @vercel/ncc / nft detects the dependency and bundles it
+// into the serverless function. A previous dynamic-import-via-Function() trick
+// was invisible to the bundler, causing the module to be missing at runtime
+// and silently falling back to Latin-only rendering (P0 bug 2026-04-09).
+import fontkit from '@pdf-lib/fontkit';
 import {
   resolveWorkspaceId,
   recordUsage,
@@ -84,45 +89,93 @@ interface FontBundle {
 
 /**
  * Try to embed a Japanese font. Returns null on any failure.
- * Requires @pdf-lib/fontkit to be installed and a font file at the known path.
+ * Requires @pdf-lib/fontkit to be installed (bundled via static import) and a
+ * NotoSansJP-Regular.ttf file shipped under assets/fonts/.
+ *
+ * Failures are logged (not swallowed) so production regressions like the
+ * 2026-04-09 Latin-fallback incident surface in Vercel logs immediately.
  */
-async function tryEmbedJapaneseFont(doc: PDFDocument): Promise<FontBundle | null> {
+async function tryEmbedJapaneseFont(
+  doc: PDFDocument,
+  log: FastifyBaseLogger,
+): Promise<FontBundle | null> {
+  // Resolve font path. __dirname differs between environments:
+  //   - dev (tsx)     : <repo>/src/routes/tools/
+  //   - prod (tsc)    : <repo>/dist/src/routes/tools/
+  //   - vercel bundle : /var/task/... — Vercel unpacks includeFiles relative
+  //                     to the project root, so process.cwd() / LAMBDA_TASK_ROOT
+  //                     point at the same directory that holds assets/.
+  // TTF is required: pdf-lib + fontkit subset works correctly with TTF/glyf
+  // tables, but historically corrupted CFF (OTF) cmap mappings, causing all
+  // Japanese glyphs to render as Latin fallback. With TTF + subset:true the
+  // embedded font shrinks from ~5MB → 50-150 KB while preserving CJK output
+  // and keeps the serverless response under Vercel's 6MB cap.
+  const fontFile = 'NotoSansJP-Regular.ttf';
+  const lambdaRoot = process.env.LAMBDA_TASK_ROOT;
+  const candidates = [
+    // Vercel / Lambda: includeFiles unpacks here first (most reliable).
+    path.resolve(process.cwd(), 'assets', 'fonts', fontFile),
+    ...(lambdaRoot ? [path.resolve(lambdaRoot, 'assets', 'fonts', fontFile)] : []),
+    '/var/task/assets/fonts/' + fontFile,
+    // Dev (tsx): src/routes/tools/ → up 3 = <repo>
+    path.resolve(__dirname, '..', '..', '..', 'assets', 'fonts', fontFile),
+    // Prod (tsc): dist/src/routes/tools/ → up 4 = <repo>
+    path.resolve(__dirname, '..', '..', '..', '..', 'assets', 'fonts', fontFile),
+  ];
+  const fontPath = candidates.find((p) => {
+    try {
+      return fs.existsSync(p);
+    } catch {
+      return false;
+    }
+  });
+  if (!fontPath) {
+    log.error(
+      { candidates, cwd: process.cwd(), lambdaRoot, __dirname },
+      'estimate.pdf.font.load.failed: NotoSansJP-Regular.ttf not found in any candidate path',
+    );
+    return null;
+  }
+
   try {
-    // Resolve font path. Try multiple candidates because __dirname differs
-    // between environments:
-    //   - dev (tsx)     : <repo>/src/routes/tools/  -> up 3 = <repo>
-    //   - prod (tsc)    : <repo>/dist/src/routes/tools/ -> up 3 = <repo>/dist
-    //   - vercel bundle : paths are opaque; fall back to process.cwd()
-    // TTF is required: pdf-lib + fontkit subset works correctly with TTF/glyf
-    // tables, but historically corrupted CFF (OTF) cmap mappings, causing all
-    // Japanese glyphs to render as Latin fallback. With TTF + subset:true the
-    // embedded font shrinks from ~5MB → 50–150 KB while preserving CJK output.
-    const fontFile = 'NotoSansJP-Regular.ttf';
-    const candidates = [
-      path.resolve(__dirname, '..', '..', '..', 'assets', 'fonts', fontFile),
-      path.resolve(__dirname, '..', '..', '..', '..', 'assets', 'fonts', fontFile),
-      path.resolve(process.cwd(), 'assets', 'fonts', fontFile),
-    ];
-    const fontPath = candidates.find((p) => fs.existsSync(p));
-    if (!fontPath) {
-      return null;
-    }
-    // Dynamic import so missing module does not break the route.
-    // The module name is hidden behind a variable so TypeScript does not
-    // try to resolve it at compile time (it is an optional runtime dep).
-    const moduleName = '@pdf-lib/' + 'fontkit';
-    const dynImport = new Function('m', 'return import(m)') as (m: string) => Promise<unknown>;
-    const fontkitMod = await dynImport(moduleName).catch(() => null);
-    if (!fontkitMod) {
-      return null;
-    }
-    const fontkit = (fontkitMod as { default?: unknown }).default ?? fontkitMod;
-    // pdf-lib's registerFontkit requires a Fontkit instance
+    // pdf-lib's registerFontkit requires a Fontkit instance. The imported
+    // module is treated as `unknown` at the type level (see src/types/fontkit.d.ts)
+    // so we cast at the single narrow boundary where it is handed to pdf-lib.
     (doc as unknown as { registerFontkit: (fk: unknown) => void }).registerFontkit(fontkit);
-    const fontBytes = fs.readFileSync(fontPath);
-    const font = await doc.embedFont(fontBytes, { subset: false });
+  } catch (err) {
+    log.error(
+      { err: err instanceof Error ? err.message : String(err) },
+      'estimate.pdf.font.load.failed: registerFontkit threw',
+    );
+    return null;
+  }
+
+  let fontBytes: Buffer;
+  try {
+    fontBytes = fs.readFileSync(fontPath);
+  } catch (err) {
+    log.error(
+      { err: err instanceof Error ? err.message : String(err), fontPath },
+      'estimate.pdf.font.load.failed: readFileSync failed',
+    );
+    return null;
+  }
+
+  try {
+    // subset:true → pdf-lib walks the drawn glyphs and emits only the used
+    // subset of the TTF glyf table, shrinking the embedded font from ~5MB
+    // down to ~50-150KB per document.
+    const font = await doc.embedFont(fontBytes, { subset: true });
+    log.info(
+      { fontPath, bytes: fontBytes.length },
+      'estimate.pdf.font.load.ok: Japanese font embedded',
+    );
     return { font, bold: font, mode: 'jp' };
-  } catch {
+  } catch (err) {
+    log.error(
+      { err: err instanceof Error ? err.message : String(err), fontPath },
+      'estimate.pdf.font.load.failed: embedFont threw',
+    );
     return null;
   }
 }
@@ -157,12 +210,15 @@ function drawText(ctx: DrawCtx, text: string, x: number, size: number, opts?: { 
   });
 }
 
-async function buildEstimatePdf(estimate: EstimateData): Promise<{ bytes: Uint8Array; mode: 'jp' | 'latin' }> {
+async function buildEstimatePdf(
+  estimate: EstimateData,
+  log: FastifyBaseLogger,
+): Promise<{ bytes: Uint8Array; mode: 'jp' | 'latin' }> {
   const doc = await PDFDocument.create();
   const page = doc.addPage([595.28, 841.89]); // A4
   const { width, height } = page.getSize();
 
-  let bundle = await tryEmbedJapaneseFont(doc);
+  let bundle = await tryEmbedJapaneseFont(doc, log);
   if (!bundle) {
     const font = await doc.embedFont(StandardFonts.Helvetica);
     const bold = await doc.embedFont(StandardFonts.HelveticaBold);
@@ -306,7 +362,7 @@ export default async function estimatePdfRoute(fastify: FastifyInstance): Promis
       // standard layout instead of returning 500 so the UX is unaffected.
       void template;
 
-      const { bytes, mode } = await buildEstimatePdf(estimate);
+      const { bytes, mode } = await buildEstimatePdf(estimate, request.log);
 
       await recordUsage(workspaceId, 'estimate', 'pdf', null);
 

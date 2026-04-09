@@ -152,18 +152,73 @@ interface ApiEnvelope<T> {
   details?: unknown;
 }
 
-interface CreateApiResponse {
-  estimate?: EstimateData;
-  next_question?: string;
-  trace_id?: string;
-  verification?: CheckResult;
-}
-
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
 
 const INVOICE_PATTERN = /^T\d{13}$/u;
+
+const PAYMENT_TERM_PRESETS = [
+  '月末締翌月末払い',
+  '月末締翌々月末払い',
+  '月末締翌月10日払い',
+  '月末締翌月15日払い',
+  '月末締翌月20日払い',
+  '月末締翌月25日払い',
+  '15日締当月末払い',
+  '20日締翌月20日払い',
+  '納品時現金払い',
+  '前金50% / 納品時50%',
+] as const;
+const PAYMENT_TERM_CUSTOM = 'その他 (自由入力)' as const;
+
+const DELIVERY_DATE_PRESETS = [
+  '別途ご相談',
+  '即納 (発注後3日以内)',
+  '発注後1週間以内',
+  '発注後2週間以内',
+  '発注後1ヶ月以内',
+  '発注後2ヶ月以内',
+  '発注後3ヶ月以内',
+] as const;
+const DELIVERY_DATE_BY_DATE = '日付を指定する' as const;
+const DELIVERY_DATE_CUSTOM = 'その他 (自由入力)' as const;
+
+/** Convert ISO date string (YYYY-MM-DD) to Japanese format (YYYY年M月D日). */
+function formatJapaneseDate(iso: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(iso);
+  if (!match) return iso;
+  const y = Number(match[1]);
+  const m = Number(match[2]);
+  const d = Number(match[3]);
+  return `${y}年${m}月${d}日`;
+}
+
+/** Keywords that upgrade a warning into a Tier 1 critical issue. */
+const TIER1_UPGRADE_KEYWORDS = [
+  '誤字',
+  '脱字',
+  'おかしい',
+  '不自然',
+  '無意味',
+  'テスト入力',
+  '敬称',
+  'インボイス',
+  '日付',
+  '明細',
+];
+
+/** Keywords that downgrade a warning into a Tier 3 info item. */
+const TIER3_DOWNGRADE_KEYWORDS = [
+  '相場',
+  '業界',
+  '単価',
+  '過小',
+  '過大',
+  '業種',
+  '平均',
+  '市場',
+];
 
 function emptyBusinessForm(): BusinessInfoFormData {
   return {
@@ -645,107 +700,193 @@ function EstimatePreview({ estimate }: { estimate: EstimateData | null }) {
 /*  Check Result Card                                                  */
 /* ------------------------------------------------------------------ */
 
+function normalizeIssue(item: string | CheckIssue): CheckIssue {
+  if (typeof item === 'string') {
+    return { field: '', severity: 'info', message: item };
+  }
+  return item;
+}
+
+function matchesKeyword(message: string, keywords: readonly string[]): boolean {
+  return keywords.some((kw) => message.includes(kw));
+}
+
+interface TierBuckets {
+  tier1: CheckIssue[];
+  tier2: CheckIssue[];
+  tier3: CheckIssue[];
+}
+
+function classifyIssues(result: CheckResult): TierBuckets {
+  const tier1: CheckIssue[] = [...result.critical_issues];
+  const tier2: CheckIssue[] = [];
+  const tier3: CheckIssue[] = [];
+
+  // Arithmetic failure is always Tier 1
+  if (result.arithmetic_check && result.arithmetic_check.ok === false) {
+    tier1.unshift({
+      field: 'arithmetic',
+      severity: 'error',
+      message:
+        result.arithmetic_check.message ??
+        '合計金額の計算に不整合があります。明細を再確認してください。',
+    });
+  }
+
+  for (const warning of result.warnings) {
+    const msg = warning.message ?? '';
+    if (matchesKeyword(msg, TIER1_UPGRADE_KEYWORDS)) {
+      tier1.push(warning);
+    } else if (matchesKeyword(msg, TIER3_DOWNGRADE_KEYWORDS)) {
+      tier3.push(warning);
+    } else {
+      tier2.push(warning);
+    }
+  }
+
+  for (const sug of result.suggestions) {
+    tier3.push(normalizeIssue(sug));
+  }
+
+  return { tier1, tier2, tier3 };
+}
+
 function EstimateCheckResultCard({ result }: { result: CheckResult }) {
-  const statusStyles: Record<CheckResult['status'], string> = {
-    ok: 'bg-green-50 border-green-200 text-green-800',
-    warning: 'bg-amber-50 border-amber-200 text-amber-800',
-    error: 'bg-red-50 border-red-200 text-red-800',
-  };
-  const statusLabel: Record<CheckResult['status'], string> = {
-    ok: '✅ 問題は検出されませんでした',
-    warning: '⚠️ 注意事項があります',
-    error: '⚠️ 重大な問題が検出されました',
-  };
+  const buckets = useMemo(() => classifyIssues(result), [result]);
 
   const handleProClick = () => {
     trackEvent('conversion.pro.click', { from: 'estimate_tool_verify_card' });
   };
 
-  const suggestionToText = (s: string | CheckIssue): string =>
-    typeof s === 'string' ? s : s.message;
+  const statusBadge: Record<CheckResult['status'], { className: string; label: string }> = {
+    ok: { className: 'bg-green-100 text-green-800', label: '問題なし' },
+    warning: { className: 'bg-amber-100 text-amber-800', label: '確認事項あり' },
+    error: { className: 'bg-red-100 text-red-800', label: '要修正' },
+  };
+  const badge = statusBadge[result.status];
 
   return (
     <section
-      className={`border rounded-lg p-5 mt-4 ${statusStyles[result.status]}`}
-      aria-label="AIチェック結果"
-      role="alert"
+      className="border border-slate-200 rounded-lg bg-white mt-4 overflow-hidden"
+      aria-label="FujiTrace 品質チェック結果"
     >
-      <h3 className="text-base font-bold mb-3">AIチェック結果: {statusLabel[result.status]}</h3>
-
-      {result.arithmetic_check && result.arithmetic_check.ok === false && (
-        <div className="mb-4 bg-white border border-red-200 rounded px-3 py-2 text-sm text-slate-800">
-          <p className="font-semibold text-red-700 mb-1">算術検証エラー</p>
-          <p className="leading-relaxed">
-            {result.arithmetic_check.message ??
-              '合計金額の計算に不整合があります。明細を再確認してください。'}
+      {/* Header — 業務的な淡い灰色 */}
+      <header className="bg-slate-50 border-b border-slate-200 px-5 py-3 flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-base font-bold text-slate-900">FujiTrace 品質チェック</h3>
+          <p className="text-xs text-slate-600 mt-0.5">
+            書類の成立性・日本語品質・インボイス整合性を確認しました
           </p>
-          {(result.arithmetic_check.expected_total !== undefined ||
-            result.arithmetic_check.actual_total !== undefined) && (
-            <p className="text-xs text-slate-600 mt-1">
-              期待値: {formatYen(result.arithmetic_check.expected_total)} /
-              実際: {formatYen(result.arithmetic_check.actual_total)}
-            </p>
+        </div>
+        <span
+          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${badge.className}`}
+          role="status"
+        >
+          {badge.label}
+        </span>
+      </header>
+
+      <div className="p-5 space-y-4">
+        {/* Tier 1 — Critical (必ず展開) */}
+        {buckets.tier1.length > 0 && (
+          <div className="bg-red-50 border border-red-300 rounded-md px-4 py-3 text-red-900">
+            <h4 className="text-sm font-bold mb-2 flex items-center gap-2">
+              <span
+                className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-600 text-white text-xs font-bold"
+                aria-hidden="true"
+              >
+                !
+              </span>
+              書類の不備 ({buckets.tier1.length}件)
+            </h4>
+            <ul className="space-y-2">
+              {buckets.tier1.map((issue, idx) => (
+                <li
+                  key={`t1-${idx}`}
+                  className="text-sm bg-white border border-red-200 rounded px-3 py-2 text-slate-800"
+                >
+                  {issue.field && (
+                    <span className="font-mono text-xs text-red-600 mr-2">[{issue.field}]</span>
+                  )}
+                  {issue.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Tier 2 — Warning (デフォルト展開、0件なら非表示) */}
+        {buckets.tier2.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-md px-4 py-3 text-amber-900">
+            <h4 className="text-sm font-bold mb-2">
+              記載事項の確認 ({buckets.tier2.length}件)
+            </h4>
+            <ul className="space-y-2">
+              {buckets.tier2.map((issue, idx) => (
+                <li
+                  key={`t2-${idx}`}
+                  className="text-sm bg-white border border-amber-200 rounded px-3 py-2 text-slate-800"
+                >
+                  {issue.field && (
+                    <span className="font-mono text-xs text-amber-700 mr-2">[{issue.field}]</span>
+                  )}
+                  {issue.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Tier 3 — Info (折りたたみ、デフォルト閉) */}
+        {buckets.tier3.length > 0 && (
+          <details className="bg-slate-50 border border-slate-200 rounded-md text-slate-700">
+            <summary className="cursor-pointer select-none px-4 py-2.5 text-sm font-semibold hover:bg-slate-100 rounded-md">
+              参考情報 ({buckets.tier3.length}件)
+            </summary>
+            <div className="px-4 pb-3 pt-1 space-y-2">
+              <p className="text-xs text-slate-500 italic">
+                AI による相場推定はあくまで参考値です。SaaS
+                や独自商品の場合は信頼できないことがあります。
+              </p>
+              <ul className="space-y-1.5">
+                {buckets.tier3.map((issue, idx) => (
+                  <li
+                    key={`t3-${idx}`}
+                    className="text-sm bg-white border border-slate-200 rounded px-3 py-2 text-slate-700"
+                  >
+                    {issue.field && (
+                      <span className="font-mono text-xs text-slate-500 mr-2">
+                        [{issue.field}]
+                      </span>
+                    )}
+                    {issue.message}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </details>
+        )}
+
+        {/* OK ケース */}
+        {buckets.tier1.length === 0 &&
+          buckets.tier2.length === 0 &&
+          buckets.tier3.length === 0 && (
+            <div className="bg-green-50 border border-green-200 rounded-md px-4 py-3 text-sm text-green-800">
+              チェック項目に問題は検出されませんでした。
+            </div>
           )}
-        </div>
-      )}
 
-      {result.critical_issues.length > 0 && (
-        <div className="mb-4">
-          <h4 className="text-sm font-bold text-red-700 mb-2">重大な問題</h4>
-          <ul className="space-y-2">
-            {result.critical_issues.map((issue, idx) => (
-              <li
-                key={idx}
-                className="text-sm bg-white border border-red-200 rounded px-3 py-2 text-slate-800"
-              >
-                <span className="font-mono text-xs text-red-600 mr-2">[{issue.field}]</span>
-                {issue.message}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+        {/* 責任の閾値 — Tier の下に配置 */}
+        {result.responsibility_notice && (
+          <div className="bg-white border border-slate-300 rounded px-4 py-3 text-sm text-slate-800">
+            <p className="font-semibold mb-1">最終確認のお願い</p>
+            <p className="leading-relaxed">{result.responsibility_notice}</p>
+          </div>
+        )}
 
-      {result.warnings.length > 0 && (
-        <div className="mb-4">
-          <h4 className="text-sm font-bold text-amber-700 mb-2">警告</h4>
-          <ul className="space-y-2">
-            {result.warnings.map((issue, idx) => (
-              <li
-                key={idx}
-                className="text-sm bg-white border border-amber-200 rounded px-3 py-2 text-slate-800"
-              >
-                <span className="font-mono text-xs text-amber-600 mr-2">[{issue.field}]</span>
-                {issue.message}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {result.suggestions.length > 0 && (
-        <div className="mb-4">
-          <h4 className="text-sm font-bold text-slate-700 mb-2">改善提案</h4>
-          <ul className="list-disc pl-5 space-y-1 text-sm text-slate-800">
-            {result.suggestions.map((s, idx) => (
-              <li key={idx}>{suggestionToText(s)}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {result.responsibility_notice && (
-        <div className="bg-white border border-slate-300 rounded px-4 py-3 mt-4 text-sm text-slate-800">
-          <p className="font-semibold mb-1">最終確認のお願い</p>
-          <p className="leading-relaxed">{result.responsibility_notice}</p>
-        </div>
-      )}
-
-      {/* Pro upsell footer — さりげない訴求 (判断C3) */}
-      <div className="mt-5 pt-4 border-t border-slate-300/60">
-        <div className="flex items-start gap-2 text-sm text-slate-700">
-          <span aria-hidden="true">💡</span>
-          <div className="flex-1">
+        {/* Pro upsell footer */}
+        <div className="pt-4 border-t border-slate-200">
+          <div className="text-sm text-slate-700">
             <p className="leading-relaxed">
               このチェックは無料版で1回のみ実行されました。
               <br className="hidden sm:inline" />
@@ -769,6 +910,10 @@ function EstimateCheckResultCard({ result }: { result: CheckResult }) {
 
 /* ------------------------------------------------------------------ */
 /*  Estimate Chat                                                      */
+/*  NOTE: Chat UI has been removed from EstimateToolPage (2026-04-09). */
+/*  Component definition kept for reuse in future responsibility AI    */
+/*  tools where a form-first workflow may not fit.                     */
+/*  TODO: reuse in other tools                                         */
 /* ------------------------------------------------------------------ */
 
 interface EstimateChatProps {
@@ -777,7 +922,8 @@ interface EstimateChatProps {
   pending: boolean;
 }
 
-function EstimateChat({ messages, onSend, pending }: EstimateChatProps) {
+/* eslint-disable @typescript-eslint/no-unused-vars */
+export function EstimateChat({ messages, onSend, pending }: EstimateChatProps) {
   const [draft, setDraft] = useState('');
 
   const submit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -842,6 +988,7 @@ function EstimateChat({ messages, onSend, pending }: EstimateChatProps) {
     </div>
   );
 }
+/* eslint-enable @typescript-eslint/no-unused-vars */
 
 /* ------------------------------------------------------------------ */
 /*  Estimate Form (Form-First UX, 2026-04-09)                          */
@@ -889,8 +1036,8 @@ function emptyEstimateData(): EstimateData {
     subtotal: 0,
     tax_amount: 0,
     total: 0,
-    delivery_date: '',
-    payment_terms: '',
+    delivery_date: DELIVERY_DATE_PRESETS[0],
+    payment_terms: PAYMENT_TERM_PRESETS[0],
     notes: '',
   };
 }
@@ -926,6 +1073,28 @@ function EstimateForm({
 }: EstimateFormProps) {
   const inputClass =
     'w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
+
+  // Payment terms: preset / custom mode detection
+  const isPaymentPreset = (PAYMENT_TERM_PRESETS as readonly string[]).includes(data.payment_terms);
+  const [paymentCustomMode, setPaymentCustomMode] = useState<boolean>(
+    !isPaymentPreset && data.payment_terms !== '',
+  );
+
+  // Delivery date: preset / by-date / custom mode detection
+  const isDeliveryPreset = (DELIVERY_DATE_PRESETS as readonly string[]).includes(
+    data.delivery_date,
+  );
+  const looksLikeJapaneseDate = /^\d{4}年\d{1,2}月\d{1,2}日$/u.test(data.delivery_date);
+  type DeliveryMode = 'preset' | 'by-date' | 'custom';
+  const initialDeliveryMode: DeliveryMode = isDeliveryPreset
+    ? 'preset'
+    : looksLikeJapaneseDate
+      ? 'by-date'
+      : data.delivery_date !== ''
+        ? 'custom'
+        : 'preset';
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(initialDeliveryMode);
+  const [deliveryIsoDate, setDeliveryIsoDate] = useState<string>('');
 
   const updateField = <K extends keyof EstimateData>(field: K, value: EstimateData[K]) => {
     onChange(recomputeTotals({ ...data, [field]: value }));
@@ -1199,27 +1368,111 @@ function EstimateForm({
             <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="ef-delivery">
               納期
             </label>
-            <input
+            <select
               id="ef-delivery"
-              type="text"
               className={inputClass}
-              value={data.delivery_date}
-              onChange={(e) => updateField('delivery_date', e.target.value)}
-              placeholder="例: 2026年5月末日"
-            />
+              value={
+                deliveryMode === 'by-date'
+                  ? DELIVERY_DATE_BY_DATE
+                  : deliveryMode === 'custom'
+                    ? DELIVERY_DATE_CUSTOM
+                    : (DELIVERY_DATE_PRESETS as readonly string[]).includes(data.delivery_date)
+                      ? data.delivery_date
+                      : DELIVERY_DATE_PRESETS[0]
+              }
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === DELIVERY_DATE_BY_DATE) {
+                  setDeliveryMode('by-date');
+                  // Keep current date if already set, otherwise clear
+                  if (deliveryIsoDate) {
+                    updateField('delivery_date', formatJapaneseDate(deliveryIsoDate));
+                  } else {
+                    updateField('delivery_date', '');
+                  }
+                } else if (v === DELIVERY_DATE_CUSTOM) {
+                  setDeliveryMode('custom');
+                  updateField('delivery_date', '');
+                } else {
+                  setDeliveryMode('preset');
+                  updateField('delivery_date', v);
+                }
+              }}
+            >
+              {DELIVERY_DATE_PRESETS.map((preset) => (
+                <option key={preset} value={preset}>
+                  {preset}
+                </option>
+              ))}
+              <option value={DELIVERY_DATE_BY_DATE}>{DELIVERY_DATE_BY_DATE}</option>
+              <option value={DELIVERY_DATE_CUSTOM}>{DELIVERY_DATE_CUSTOM}</option>
+            </select>
+            {deliveryMode === 'by-date' && (
+              <input
+                type="date"
+                className={`${inputClass} mt-2`}
+                value={deliveryIsoDate}
+                onChange={(e) => {
+                  const iso = e.target.value;
+                  setDeliveryIsoDate(iso);
+                  updateField('delivery_date', iso ? formatJapaneseDate(iso) : '');
+                }}
+                aria-label="納期の日付"
+              />
+            )}
+            {deliveryMode === 'custom' && (
+              <input
+                type="text"
+                className={`${inputClass} mt-2`}
+                value={data.delivery_date}
+                onChange={(e) => updateField('delivery_date', e.target.value)}
+                placeholder="例: 2026年5月末日"
+                aria-label="納期 (自由入力)"
+              />
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="ef-payment">
               支払条件
             </label>
-            <input
+            <select
               id="ef-payment"
-              type="text"
               className={inputClass}
-              value={data.payment_terms}
-              onChange={(e) => updateField('payment_terms', e.target.value)}
-              placeholder="例: 月末締め翌月末払い"
-            />
+              value={
+                paymentCustomMode
+                  ? PAYMENT_TERM_CUSTOM
+                  : (PAYMENT_TERM_PRESETS as readonly string[]).includes(data.payment_terms)
+                    ? data.payment_terms
+                    : PAYMENT_TERM_PRESETS[0]
+              }
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === PAYMENT_TERM_CUSTOM) {
+                  setPaymentCustomMode(true);
+                  updateField('payment_terms', '');
+                } else {
+                  setPaymentCustomMode(false);
+                  updateField('payment_terms', v);
+                }
+              }}
+            >
+              {PAYMENT_TERM_PRESETS.map((preset) => (
+                <option key={preset} value={preset}>
+                  {preset}
+                </option>
+              ))}
+              <option value={PAYMENT_TERM_CUSTOM}>{PAYMENT_TERM_CUSTOM}</option>
+            </select>
+            {paymentCustomMode && (
+              <input
+                type="text"
+                className={`${inputClass} mt-2`}
+                value={data.payment_terms}
+                onChange={(e) => updateField('payment_terms', e.target.value)}
+                placeholder="例: 月末締め翌々月15日払い"
+                aria-label="支払条件 (自由入力)"
+              />
+            )}
           </div>
         </div>
         <div>
@@ -1300,12 +1553,6 @@ export default function EstimateToolPage() {
   const [formValidationError, setFormValidationError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
 
-  // Chat / estimate state (chat is now an optional side-panel assistant)
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [chatPending, setChatPending] = useState(false);
-  const [chatError, setChatError] = useState<string | null>(null);
-  const [chatPanelOpen, setChatPanelOpen] = useState(false);
-
   // Check / pdf state
   const [checkResult, setCheckResult] = useState<CheckResult | null>(null);
   const [checkError, setCheckError] = useState<string | null>(null);
@@ -1362,57 +1609,6 @@ export default function EstimateToolPage() {
       return next;
     });
   }, []);
-
-  // Chat send handler (assistant side-panel — does NOT overwrite the form)
-  const handleSendMessage = useCallback(
-    async (content: string) => {
-      if (!primaryBusinessInfo) {
-        setChatError('先に事業情報を登録してください');
-        return;
-      }
-      setChatError(null);
-      const nextMessages: ChatMessage[] = [...chatMessages, { role: 'user', content }];
-      setChatMessages(nextMessages);
-      setChatPending(true);
-      try {
-        const res = await fetch('/api/tools/estimate/create', {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            conversation_history: nextMessages,
-            business_info_id: primaryBusinessInfo.id,
-          }),
-        });
-        const json: ApiEnvelope<CreateApiResponse> = await res.json();
-        if (!res.ok || !json.success || !json.data) {
-          setChatError(json.error ?? 'AI応答の取得に失敗しました');
-          return;
-        }
-        // Form-first UX: do NOT auto-apply json.data.estimate to the form.
-        // The chat panel is now strictly an advisor — the form is the source of truth.
-        if (json.data.next_question) {
-          setChatMessages((prev) => [
-            ...prev,
-            { role: 'assistant', content: json.data!.next_question! },
-          ]);
-        } else if (json.data.estimate) {
-          setChatMessages((prev) => [
-            ...prev,
-            {
-              role: 'assistant',
-              content:
-                'ご相談ありがとうございます。フォームの内容はそのまま保持しています。アドバイスを参考に必要であれば直接修正してください。',
-            },
-          ]);
-        }
-      } catch {
-        setChatError('通信エラーが発生しました');
-      } finally {
-        setChatPending(false);
-      }
-    },
-    [chatMessages, primaryBusinessInfo],
-  );
 
   // Form change handler — clears stale verification when the user edits.
   const handleFormChange = useCallback((next: EstimateData) => {
@@ -1711,16 +1907,15 @@ export default function EstimateToolPage() {
                       </div>
                     )}
 
-                    {/* AI verification result — large area, FujiTrace differentiator */}
+                    {/* Verification result — large area, FujiTrace differentiator */}
                     {checkResult && (
                       <div className="mt-8">
                         <div className="border-l-4 border-blue-600 pl-4 mb-3">
                           <h2 className="text-xl font-bold text-slate-900">
-                            AIによる検証結果
+                            FujiTrace 品質チェック
                           </h2>
                           <p className="text-sm text-slate-600 mt-1">
-                            FujiTrace が4つの観点で自動チェックしました:
-                            算術・相場・記載漏れ・インボイス制度
+                            書類の成立性・日本語品質・インボイス整合性を確認しました
                           </p>
                         </div>
                         <EstimateCheckResultCard result={checkResult} />
@@ -1796,94 +1991,6 @@ export default function EstimateToolPage() {
           </div>
         </section>
 
-        {/* Floating AI Assistant button + side drawer (chat is demoted to advisor) */}
-        {activeTab === 'create' && primaryBusinessInfo && (
-          <>
-            {!chatPanelOpen && (
-              <button
-                type="button"
-                onClick={() => {
-                  setChatPanelOpen(true);
-                  trackEvent('tool.estimate.chat_panel.open', {});
-                }}
-                className="fixed bottom-6 right-6 z-30 bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-3 rounded-full shadow-lg flex items-center gap-2 text-sm"
-                aria-label="AIアシスタントを開く"
-              >
-                <span aria-hidden="true">💬</span>
-                AIアシスタント
-              </button>
-            )}
-            {chatPanelOpen && (
-              <>
-                <div
-                  className="fixed inset-0 bg-black/30 z-30 md:hidden"
-                  onClick={() => setChatPanelOpen(false)}
-                  aria-hidden="true"
-                />
-                <aside
-                  className="fixed inset-0 md:inset-auto md:top-20 md:right-4 md:bottom-4 md:w-[400px] z-40 bg-white border border-slate-200 md:rounded-lg shadow-2xl flex flex-col"
-                  role="dialog"
-                  aria-label="AIアシスタント"
-                >
-                  <header className="border-b border-slate-200 p-3 flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-900">AIアシスタント</h3>
-                      <p className="text-xs text-slate-500">フォームの内容は上書きされません</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setChatPanelOpen(false)}
-                      className="text-slate-500 hover:text-slate-800 text-xl leading-none px-2"
-                      aria-label="アシスタントを閉じる"
-                    >
-                      ×
-                    </button>
-                  </header>
-
-                  {chatMessages.length === 0 && (
-                    <div className="border-b border-slate-200 p-3 space-y-2">
-                      <p className="text-xs text-slate-500 mb-1">こんなことを聞けます:</p>
-                      {[
-                        'この案件、業界相場から見て妥当ですか?',
-                        '値引きを求められたら、いくらまで下げても損しませんか?',
-                        'この顧客向けにもっと説得力のある書き方は?',
-                      ].map((q, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => {
-                            void handleSendMessage(q);
-                          }}
-                          disabled={chatPending}
-                          className="block w-full text-left text-xs bg-slate-50 hover:bg-blue-50 hover:text-blue-700 border border-slate-200 hover:border-blue-300 rounded-md px-3 py-2 transition-colors disabled:opacity-60"
-                        >
-                          {q}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="flex-1 overflow-hidden">
-                    <EstimateChat
-                      messages={chatMessages}
-                      onSend={handleSendMessage}
-                      pending={chatPending}
-                    />
-                  </div>
-
-                  {chatError && (
-                    <div
-                      className="m-3 bg-red-50 border border-red-200 rounded-md px-3 py-2 text-xs text-red-700"
-                      role="alert"
-                    >
-                      {chatError}
-                    </div>
-                  )}
-                </aside>
-              </>
-            )}
-          </>
-        )}
     </div>
   );
 }
