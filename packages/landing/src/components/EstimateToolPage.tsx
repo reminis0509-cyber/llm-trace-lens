@@ -81,13 +81,13 @@ interface BusinessInfoFormData {
   account_holder: string;
 }
 
-interface EstimateClient {
+export interface EstimateClient {
   company_name: string;
   contact_person: string;
   honorific: string;
 }
 
-interface EstimateItem {
+export interface EstimateItem {
   name: string;
   description: string;
   quantity: number;
@@ -97,7 +97,7 @@ interface EstimateItem {
   subtotal: number;
 }
 
-interface EstimateData {
+export interface EstimateData {
   estimate_number: string;
   issue_date: string;
   valid_until: string;
@@ -1708,30 +1708,28 @@ export default function EstimateToolPage() {
     }
   }, [estimateForm, primaryBusinessInfo]);
 
-  // Download PDF
+  // Download PDF — client-side generation via @react-pdf/renderer.
+  // The PDF module + Noto Sans JP font are lazy-loaded on first click so the
+  // initial landing-page bundle stays unaffected.
   const downloadPdf = useCallback(async () => {
     if (!estimate) return;
     setPdfError(null);
     setPdfDownloading(true);
     try {
-      const res = await fetch('/api/tools/estimate/pdf', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ estimate, template: 'standard' }),
-      });
-      if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        let message = 'PDF出力に失敗しました';
-        try {
-          const parsed = JSON.parse(text) as ApiEnvelope<unknown>;
-          if (parsed.error) message = parsed.error;
-        } catch {
-          // not JSON; ignore
-        }
-        setPdfError(message);
-        return;
-      }
-      const blob = await res.blob();
+      const [{ pdf }, { EstimatePdfDocument }] = await Promise.all([
+        import('@react-pdf/renderer'),
+        import('./estimate/EstimatePdfDocument'),
+      ]);
+      const blob = await pdf(
+        <EstimatePdfDocument
+          estimate={estimate}
+          issuerName={primaryBusinessInfo?.company_name}
+          issuerAddress={primaryBusinessInfo?.address}
+          issuerInvoiceNumber={primaryBusinessInfo?.invoice_number}
+          issuerPhone={primaryBusinessInfo?.phone}
+          issuerEmail={primaryBusinessInfo?.email}
+        />,
+      ).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -1743,13 +1741,15 @@ export default function EstimateToolPage() {
       trackEvent('tool.estimate.download', {
         status: checkResult?.status ?? 'unknown',
         acknowledged: acknowledgeDownload,
+        engine: 'client',
       });
-    } catch {
-      setPdfError('通信エラーが発生しました');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setPdfError(`PDF生成に失敗しました: ${msg}`);
     } finally {
       setPdfDownloading(false);
     }
-  }, [estimate, checkResult, acknowledgeDownload]);
+  }, [estimate, checkResult, acknowledgeDownload, primaryBusinessInfo]);
 
   // 判断B: critical 時は承知チェックボックスを経由して DL
   const hasCriticalIssues = useMemo(
