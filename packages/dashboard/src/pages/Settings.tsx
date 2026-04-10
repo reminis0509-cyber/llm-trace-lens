@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, DollarSign, Bell, Webhook } from 'lucide-react';
+import { Settings as SettingsIcon, DollarSign, Bell, Webhook, Zap } from 'lucide-react';
 import { PlanUsage } from './PlanUsage';
+import { Playground } from './Playground';
 
 interface CostData {
   stats: {
@@ -400,6 +401,20 @@ export function Settings({ onBack }: SettingsProps) {
             {testStatus}
           </div>
         )}
+      </div>
+
+      {/* API Connection Test */}
+      <div className="surface-card p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-lg bg-accent-dim flex items-center justify-center">
+            <Zap className="w-5 h-5 text-accent" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-text-primary">API接続テスト</h2>
+            <p className="text-sm text-text-secondary">プロバイダーへの接続をテストします</p>
+          </div>
+        </div>
+        <Playground onBack={() => {}} />
       </div>
     </div>
   );

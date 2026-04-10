@@ -262,8 +262,8 @@ export function WatchRoom() {
               <path d="M16.5 26 L22 12.5 L27.5 26" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
             </svg>
             <div className="watch-brand-stack">
-              <span className="watch-brand-title">FujiTrace ウォッチルーム</span>
-              <span className="watch-brand-sub">Watch Room</span>
+              <span className="watch-brand-title">FujiTrace トレース</span>
+              <span className="watch-brand-sub">Traces</span>
             </div>
             {demoMode && <span className="watch-demo-badge">デモ</span>}
           </div>
@@ -321,7 +321,7 @@ export function WatchRoom() {
           </span>
         </div>
         <div className="watch-footer-meta">
-          FujiTrace ウォッチルーム · プロトタイプ
+          FujiTrace トレース
         </div>
       </footer>
     </div>

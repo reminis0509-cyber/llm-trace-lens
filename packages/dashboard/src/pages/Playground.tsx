@@ -91,7 +91,7 @@ export function Playground({ onBack }: Props) {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] sm:h-[calc(100vh-120px)]">
+    <div className="flex flex-col min-h-[400px]">
       {/* Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 p-3 sm:p-4 surface-card">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">

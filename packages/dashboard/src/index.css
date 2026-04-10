@@ -197,17 +197,38 @@
   backdrop-filter: blur(10px);
   z-index: 5;
 }
+@media (max-width: 639px) {
+  .watch-topbar {
+    height: auto;
+    min-height: 48px;
+    padding: 8px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
 .watch-topbar-left,
 .watch-topbar-right {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+@media (max-width: 639px) {
+  .watch-topbar-left,
+  .watch-topbar-right {
+    gap: 8px;
+  }
+}
 .watch-brand {
   display: flex;
   align-items: center;
   gap: 12px;
   padding-left: 8px;
+}
+@media (max-width: 639px) {
+  .watch-brand {
+    gap: 8px;
+    padding-left: 4px;
+  }
 }
 .watch-brand-stack {
   display: flex;
@@ -221,12 +242,23 @@
   color: #1e293b;
   letter-spacing: 0.02em;
 }
+@media (max-width: 639px) {
+  .watch-brand-title {
+    font-size: 12px;
+  }
+}
 .watch-brand-sub {
   font-size: 9px;
   font-weight: 400;
   color: #94a3b8;
   letter-spacing: 0.22em;
   text-transform: uppercase;
+}
+@media (max-width: 639px) {
+  .watch-brand-sub {
+    font-size: 8px;
+    letter-spacing: 0.15em;
+  }
 }
 .watch-demo-badge {
   font-size: 10px;
@@ -264,11 +296,23 @@
   gap: 28px;
   align-items: center;
 }
+@media (max-width: 639px) {
+  .watch-stats-row {
+    gap: 12px;
+    flex: 1;
+    justify-content: space-around;
+  }
+}
 .watch-stat {
   display: flex;
   flex-direction: column;
   align-items: center;
   min-width: 52px;
+}
+@media (max-width: 639px) {
+  .watch-stat {
+    min-width: 36px;
+  }
 }
 .watch-stat-value {
   font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
@@ -278,11 +322,22 @@
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
+@media (max-width: 639px) {
+  .watch-stat-value {
+    font-size: 16px;
+  }
+}
 .watch-stat-label {
   font-size: 10px;
   color: #94a3b8;
   margin-top: 6px;
   letter-spacing: 0.04em;
+}
+@media (max-width: 639px) {
+  .watch-stat-label {
+    font-size: 9px;
+    margin-top: 3px;
+  }
 }
 .watch-stat--pass .watch-stat-value { color: #16a34a; }
 .watch-stat--warn .watch-stat-value { color: #d97706; }
@@ -292,6 +347,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+@media (max-width: 639px) {
+  .watch-volume {
+    gap: 4px;
+  }
 }
 .watch-volume-slider {
   width: 72px;
@@ -378,12 +438,18 @@
      to scrollHeight on each new trace) is handled in JS. */
   flex-direction: column;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 8px;
   max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
   min-height: 100%;
   box-sizing: border-box;
+}
+@media (max-width: 639px) {
+  .watch-feed-list {
+    padding: 16px 12px 24px;
+    gap: 6px;
+  }
 }
 
 .watch-feed-empty {
@@ -421,6 +487,11 @@
   gap: 14px;
   cursor: pointer;
 }
+@media (max-width: 639px) {
+  .watch-feed-row {
+    gap: 8px;
+  }
+}
 
 /* Outside timestamp gutter — fixed-width column to the bottom-left of
    the card, like LINE / iMessage / WhatsApp. Right-aligned numerals.
@@ -437,6 +508,13 @@
   font-variant-numeric: tabular-nums;
   user-select: none;
 }
+@media (max-width: 639px) {
+  .watch-feed-outer-time {
+    width: 32px;
+    font-size: 10px;
+    padding-bottom: 12px;
+  }
+}
 
 /* The actual card holding all trace details */
 .watch-feed-card {
@@ -451,6 +529,12 @@
   border-radius: 6px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+@media (max-width: 639px) {
+  .watch-feed-card {
+    gap: 12px;
+    padding: 12px 14px;
+  }
 }
 .watch-feed-row:hover .watch-feed-card {
   background: #f8fafc;
@@ -506,6 +590,12 @@
   margin-bottom: 6px;
   flex-wrap: wrap;
 }
+@media (max-width: 639px) {
+  .watch-feed-row-head {
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+}
 .watch-feed-badge {
   font-size: 11px;
   font-weight: 500;
@@ -528,6 +618,17 @@
   color: #64748b;
   font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
   letter-spacing: 0.02em;
+  /* Prevent long model names from breaking card layout */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+@media (max-width: 639px) {
+  .watch-feed-provider {
+    font-size: 10px;
+    max-width: 120px;
+  }
 }
 .watch-feed-latency {
   font-size: 11px;
@@ -535,6 +636,11 @@
   font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
   margin-left: auto;
+}
+@media (max-width: 639px) {
+  .watch-feed-latency {
+    font-size: 10px;
+  }
 }
 .watch-feed-preview {
   font-size: 14px;
@@ -547,6 +653,13 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+@media (max-width: 639px) {
+  .watch-feed-preview {
+    font-size: 13px;
+    line-height: 1.45;
+    -webkit-line-clamp: 2;
+  }
+}
 .watch-feed-row-score {
   display: flex;
   align-items: baseline;
@@ -555,6 +668,11 @@
   min-width: 72px;
   justify-content: flex-end;
 }
+@media (max-width: 639px) {
+  .watch-feed-row-score {
+    min-width: 48px;
+  }
+}
 .watch-feed-score-num {
   font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
   font-size: 30px;
@@ -562,6 +680,11 @@
   color: #1e293b;
   line-height: 1;
   font-variant-numeric: tabular-nums;
+}
+@media (max-width: 639px) {
+  .watch-feed-score-num {
+    font-size: 22px;
+  }
 }
 .watch-feed-score-label {
   font-size: 11px;
@@ -617,6 +740,16 @@
   font-size: 11px;
   color: #94a3b8;
   letter-spacing: 0.04em;
+}
+@media (max-width: 639px) {
+  .watch-footer {
+    height: 36px;
+    padding: 0 12px;
+    font-size: 10px;
+  }
+  .watch-footer-meta {
+    display: none;
+  }
 }
 .watch-heartbeat {
   display: flex;
