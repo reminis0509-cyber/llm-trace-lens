@@ -51,13 +51,11 @@ export function Auth() {
       <div className="surface-card w-full max-w-md p-8">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-accent-cyan to-accent-emerald flex items-center justify-center">
-            <svg className="w-8 h-8" viewBox="0 0 32 32" fill="none">
-              <path d="M6 26 L14.5 6 L19.7 18.2" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-              <path d="M16.5 26 L22 12.5 L27.5 26" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-text-primary tracking-wide">FujiTrace</h1>
+          <img
+            src="/fujitrace-logo.png"
+            alt="FujiTrace"
+            className="h-12 mx-auto mb-4"
+          />
           <p className="text-text-secondary mt-2">
             {isLogin ? 'アカウントにログイン' : '新しいアカウントを作成'}
           </p>
