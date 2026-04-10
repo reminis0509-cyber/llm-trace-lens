@@ -14,13 +14,11 @@ import PrivacyPage from './components/PrivacyPage';
 import CompanyPage from './components/CompanyPage';
 import SalesPage from './components/SalesPage';
 import ForEngineersPage from './components/ForEngineersPage';
-import ChatbotPage from './components/ChatbotPage';
 import ToolsIndexPage from './components/ToolsIndexPage';
-import EstimateToolPage from './components/EstimateToolPage';
+import ClerkPage from './components/ClerkPage';
 import PiiDetection from './components/PiiDetection';
 import LiveTraceFeed from './components/LiveTraceFeed';
 import MidPageCTA from './components/MidPageCTA';
-import ChatbotSection from './components/ChatbotSection';
 import PricingSimulator from './components/PricingSimulator';
 
 export default function App() {
@@ -44,12 +42,10 @@ export default function App() {
     pageContent = <SalesPage />;
   } else if (currentPath === '/for-engineers') {
     pageContent = <ForEngineersPage />;
-  } else if (currentPath === '/chatbot') {
-    pageContent = <ChatbotPage />;
+  } else if (currentPath === '/tools/clerk') {
+    pageContent = <ClerkPage />;
   } else if (currentPath === '/tools') {
     pageContent = <ToolsIndexPage />;
-  } else if (currentPath === '/tools/estimate') {
-    pageContent = <EstimateToolPage />;
   } else {
     pageContent = (
       <>
@@ -85,9 +81,6 @@ export default function App() {
         <Features />
         <div className="section-divider" />
 
-        {/* 8.5 AIチャットbot */}
-        <ChatbotSection />
-        <div className="section-divider" />
 
         {/* 9. 料金 */}
         <Pricing />

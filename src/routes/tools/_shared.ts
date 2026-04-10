@@ -17,6 +17,13 @@ import { getWorkspacePlan } from '../../plans/storage.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/**
+ * Per-process secret used to authenticate internal fastify.inject() calls.
+ * External HTTP callers cannot know this value, so spoofing x-workspace-id
+ * from outside the process is impossible.
+ */
+export const INTERNAL_SECRET = crypto.randomUUID();
+
 // Free plan monthly quota for ai_tools usage (per workspace)
 export const FREE_PLAN_MONTHLY_QUOTA = 10;
 
@@ -54,8 +61,17 @@ export async function resolveWorkspaceId(request: FastifyRequest): Promise<strin
     }
   }
 
+  // Only trust x-workspace-id when accompanied by the per-process internal
+  // secret. This prevents external callers from impersonating workspaces by
+  // setting the header directly. Only fastify.inject() calls from within the
+  // same process (e.g. agent tool dispatch) can supply the correct secret.
+  const internalSecret = request.headers['x-internal-secret'] as string | undefined;
   const workspaceHeader = request.headers['x-workspace-id'] as string | undefined;
-  if (workspaceHeader) {
+  if (
+    workspaceHeader &&
+    internalSecret &&
+    internalSecret === INTERNAL_SECRET
+  ) {
     return workspaceHeader;
   }
 
@@ -253,6 +269,93 @@ export async function callLlmViaProxy(
   const traceId = parsed._trace?.requestId ?? null;
 
   return { content, traceId };
+}
+
+/**
+ * Result from an LLM call that may include tool calls (function calling).
+ */
+export interface LlmToolCallResult {
+  content: string | null;
+  toolCalls: Array<{
+    id: string;
+    function: {
+      name: string;
+      arguments: string;
+    };
+  }>;
+  traceId: string | null;
+}
+
+/**
+ * Call an LLM via the FujiTrace proxy with OpenAI function-calling support.
+ *
+ * Similar to `callLlmViaProxy` but includes the `tools` array and
+ * `tool_choice: 'auto'` in the payload, and parses `tool_calls` from the
+ * response. Used by the AI 事務員 agent for tool dispatch.
+ *
+ * Default model is `gpt-4o` (not gpt-4o-mini) because the agent needs
+ * better reasoning for tool matching decisions.
+ */
+export async function callLlmWithTools(
+  fastify: FastifyInstance,
+  messages: LlmMessage[],
+  tools: unknown[],
+  opts?: { model?: string; temperature?: number; maxTokens?: number },
+): Promise<LlmToolCallResult> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY is not configured');
+  }
+
+  const injectResponse = await fastify.inject({
+    method: 'POST',
+    url: '/v1/chat/completions',
+    headers: { 'content-type': 'application/json' },
+    payload: {
+      model: opts?.model || 'gpt-4o',
+      messages,
+      tools,
+      tool_choice: 'auto',
+      temperature: opts?.temperature ?? 0.2,
+      maxTokens: opts?.maxTokens ?? 2048,
+      api_key: apiKey,
+    },
+  });
+
+  if (injectResponse.statusCode !== 200) {
+    throw new Error(`LLM proxy returned ${injectResponse.statusCode}: ${injectResponse.body}`);
+  }
+
+  const parsed = JSON.parse(injectResponse.body) as {
+    choices?: Array<{
+      message?: {
+        content?: string | null;
+        tool_calls?: Array<{
+          id: string;
+          type: string;
+          function: {
+            name: string;
+            arguments: string;
+          };
+        }>;
+      };
+    }>;
+    _trace?: { requestId?: string };
+  };
+
+  const message = parsed.choices?.[0]?.message;
+  const content = message?.content ?? null;
+  const rawToolCalls = message?.tool_calls ?? [];
+  const toolCalls = rawToolCalls.map((tc) => ({
+    id: tc.id,
+    function: {
+      name: tc.function.name,
+      arguments: tc.function.arguments,
+    },
+  }));
+  const traceId = parsed._trace?.requestId ?? null;
+
+  return { content, toolCalls, traceId };
 }
 
 /**

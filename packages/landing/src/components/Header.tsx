@@ -26,15 +26,10 @@ const navItems: NavItem[] = [
 
 const aiMenuEntries: AiMenuEntry[] = [
   {
-    label: 'AI見積書作成＆チェック',
-    href: '/tools/estimate',
-    description: '見積書を自動生成・内容を自動チェック',
+    label: 'AI事務員',
+    href: '/tools/clerk',
+    description: '自然言語で事務作業を依頼できるAIアシスタント',
     isNew: true,
-  },
-  {
-    label: '生成AIチャットボット',
-    href: '/chatbot',
-    description: '自社サイトに組み込めるAIチャット',
   },
   { isDivider: true },
   {

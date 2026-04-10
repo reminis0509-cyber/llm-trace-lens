@@ -13,29 +13,13 @@ interface ToolCard {
 
 const TOOLS: ToolCard[] = [
   {
-    id: 'estimate',
-    title: 'AI見積書作成＆チェック',
+    id: 'clerk',
+    title: 'AI事務員',
     description:
-      '対話するだけで日本の商習慣・インボイス制度に沿った見積書を生成。AIが自動で計算ミスや過小見積りを検出します。',
-    href: '/tools/estimate',
+      '自然言語で事務作業を依頼できるAIアシスタント。見積書作成・チェック、請求書、ビジネスメールなど、130以上の事務作業に対応します。',
+    href: '/tools/clerk',
     status: 'available',
     badge: 'NEW',
-  },
-  {
-    id: 'invoice',
-    title: 'AI請求書作成＆チェック',
-    description:
-      '見積書から請求書への自動変換、振込先・インボイス番号の整合性チェックに対応予定です。',
-    href: null,
-    status: 'coming-soon',
-  },
-  {
-    id: 'email',
-    title: 'AIビジネスメール作成＆チェック',
-    description:
-      '取引先への重要メールを下書きし、誤送信リスク・敬語・トーンを自動チェックする機能を準備中です。',
-    href: null,
-    status: 'coming-soon',
   },
 ];
 
