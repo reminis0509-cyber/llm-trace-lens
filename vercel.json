@@ -8,6 +8,19 @@
       "includeFiles": "assets/fonts/**"
     }
   },
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/dashboard/",
+      "has": [
+        {
+          "type": "host",
+          "value": "^(?!about\\.).*$"
+        }
+      ],
+      "permanent": false
+    }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.ts" },
     { "source": "/v1/(.*)", "destination": "/api/index.ts" },
@@ -17,7 +30,6 @@
     { "source": "/company", "destination": "/index.html" },
     { "source": "/sales", "destination": "/index.html" },
     { "source": "/for-engineers", "destination": "/index.html" },
-    { "source": "/chatbot", "destination": "/index.html" },
     { "source": "/tools", "destination": "/index.html" },
     { "source": "/tools/(.*)", "destination": "/index.html" },
     { "source": "/dashboard/(.*)", "destination": "/dashboard/index.html" },
