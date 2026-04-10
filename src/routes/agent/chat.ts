@@ -58,13 +58,18 @@ export default async function agentChatRoute(fastify: FastifyInstance): Promise<
         return reply.code(401).send({ success: false, error: '認証が必要です' });
       }
 
-      // 2. Pro plan gate
-      const free = await isFreePlan(workspaceId);
-      if (free) {
-        return reply.code(403).send({
-          success: false,
-          error: 'AI事務員はProプランの機能です。個別ツールは引き続きご利用いただけます。',
-        });
+      // 2. Pro plan gate (admin bypass for testing)
+      const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
+      const userEmail = (request.headers['x-user-email'] as string || '').toLowerCase();
+      const isAdmin = adminEmails.includes(userEmail);
+      if (!isAdmin) {
+        const free = await isFreePlan(workspaceId);
+        if (free) {
+          return reply.code(403).send({
+            success: false,
+            error: 'AI事務員はProプランの機能です。個別ツールは引き続きご利用いただけます。',
+          });
+        }
       }
 
       // 3. Validate input
