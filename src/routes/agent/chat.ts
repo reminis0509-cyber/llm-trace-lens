@@ -21,13 +21,15 @@
  *     }
  *   }
  *
- * Auth: workspace (header / middleware). Pro plan only.
+ * Auth: workspace (header / middleware).
+ * Billing: 3 free trials per workspace, then ¥10/use (402 when exhausted).
  * Rate limit: 20 req / hour / workspace.
  */
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { resolveWorkspaceId, isFreePlan } from '../tools/_shared.js';
+import { resolveWorkspaceId } from '../tools/_shared.js';
 import { executeClerk, ConversationAccessError } from '../../agent/clerk.js';
+import { enforceAgentBilling, getTrialStatus, AGENT_FREE_TRIAL_LIMIT } from '../../agent/trial.js';
 
 const requestSchema = z.object({
   conversation_id: z.string().uuid().optional(),
@@ -58,16 +60,17 @@ export default async function agentChatRoute(fastify: FastifyInstance): Promise<
         return reply.code(401).send({ success: false, error: '認証が必要です' });
       }
 
-      // 2. Pro plan gate (admin bypass for testing)
+      // 2. Trial / billing gate (admin bypass)
       const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
       const userEmail = (request.headers['x-user-email'] as string || '').toLowerCase();
       const isAdmin = adminEmails.includes(userEmail);
       if (!isAdmin) {
-        const free = await isFreePlan(workspaceId);
-        if (free) {
-          return reply.code(403).send({
+        const billing = await enforceAgentBilling(workspaceId);
+        if (!billing.allowed) {
+          return reply.code(402).send({
             success: false,
-            error: 'AI事務員はProプランの機能です。個別ツールは引き続きご利用いただけます。',
+            error: billing.error,
+            trialInfo: billing.trialInfo,
           });
         }
       }
@@ -88,7 +91,12 @@ export default async function agentChatRoute(fastify: FastifyInstance): Promise<
         workspaceId,
       });
 
-      return reply.code(200).send({ success: true, data: result });
+      // Get updated trial info (usage was recorded inside executeClerk)
+      const trialInfo = isAdmin
+        ? { used: 0, limit: AGENT_FREE_TRIAL_LIMIT, remaining: AGENT_FREE_TRIAL_LIMIT, isTrialExhausted: false }
+        : await getTrialStatus(workspaceId);
+
+      return reply.code(200).send({ success: true, data: { ...result, trialInfo } });
 
     } catch (error: unknown) {
       if (error instanceof ConversationAccessError) {

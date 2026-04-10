@@ -25,6 +25,13 @@ interface ChatMessage {
   timestamp: Date;
 }
 
+interface TrialInfo {
+  used: number;
+  limit: number;
+  remaining: number;
+  isTrialExhausted: boolean;
+}
+
 interface ApiResponse {
   success: boolean;
   data: {
@@ -38,6 +45,7 @@ interface ApiResponse {
     };
     feature_request_logged?: boolean;
     trace_id?: string;
+    trialInfo?: TrialInfo;
   };
   error?: string;
 }
@@ -97,6 +105,8 @@ export default function ClerkChat() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [trialInfo, setTrialInfo] = useState<TrialInfo | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -109,6 +119,30 @@ export default function ClerkChat() {
   // Focus input on mount
   useEffect(() => {
     inputRef.current?.focus();
+  }, []);
+
+  // Fetch trial status on mount
+  useEffect(() => {
+    const fetchTrialStatus = async () => {
+      try {
+        const res = await fetch('/api/agent/trial-status', {
+          headers: getAuthHeaders(),
+        });
+        if (res.ok) {
+          const body = (await res.json()) as {
+            success: boolean;
+            data: { trialInfo: TrialInfo; isAdmin?: boolean };
+          };
+          if (body.success && body.data?.trialInfo) {
+            setTrialInfo(body.data.trialInfo);
+            if (body.data.isAdmin) setIsAdmin(true);
+          }
+        }
+      } catch {
+        // Silent fail — trial badge is non-critical
+      }
+    };
+    fetchTrialStatus();
   }, []);
 
   const handleSend = useCallback(async () => {
@@ -138,6 +172,15 @@ export default function ClerkChat() {
       });
 
       if (!res.ok) {
+        if (res.status === 402) {
+          const errBody = await res.json().catch(() => null) as {
+            error?: string;
+            trialInfo?: TrialInfo;
+          } | null;
+          if (errBody?.trialInfo) setTrialInfo(errBody.trialInfo);
+          setError(errBody?.error ?? '無料トライアルが終了しました。');
+          return;
+        }
         if (res.status === 403) {
           setError('AI事務員はProプランの機能です。');
           return;
@@ -160,6 +203,7 @@ export default function ClerkChat() {
 
       const { data } = body;
       setConversationId(data.conversation_id);
+      if (data.trialInfo) setTrialInfo(data.trialInfo);
 
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
@@ -206,6 +250,24 @@ export default function ClerkChat() {
         <p className="text-sm text-gray-500 mt-1">
           自然言語で事務作業を依頼できます
         </p>
+        {/* Trial status badge */}
+        {trialInfo && !isAdmin && (
+          <div className="mt-2">
+            {trialInfo.remaining === 0 ? (
+              <span className="text-xs text-red-600">
+                無料トライアル（{trialInfo.limit}回）が終了しました
+              </span>
+            ) : trialInfo.remaining === 1 ? (
+              <span className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded">
+                お試し: 残り1回
+              </span>
+            ) : (
+              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                お試し: 残り{trialInfo.remaining}回
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Messages */}
