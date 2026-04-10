@@ -52,7 +52,7 @@ export function Auth() {
         {/* Logo */}
         <div className="text-center mb-8">
           <img
-            src="/fujitrace-logo.png"
+            src="/dashboard/fujitrace-logo.png"
             alt="FujiTrace"
             className="h-12 mx-auto mb-4"
           />
