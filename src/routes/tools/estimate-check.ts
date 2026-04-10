@@ -50,7 +50,7 @@ export interface EstimateVerificationOutcome {
   };
 }
 
-const estimateItemSchema = z.object({
+export const estimateItemSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   quantity: z.number(),
@@ -60,7 +60,7 @@ const estimateItemSchema = z.object({
   subtotal: z.number(),
 });
 
-const estimateSchema = z.object({
+export const estimateSchema = z.object({
   estimate_number: z.string(),
   issue_date: z.string(),
   valid_until: z.string(),
@@ -91,11 +91,12 @@ const industrySchema = z
   })
   .optional();
 
-const requestSchema = z.object({
+export const estimateCheckRequestSchema = z.object({
   estimate: estimateSchema,
   industry: industrySchema,
   business_info_id: z.string().min(1).max(100).optional(),
 });
+const requestSchema = estimateCheckRequestSchema;
 
 export default async function estimateCheckRoute(fastify: FastifyInstance): Promise<void> {
   fastify.post('/api/tools/estimate/check', {

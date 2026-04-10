@@ -57,7 +57,7 @@ import {
 import type { CheckResult, EstimateData, BusinessInfoRecord } from '../../types/ai-tools.js';
 import { runEstimateVerification } from './estimate-check.js';
 
-const messageSchema = z.object({
+export const messageSchema = z.object({
   role: z.enum(['user', 'assistant']),
   content: z.string().min(1).max(8000),
 });
@@ -71,11 +71,12 @@ const industrySchema = z
   })
   .optional();
 
-const requestSchema = z.object({
+export const estimateCreateRequestSchema = z.object({
   conversation_history: z.array(messageSchema).min(1).max(50),
   business_info_id: z.string().min(1),
   industry: industrySchema,
 });
+const requestSchema = estimateCreateRequestSchema;
 
 /**
  * Verification payload returned alongside the generated estimate. The LLM
