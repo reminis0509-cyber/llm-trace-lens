@@ -152,3 +152,496 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Watch Room (Phase W0) — Japanese B2B SaaS light-theme monitoring surface.
+   Strategy: docs/戦略_2026.md Section 11
+   Color system mirrors the LP (fujitrace.jp) and the main dashboard:
+     base       #ffffff / #f8fafc / #f1f5f9
+     text       #1e293b / #64748b / #94a3b8
+     border     #e2e8f0 / #f1f5f9
+     accent     #1d3557 (LP deep navy)
+     status     #16a34a / #d97706 / #dc2626 / #7c3aed
+   Kept as plain CSS so the Watch Room root can be treated as an isolated
+   fullscreen surface on top of the normal dashboard.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.watch-room-root {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  /* Base is pure white with a barely-visible slate lift at the top —
+     identical philosophy to the LP hero wash. Ambient anomaly shifts
+     this gradient warmer as error rate rises. */
+  background: radial-gradient(ellipse at 50% -10%, #f1f5f9 0%, #ffffff 55%);
+  color: #1e293b;
+  font-family: 'Inter', 'Noto Sans JP', system-ui, sans-serif;
+  font-feature-settings: 'palt';
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: background 2.5s ease-out;
+  z-index: 100;
+}
+
+.watch-topbar {
+  height: 64px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  z-index: 5;
+}
+.watch-topbar-left,
+.watch-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.watch-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 8px;
+}
+.watch-brand-stack {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  gap: 2px;
+}
+.watch-brand-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  letter-spacing: 0.02em;
+}
+.watch-brand-sub {
+  font-size: 9px;
+  font-weight: 400;
+  color: #94a3b8;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.watch-demo-badge {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: #b45309;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 4px;
+  padding: 3px 8px;
+  margin-left: 4px;
+}
+
+.watch-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  color: #64748b;
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+.watch-icon-btn:hover {
+  color: #1e293b;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.watch-stats-row {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+}
+.watch-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 52px;
+}
+.watch-stat-value {
+  font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 22px;
+  font-weight: 500;
+  color: #1e293b;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.watch-stat-label {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 6px;
+  letter-spacing: 0.04em;
+}
+.watch-stat--pass .watch-stat-value { color: #16a34a; }
+.watch-stat--warn .watch-stat-value { color: #d97706; }
+.watch-stat--fail .watch-stat-value { color: #dc2626; }
+
+.watch-volume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.watch-volume-slider {
+  width: 72px;
+  height: 3px;
+  appearance: none;
+  background: #e2e8f0;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.watch-volume-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #1d3557;
+  cursor: pointer;
+  border: none;
+}
+.watch-volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #1d3557;
+  cursor: pointer;
+  border: none;
+}
+.watch-volume-slider:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Main stream container */
+.watch-stream-container {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ─── Feed (stacked, scrollable history) ──────────────────────────────── */
+.watch-feed-root {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+.watch-feed-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: auto;
+  overflow-anchor: none;
+}
+.watch-feed-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.watch-feed-scroll::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+.watch-feed-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.watch-feed-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.watch-feed-list {
+  list-style: none;
+  margin: 0;
+  /* Top padding only matters once history fills the screen — until then
+     `justify-content: flex-end` keeps everything pinned to the bottom. */
+  padding: 80px 48px 32px;
+  display: flex;
+  /* Chat-app convention (Slack / iMessage / Discord):
+       - oldest items at the top
+       - newest items at the bottom
+       - when the list is short, everything sticks to the bottom edge
+         (so the very first trace appears AT the bottom and rises as
+         more arrive)
+     `justify-content: flex-end` handles the empty/short-list case;
+     `min-height: 100%` ensures the list always fills the scroll viewport
+     so flex-end has room to push against. Auto-follow (pinning scrollTop
+     to scrollHeight on each new trace) is handled in JS. */
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 10px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.watch-feed-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: #94a3b8;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+.watch-feed-empty-pulse {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(29, 53, 87, 0.25);
+  box-shadow: 0 0 16px rgba(29, 53, 87, 0.2);
+  animation: watch-empty-pulse 2.4s ease-in-out infinite;
+}
+@keyframes watch-empty-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.4); opacity: 1; }
+}
+
+/* Feed row — wrapper holding the LINE-style outside timestamp + card.
+   align-items: flex-end pulls the timestamp down to the bottom edge of
+   the card (LINE convention: time hugs the bottom-left of the bubble). */
+.watch-feed-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  cursor: pointer;
+}
+
+/* Outside timestamp gutter — fixed-width column to the bottom-left of
+   the card, like LINE / iMessage / WhatsApp. Right-aligned numerals.
+   padding-bottom matches the card's bottom padding so the baseline of
+   the time aligns with the visual bottom interior of the card. */
+.watch-feed-outer-time {
+  flex: 0 0 auto;
+  width: 44px;
+  text-align: right;
+  padding-bottom: 18px;
+  font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+/* The actual card holding all trace details */
+.watch-feed-card {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 18px 24px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #cbd5e1;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+.watch-feed-row:hover .watch-feed-card {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+.watch-feed-row--critical .watch-feed-card {
+  border-left-width: 4px;
+  box-shadow: 0 2px 12px rgba(220, 38, 38, 0.12);
+  animation: watch-feed-pulse-critical 3s ease-in-out infinite;
+}
+@keyframes watch-feed-pulse-critical {
+  0%, 100% { box-shadow: 0 2px 12px rgba(220, 38, 38, 0.14); }
+  50%      { box-shadow: 0 4px 20px rgba(220, 38, 38, 0.28); }
+}
+
+.watch-feed-row--newest {
+  /* Slide the wrapper (time + card together) up from below */
+  animation: watch-feed-slide-in 520ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.watch-feed-row--newest.watch-feed-row--critical .watch-feed-card {
+  /* Critical newest: flash once, then settle into the persistent pulse */
+  animation:
+    watch-feed-flash-critical 900ms ease-out,
+    watch-feed-pulse-critical 3s ease-in-out 900ms infinite;
+}
+@keyframes watch-feed-slide-in {
+  0% {
+    opacity: 0;
+    /* Chat-style: new row rises from below into its final spot */
+    transform: translateY(18px) scale(0.985);
+  }
+  60% { opacity: 1; }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes watch-feed-flash-critical {
+  0%   { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.0); }
+  35%  { box-shadow: 0 6px 28px 2px rgba(220, 38, 38, 0.32); }
+  100% { box-shadow: 0 2px 12px rgba(220, 38, 38, 0.14); }
+}
+
+.watch-feed-row-main {
+  flex: 1;
+  min-width: 0;
+}
+.watch-feed-row-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.watch-feed-badge {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  border: 1px solid;
+  border-radius: 4px;
+  padding: 3px 10px;
+  flex-shrink: 0;
+  line-height: 1.4;
+  background: #ffffff;
+}
+.watch-feed-time {
+  font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+}
+.watch-feed-provider {
+  font-size: 11px;
+  color: #64748b;
+  font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 0.02em;
+}
+.watch-feed-latency {
+  font-size: 11px;
+  color: #94a3b8;
+  font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+.watch-feed-preview {
+  font-size: 14px;
+  color: #1e293b;
+  line-height: 1.55;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.watch-feed-row-score {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  flex-shrink: 0;
+  min-width: 72px;
+  justify-content: flex-end;
+}
+.watch-feed-score-num {
+  font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 30px;
+  font-weight: 500;
+  color: #1e293b;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.watch-feed-score-label {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+/* "↓ 新着 N 件" — appears when user has scrolled up from the live edge.
+   In chat-style mode the live edge is the BOTTOM, so the badge floats just
+   above the bottom edge of the feed. Click to jump back to live. */
+.watch-feed-unseen-badge {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  background: #1d3557;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid #1d3557;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(29, 53, 87, 0.22);
+  transition: transform 200ms ease, box-shadow 200ms ease;
+  z-index: 5;
+  animation: watch-unseen-pop 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.watch-feed-unseen-badge:hover {
+  transform: translateX(-50%) translateY(-2px);
+  background: #162a46;
+  box-shadow: 0 14px 36px rgba(29, 53, 87, 0.32);
+}
+@keyframes watch-unseen-pop {
+  0% { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Footer heartbeat */
+.watch-footer {
+  height: 44px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  font-size: 11px;
+  color: #94a3b8;
+  letter-spacing: 0.04em;
+}
+.watch-heartbeat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.watch-heartbeat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1d3557;
+  box-shadow: 0 0 8px rgba(29, 53, 87, 0.45);
+  animation: watch-heartbeat 1.8s ease-in-out infinite;
+}
+@keyframes watch-heartbeat {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.4); opacity: 1; }
+}
+.watch-heartbeat-label {
+  color: #1d3557;
+  font-weight: 500;
+}
+.watch-footer-meta {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+

@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Key, MessageSquare, List, BarChart3, TrendingUp, Link2, Settings as SettingsIcon, LogOut, Users, Menu, X, Shield, Bot } from 'lucide-react';
+import { Key, MessageSquare, List, BarChart3, TrendingUp, Link2, Settings as SettingsIcon, LogOut, Users, Menu, X, Shield, Bot, Radio } from 'lucide-react';
 import { TraceList } from '../components/TraceList';
 import { TraceDetail } from '../components/TraceDetail';
 import { StatsPanel } from '../components/StatsPanel';
@@ -165,6 +165,14 @@ export function Dashboard() {
 
           {/* Desktop User Menu */}
           <div className="hidden md:flex items-center gap-4">
+            <a
+              href="/dashboard/watch"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary border border-border hover:border-accent/40 rounded-card transition-colors duration-120"
+              title="ウォッチルームを開く"
+            >
+              <Radio className="w-3.5 h-3.5" strokeWidth={1.5} />
+              <span className="hidden xl:inline">ウォッチルーム</span>
+            </a>
             <span className="text-xs text-text-muted truncate max-w-[150px]">{user?.email}</span>
             <button
               onClick={handleSignOut}

@@ -5,19 +5,45 @@ import { Auth } from './pages/Auth';
 import { Dashboard } from './pages/Dashboard';
 import { InviteAccept } from './pages/InviteAccept';
 import { AdminRoute } from './pages/AdminRoute';
+import { WatchRoom } from './pages/WatchRoom';
 
 function isAdminPath(path: string): boolean {
   return path.startsWith('/dashboard/admin') || path.startsWith('/admin');
 }
 
+function isWatchRoomPath(path: string): boolean {
+  return path.startsWith('/dashboard/watch') || path.startsWith('/watch');
+}
+
+function isWatchDemoRequest(path: string, search: string): boolean {
+  if (!isWatchRoomPath(path)) return false;
+  const params = new URLSearchParams(search);
+  return params.get('demo') === '1' || params.get('demo') === 'true';
+}
+
 function AppContent() {
   const { user, loading, error } = useAuth();
   const path = window.location.pathname;
+  const search = window.location.search;
 
   // Handle invite accept route (accessible without login to show login prompt)
   // Supports both /dashboard/invite/accept (production) and /invite/accept (dev)
   if (path.startsWith('/dashboard/invite/accept') || path.startsWith('/invite/accept')) {
     return <InviteAccept />;
+  }
+
+  // Watch Room demo mode: public access, synthesized traces only, zero real data.
+  // This lets Founder share the X demo video URL publicly and lets anyone
+  // preview the monitoring experience without a login. Real-data access still
+  // requires authentication (handled below after the user gate).
+  if (isWatchDemoRequest(path, search)) {
+    return (
+      <RoleProvider initialWorkspaceId="demo">
+        <PlanProvider>
+          <WatchRoom />
+        </PlanProvider>
+      </RoleProvider>
+    );
   }
 
   if (loading) {
@@ -68,6 +94,18 @@ function AppContent() {
       <RoleProvider initialWorkspaceId={workspaceId}>
         <PlanProvider>
           <AdminRoute />
+        </PlanProvider>
+      </RoleProvider>
+    );
+  }
+
+  // Watch Room route: /dashboard/watch — fullscreen ambient monitoring mode
+  // (Phase W0 prototype, see docs/戦略_2026.md Section 11)
+  if (isWatchRoomPath(path)) {
+    return (
+      <RoleProvider initialWorkspaceId={workspaceId}>
+        <PlanProvider>
+          <WatchRoom />
         </PlanProvider>
       </RoleProvider>
     );
