@@ -43,7 +43,11 @@ function toFunctionName(schemaName: string): string {
  * - `_adapt_tool` — meta-function for the agent to signal an adapted match
  * - `_log_feature_request` — meta-function for logging unmatched requests
  */
+let cachedFunctionCallingTools: FunctionCallingTool[] | null = null;
+
 export function buildFunctionCallingTools(schemas: ToolSchema[]): FunctionCallingTool[] {
+  if (cachedFunctionCallingTools) return cachedFunctionCallingTools;
+
   const toolFunctions: FunctionCallingTool[] = schemas.map((schema) => ({
     type: 'function' as const,
     function: {
@@ -107,7 +111,8 @@ export function buildFunctionCallingTools(schemas: ToolSchema[]): FunctionCallin
     },
   };
 
-  return [...toolFunctions, adaptTool, logFeatureRequest];
+  cachedFunctionCallingTools = [...toolFunctions, adaptTool, logFeatureRequest];
+  return cachedFunctionCallingTools;
 }
 
 /**
