@@ -30,6 +30,16 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // Instagram型URL構造: メインドメインではルートをダッシュボード（ログイン画面）にリダイレクト
+  // about.fujitrace.jp と localhost / 127.0.0.1（開発）ではLPをそのまま表示
+  const hostname = window.location.hostname;
+  const isAboutSubdomain = hostname.startsWith('about.');
+  const isLocalDev = hostname === 'localhost' || hostname.startsWith('127.0.0.1');
+  if (currentPath === '/' && !isAboutSubdomain && !isLocalDev) {
+    window.location.href = '/dashboard/';
+    return null;
+  }
+
   let pageContent: React.ReactNode;
 
   if (currentPath === '/terms') {
