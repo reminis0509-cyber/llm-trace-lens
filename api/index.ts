@@ -22,6 +22,7 @@ import adminDashboardRoutes from '../src/routes/admin-dashboard.js';
 import billingRoutes from '../src/routes/billing.js';
 import chatbotPlatformRoutes from '../src/routes/chatbot-platform.js';
 import toolsRoutes from '../src/routes/tools/index.js';
+import agentRoutes from '../src/routes/agent/index.js';
 import rbacPlugin from '../src/middleware/rbac.js';
 import { budgetGuardMiddleware } from '../src/middleware/budget-guard.js';
 
@@ -67,6 +68,7 @@ async function getApp() {
     await researchRoutes(app);
     await chatbotPlatformRoutes(app);
     await toolsRoutes(app);
+    await agentRoutes(app);
     await registerRoutes(app);
 
     await app.ready();
