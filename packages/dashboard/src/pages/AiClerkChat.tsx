@@ -313,6 +313,7 @@ export default function AiClerkChat() {
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>(loadCompanyInfo);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasSeenCompanySetup, setHasSeenCompanySetup] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -326,6 +327,14 @@ export default function AiClerkChat() {
   useEffect(() => {
     textareaRef.current?.focus();
   }, []);
+
+  // Auto-open company info modal on mount if company info is empty
+  useEffect(() => {
+    if (!hasCompanyInfo(companyInfo) && !hasSeenCompanySetup) {
+      setShowCompanyModal(true);
+      setHasSeenCompanySetup(true);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-resize textarea
   const adjustTextarea = useCallback(() => {
@@ -405,6 +414,11 @@ export default function AiClerkChat() {
 
   // Send message
   const handleSend = useCallback(async (text?: string) => {
+    if (!hasCompanyInfo(companyInfo)) {
+      setShowCompanyModal(true);
+      return;
+    }
+
     const trimmed = (text || input).trim();
     if (!trimmed || isLoading) return;
 
@@ -444,7 +458,7 @@ export default function AiClerkChat() {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          conversation_id: conversationId,
+          ...(conversationId ? { conversation_id: conversationId } : {}),
           message: messageContent,
         }),
       });
@@ -581,7 +595,9 @@ export default function AiClerkChat() {
                 FujiTrace AI 事務員
               </h2>
               <p className="mt-2 text-sm text-text-secondary text-center max-w-sm">
-                事務作業をお手伝いします。下のボタンから始めるか、自由に入力してください。
+                {hasCompanyInfo(companyInfo)
+                  ? '事務作業をお手伝いします。下のボタンから始めるか、自由に入力してください。'
+                  : '事務作業をお手伝いします。まずは会社情報を設定してから、下のボタンで始めるか自由に入力してください。'}
               </p>
 
               {/* Trial remaining badge */}
@@ -624,7 +640,10 @@ export default function AiClerkChat() {
                     src="/dashboard/mascot-run.gif"
                     alt=""
                     className="w-10 h-10"
-                    style={{ imageRendering: 'pixelated' }}
+                    style={{
+                      imageRendering: 'pixelated' as const,
+                      animation: 'mascot-run 0.3s ease-in-out infinite alternate',
+                    }}
                     aria-hidden="true"
                   />
                   <div className="bg-base-surface rounded-2xl rounded-bl-sm px-4 py-3">

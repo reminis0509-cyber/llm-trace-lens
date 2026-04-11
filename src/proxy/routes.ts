@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { handleCompletion } from './handler.js';
 import { TraceRepository, type ProviderStats } from '../storage/repository.js';
 import type { LLMProvider, LLMRequest, Trace, ValidationResult, RuleResult, ValidationLevel, TraceType, AgentTrace } from '../types/index.js';
-import { getWorkspaceTraces, getTraceById as getKVTraceById } from '../kv/client.js';
+import { getWorkspaceTraces, getWorkspaceTraceById } from '../kv/client.js';
 
 const traceRepo = new TraceRepository();
 
@@ -338,17 +338,9 @@ export async function registerRoutes(server: FastifyInstance) {
     // Try KV first if available (for Vercel/production)
     if (isKVAvailable()) {
       try {
-        const kvTrace = await getKVTraceById(request.params.id);
+        const kvTrace = await getWorkspaceTraceById(workspaceId, request.params.id);
         if (kvTrace) {
-          // Verify workspace ownership for KV traces
-          const traceWorkspaceId = (kvTrace as Record<string, unknown>).workspaceId as string | undefined;
-          if (traceWorkspaceId && traceWorkspaceId === workspaceId) {
-            return kvTraceToTrace(kvTrace as Record<string, unknown>);
-          }
-          // Workspace mismatch: treat as not found
-          return reply.code(404).send({
-            error: 'Trace not found',
-          });
+          return kvTraceToTrace(kvTrace);
         }
       } catch (error) {
         request.log.error({ error }, 'Failed to get trace from KV, falling back to SQLite');

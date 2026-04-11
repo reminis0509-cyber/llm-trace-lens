@@ -616,6 +616,36 @@ export async function saveWorkspaceTrace(
 }
 
 /**
+ * Get a single trace by requestId within a workspace.
+ * Looks up via the workspace trace index and matches on requestId.
+ */
+export async function getWorkspaceTraceById(
+  workspaceId: string,
+  traceId: string
+): Promise<Record<string, unknown> | null> {
+  if (!isKVAvailable()) {
+    return null;
+  }
+
+  try {
+    const indexKey = getWorkspaceKey(workspaceId, 'traces:index');
+    const traceKeys = await kv.zrange(indexKey, 0, -1, { rev: true });
+
+    for (const key of traceKeys) {
+      const trace = await kv.get<Record<string, unknown>>(key as string);
+      if (trace && (trace.requestId === traceId || (key as string).includes(traceId))) {
+        return trace;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Failed to get workspace trace by ID:', error);
+    return null;
+  }
+}
+
+/**
  * Get traces for a workspace
  */
 export async function getWorkspaceTraces(
