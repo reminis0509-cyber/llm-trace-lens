@@ -13,13 +13,11 @@ import { supabase } from '../lib/supabase';
 
 type ViewType =
   | { type: 'hub' }
-  | { type: 'estimate-create' }
-  | { type: 'estimate-check' }
-  | { type: 'invoice-create' }
-  | { type: 'invoice-check' }
-  | { type: 'delivery-note-create' }
-  | { type: 'purchase-order-create' }
-  | { type: 'cover-letter-create' };
+  | { type: 'estimate' }
+  | { type: 'invoice' }
+  | { type: 'delivery-note' }
+  | { type: 'purchase-order' }
+  | { type: 'cover-letter' };
 
 interface TrialInfo {
   used: number;
@@ -72,103 +70,133 @@ const TASK_CARDS: TaskCardDef[] = [
   {
     id: 'estimate',
     title: '見積書',
-    description: '明細・金額を入力して見積書を自動生成・チェック',
+    description: '作成・チェック',
     actions: [
-      { label: '作成する', view: { type: 'estimate-create' } },
-      { label: 'チェックする', view: { type: 'estimate-check' } },
+      { label: '開く', view: { type: 'estimate' } },
     ],
   },
   {
     id: 'invoice',
     title: '請求書',
-    description: 'インボイス対応の請求書を作成・チェック',
+    description: '作成・チェック',
     actions: [
-      { label: '作成する', view: { type: 'invoice-create' } },
-      { label: 'チェックする', view: { type: 'invoice-check' } },
+      { label: '開く', view: { type: 'invoice' } },
     ],
   },
   {
     id: 'delivery-note',
     title: '納品書',
-    description: '納品書を自動生成',
+    description: '作成',
     actions: [
-      { label: '作成する', view: { type: 'delivery-note-create' } },
+      { label: '開く', view: { type: 'delivery-note' } },
     ],
   },
   {
     id: 'purchase-order',
     title: '発注書',
-    description: '発注書を自動生成',
+    description: '作成',
     actions: [
-      { label: '作成する', view: { type: 'purchase-order-create' } },
+      { label: '開く', view: { type: 'purchase-order' } },
     ],
   },
   {
     id: 'cover-letter',
     title: '送付状',
-    description: '送付状を自動生成',
+    description: '作成',
     actions: [
-      { label: '作成する', view: { type: 'cover-letter-create' } },
+      { label: '開く', view: { type: 'cover-letter' } },
     ],
   },
 ];
 
-const FORM_CONFIGS: Record<string, GenericFormConfig> = {
-  'estimate-check': {
-    title: '見積書チェック',
-    taskId: 'estimate.check',
-    fields: [
-      { key: 'content', label: '見積書の内容（テキスト貼り付け、またはファイル添付）', type: 'textarea', placeholder: '見積書の内容をここに貼り付けてください...', required: true },
-    ],
+interface TaskConfig {
+  title: string;
+  hasCheck: boolean;
+  createConfig: GenericFormConfig;
+  checkConfig?: GenericFormConfig;
+}
+
+const TASK_CONFIGS: Record<string, TaskConfig> = {
+  'estimate': {
+    title: '見積書',
+    hasCheck: true,
+    createConfig: {
+      title: '見積書作成',
+      taskId: 'estimate.create',
+      fields: [], // Uses dedicated EstimateCreateForm
+    },
+    checkConfig: {
+      title: '見積書チェック',
+      taskId: 'estimate.check',
+      fields: [
+        { key: 'content', label: 'チェックしたい見積書の内容を貼り付け、またはファイルを添付してください', type: 'textarea', placeholder: '見積書の内容をここに貼り付け...', required: true },
+      ],
+    },
   },
-  'invoice-create': {
-    title: '請求書作成',
-    taskId: 'invoice.create',
-    fields: [
-      { key: 'client', label: '宛先（会社名）', type: 'text', placeholder: '株式会社○○', required: true },
-      { key: 'invoiceNumber', label: '請求書番号', type: 'text', placeholder: 'INV-2026-001' },
-      { key: 'items', label: '明細', type: 'items', required: true },
-      { key: 'dueDate', label: '支払期限', type: 'date', required: true },
-      { key: 'bankAccount', label: '振込先口座', type: 'textarea', placeholder: '銀行名 支店名 普通 口座番号 口座名義' },
-      { key: 'paymentTerms', label: '支払条件', type: 'select', options: ['月末締め翌月末払い', '月末締め翌々月末払い', '納品後30日以内', '前払い'] },
-    ],
+  'invoice': {
+    title: '請求書',
+    hasCheck: true,
+    createConfig: {
+      title: '請求書作成',
+      taskId: 'invoice.create',
+      fields: [
+        { key: 'client', label: '宛先（会社名）', type: 'text', placeholder: '株式会社○○', required: true },
+        { key: 'invoiceNumber', label: '請求書番号', type: 'text', placeholder: 'INV-2026-001' },
+        { key: 'items', label: '明細', type: 'items', required: true },
+        { key: 'dueDate', label: '支払期限', type: 'date', required: true },
+        { key: 'bankAccount', label: '振込先口座', type: 'textarea', placeholder: '銀行名 支店名 普通 口座番号 口座名義' },
+        { key: 'paymentTerms', label: '支払条件', type: 'select', options: ['月末締め翌月末払い', '月末締め翌々月末払い', '納品後30日以内', '前払い'] },
+      ],
+    },
+    checkConfig: {
+      title: '請求書チェック',
+      taskId: 'invoice.check',
+      fields: [
+        { key: 'content', label: 'チェックしたい請求書の内容を貼り付け、またはファイルを添付してください', type: 'textarea', placeholder: '請求書の内容をここに貼り付け...', required: true },
+      ],
+    },
   },
-  'invoice-check': {
-    title: '請求書チェック',
-    taskId: 'invoice.check',
-    fields: [
-      { key: 'content', label: '請求書の内容（テキスト貼り付け、またはファイル添付）', type: 'textarea', placeholder: '請求書の内容をここに貼り付けてください...', required: true },
-    ],
+  'delivery-note': {
+    title: '納品書',
+    hasCheck: false,
+    createConfig: {
+      title: '納品書作成',
+      taskId: 'delivery_note.create',
+      fields: [
+        { key: 'client', label: '宛先（会社名）', type: 'text', placeholder: '株式会社○○', required: true },
+        { key: 'deliveryDate', label: '納品日', type: 'date', required: true },
+        { key: 'items', label: '明細', type: 'items', required: true },
+        { key: 'notes', label: '備考', type: 'textarea', placeholder: '特記事項があれば入力' },
+      ],
+    },
   },
-  'delivery-note-create': {
-    title: '納品書作成',
-    taskId: 'delivery_note.create',
-    fields: [
-      { key: 'client', label: '宛先（会社名）', type: 'text', placeholder: '株式会社○○', required: true },
-      { key: 'deliveryDate', label: '納品日', type: 'date', required: true },
-      { key: 'items', label: '明細', type: 'items', required: true },
-      { key: 'notes', label: '備考', type: 'textarea', placeholder: '特記事項があれば入力' },
-    ],
+  'purchase-order': {
+    title: '発注書',
+    hasCheck: false,
+    createConfig: {
+      title: '発注書作成',
+      taskId: 'purchase_order.create',
+      fields: [
+        { key: 'client', label: '発注先（会社名）', type: 'text', placeholder: '株式会社○○', required: true },
+        { key: 'items', label: '明細', type: 'items', required: true },
+        { key: 'deliveryDate', label: '納期', type: 'date' },
+        { key: 'paymentTerms', label: '支払条件', type: 'select', options: ['月末締め翌月末払い', '月末締め翌々月末払い', '納品後30日以内'] },
+      ],
+    },
   },
-  'purchase-order-create': {
-    title: '発注書作成',
-    taskId: 'purchase_order.create',
-    fields: [
-      { key: 'client', label: '発注先（会社名）', type: 'text', placeholder: '株式会社○○', required: true },
-      { key: 'items', label: '明細', type: 'items', required: true },
-      { key: 'deliveryDate', label: '納期', type: 'date' },
-      { key: 'paymentTerms', label: '支払条件', type: 'select', options: ['月末締め翌月末払い', '月末締め翌々月末払い', '納品後30日以内'] },
-    ],
-  },
-  'cover-letter-create': {
-    title: '送付状作成',
-    taskId: 'cover_letter.create',
-    fields: [
-      { key: 'client', label: '宛先（会社名・担当者名）', type: 'text', placeholder: '株式会社○○ ○○様', required: true },
-      { key: 'subject', label: '件名', type: 'text', placeholder: '見積書送付のご案内', required: true },
-      { key: 'enclosures', label: '同封物', type: 'textarea', placeholder: '見積書 1部\nカタログ 1部' },
-      { key: 'body', label: '本文（任意、空白ならAIが生成）', type: 'textarea', placeholder: '' },
-    ],
+  'cover-letter': {
+    title: '送付状',
+    hasCheck: false,
+    createConfig: {
+      title: '送付状作成',
+      taskId: 'cover_letter.create',
+      fields: [
+        { key: 'client', label: '宛先（会社名・担当者名）', type: 'text', placeholder: '株式会社○○ ○○様', required: true },
+        { key: 'subject', label: '件名', type: 'text', placeholder: '見積書送付のご案内', required: true },
+        { key: 'enclosures', label: '同封物', type: 'textarea', placeholder: '見積書 1部\nカタログ 1部' },
+        { key: 'body', label: '本文（任意、空白ならAIが生成）', type: 'textarea', placeholder: '' },
+      ],
+    },
   },
 };
 
@@ -323,7 +351,9 @@ function TaskCard({ card, onAction }: { card: TaskCardDef; onAction: (view: View
 /*  TaskViewWrapper                                                    */
 /* ------------------------------------------------------------------ */
 
-function TaskViewWrapper({ title, onBack, children }: { title: string; onBack: () => void; children: React.ReactNode }) {
+function TaskViewWrapper({ title, onBack, children, embedded }: { title: string; onBack: () => void; children: React.ReactNode; embedded?: boolean }) {
+  // When embedded inside TaskWithTabs, skip the outer wrapper (header + scroll handled by parent)
+  if (embedded) return <>{children}</>;
   return (
     <div className="flex flex-col" style={{ height: 'calc(100vh - 48px - 5rem)' }}>
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
@@ -345,7 +375,7 @@ function TaskViewWrapper({ title, onBack, children }: { title: string; onBack: (
 /*  EstimateCreateForm                                                 */
 /* ------------------------------------------------------------------ */
 
-function EstimateCreateForm({ companyInfo, onBack }: { companyInfo: CompanyInfo; onBack: () => void }) {
+function EstimateCreateForm({ companyInfo, onBack, embedded }: { companyInfo: CompanyInfo; onBack: () => void; embedded?: boolean }) {
   const [clientName, setClientName] = useState('');
   const [subject, setSubject] = useState('');
   const [items, setItems] = useState([{ name: '', quantity: 1, unitPrice: 0 }]);
@@ -415,7 +445,7 @@ function EstimateCreateForm({ companyInfo, onBack }: { companyInfo: CompanyInfo;
 
   if (isLoading) {
     return (
-      <TaskViewWrapper title="見積書作成" onBack={onBack}>
+      <TaskViewWrapper title="見積書作成" onBack={onBack} embedded={embedded}>
         <div className="flex flex-col items-center justify-center py-16">
           <img src="/dashboard/mascot-run.gif" alt="" className="w-16 h-16" style={{ imageRendering: 'pixelated', animation: 'mascot-run 0.3s ease-in-out infinite alternate' }} />
           <p className="mt-4 text-sm text-text-secondary">見積書を作成中...</p>
@@ -428,7 +458,7 @@ function EstimateCreateForm({ companyInfo, onBack }: { companyInfo: CompanyInfo;
     const estimate = (result as Record<string, unknown>).estimate as Record<string, unknown> | undefined;
     const verification = (result as Record<string, unknown>).verification as Record<string, unknown> | undefined;
     return (
-      <TaskViewWrapper title="見積書作成" onBack={onBack}>
+      <TaskViewWrapper title="見積書作成" onBack={onBack} embedded={embedded}>
         <div className="space-y-4">
           {estimate && (
             <div className="surface-card p-5">
@@ -478,7 +508,7 @@ function EstimateCreateForm({ companyInfo, onBack }: { companyInfo: CompanyInfo;
   }
 
   return (
-    <TaskViewWrapper title="見積書作成" onBack={onBack}>
+    <TaskViewWrapper title="見積書作成" onBack={onBack} embedded={embedded}>
       {error && (
         <div className="text-sm p-3 rounded-card border-l-2 border-status-fail bg-status-fail/5 mb-4">
           <p className="text-status-fail">{error}</p>
@@ -598,10 +628,78 @@ function EstimateCreateForm({ companyInfo, onBack }: { companyInfo: CompanyInfo;
 }
 
 /* ------------------------------------------------------------------ */
+/*  TaskWithTabs — unified create/check with tab switcher              */
+/* ------------------------------------------------------------------ */
+
+function TaskWithTabs({ taskConfig, isEstimate, companyInfo, onBack }: {
+  taskConfig: TaskConfig;
+  isEstimate: boolean;
+  companyInfo: CompanyInfo;
+  onBack: () => void;
+}) {
+  const [mode, setMode] = useState<'create' | 'check'>('create');
+
+  return (
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 48px - 5rem)' }}>
+      {/* Header with back button */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
+        <button onClick={onBack} className="p-1 text-text-muted hover:text-text-primary transition-colors">
+          <ArrowLeft className="w-5 h-5" strokeWidth={1.5} />
+        </button>
+        <h2 className="text-base font-medium text-text-primary">{taskConfig.title}</h2>
+      </div>
+
+      {/* Tab switcher (only if task has check) */}
+      {taskConfig.hasCheck && (
+        <div className="flex border-b border-border px-4">
+          <button
+            onClick={() => setMode('create')}
+            className={`px-4 py-2.5 text-sm transition-colors ${
+              mode === 'create'
+                ? 'text-accent border-b-2 border-accent font-medium'
+                : 'text-text-muted hover:text-text-secondary'
+            }`}
+          >
+            作成
+          </button>
+          <button
+            onClick={() => setMode('check')}
+            className={`px-4 py-2.5 text-sm transition-colors ${
+              mode === 'check'
+                ? 'text-accent border-b-2 border-accent font-medium'
+                : 'text-text-muted hover:text-text-secondary'
+            }`}
+          >
+            チェック
+          </button>
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="max-w-2xl mx-auto">
+          {mode === 'create' ? (
+            isEstimate ? (
+              <EstimateCreateForm companyInfo={companyInfo} onBack={onBack} embedded />
+            ) : (
+              <GenericDocumentForm config={taskConfig.createConfig} companyInfo={companyInfo} onBack={onBack} embedded />
+            )
+          ) : (
+            taskConfig.checkConfig && (
+              <GenericDocumentForm config={taskConfig.checkConfig} companyInfo={companyInfo} onBack={onBack} embedded />
+            )
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  GenericDocumentForm                                                 */
 /* ------------------------------------------------------------------ */
 
-function GenericDocumentForm({ config, companyInfo, onBack }: { config: GenericFormConfig; companyInfo: CompanyInfo; onBack: () => void }) {
+function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config: GenericFormConfig; companyInfo: CompanyInfo; onBack: () => void; embedded?: boolean }) {
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [items, setItems] = useState([{ name: '', quantity: 1, unitPrice: 0 }]);
   const [isLoading, setIsLoading] = useState(false);
@@ -686,7 +784,7 @@ function GenericDocumentForm({ config, companyInfo, onBack }: { config: GenericF
 
   if (isLoading) {
     return (
-      <TaskViewWrapper title={config.title} onBack={onBack}>
+      <TaskViewWrapper title={config.title} onBack={onBack} embedded={embedded}>
         <div className="flex flex-col items-center justify-center py-16">
           <img src="/dashboard/mascot-run.gif" alt="" className="w-16 h-16" style={{ imageRendering: 'pixelated', animation: 'mascot-run 0.3s ease-in-out infinite alternate' }} />
           <p className="mt-4 text-sm text-text-secondary">{config.title}を処理中...</p>
@@ -697,7 +795,7 @@ function GenericDocumentForm({ config, companyInfo, onBack }: { config: GenericF
 
   if (result) {
     return (
-      <TaskViewWrapper title={config.title} onBack={onBack}>
+      <TaskViewWrapper title={config.title} onBack={onBack} embedded={embedded}>
         <div className="space-y-4">
           <div className="surface-card p-5">
             <h3 className="text-sm font-medium text-text-primary mb-3">作成結果</h3>
@@ -715,7 +813,7 @@ function GenericDocumentForm({ config, companyInfo, onBack }: { config: GenericF
   }
 
   return (
-    <TaskViewWrapper title={config.title} onBack={onBack}>
+    <TaskViewWrapper title={config.title} onBack={onBack} embedded={embedded}>
       {error && (
         <div className="text-sm p-3 rounded-card border-l-2 border-status-fail bg-status-fail/5 mb-4">
           <p className="text-status-fail">{error}</p>
@@ -988,8 +1086,9 @@ export default function AiClerkChat() {
     );
   }
 
-  // Estimate create has its own specialized form
-  if (view.type === 'estimate-create') {
+  // Task view with integrated create/check tabs
+  const taskConfig = TASK_CONFIGS[view.type];
+  if (taskConfig) {
     return (
       <>
         {showCompanyModal && (
@@ -999,25 +1098,12 @@ export default function AiClerkChat() {
             onClose={() => setShowCompanyModal(false)}
           />
         )}
-        <EstimateCreateForm companyInfo={companyInfo} onBack={() => setView({ type: 'hub' })} />
-      </>
-    );
-  }
-
-  // All other tasks use the generic form
-  const configKey = view.type;
-  const config = FORM_CONFIGS[configKey];
-  if (config) {
-    return (
-      <>
-        {showCompanyModal && (
-          <CompanyInfoModal
-            info={companyInfo}
-            onSave={handleSaveCompanyInfo}
-            onClose={() => setShowCompanyModal(false)}
-          />
-        )}
-        <GenericDocumentForm config={config} companyInfo={companyInfo} onBack={() => setView({ type: 'hub' })} />
+        <TaskWithTabs
+          taskConfig={taskConfig}
+          isEstimate={view.type === 'estimate'}
+          companyInfo={companyInfo}
+          onBack={() => setView({ type: 'hub' })}
+        />
       </>
     );
   }
