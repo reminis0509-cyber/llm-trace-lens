@@ -65,8 +65,14 @@ function getAuthHeaders(): Record<string, string> {
         const raw = localStorage.getItem(key);
         if (raw) {
           const parsed = JSON.parse(raw) as {
+            access_token?: string;
             user?: { email?: string; id?: string };
           };
+          // Priority 1: Send JWT for server-side verification (secure)
+          if (parsed?.access_token) {
+            headers['Authorization'] = `Bearer ${parsed.access_token}`;
+          }
+          // Fallback: send email/id headers (used only if JWT unavailable)
           const email = parsed?.user?.email;
           const userId = parsed?.user?.id;
           if (email) headers['X-User-Email'] = email;

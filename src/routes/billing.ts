@@ -52,7 +52,7 @@ export default async function billingRoutes(fastify: FastifyInstance): Promise<v
     }
 
     const workspaceId = request.workspace?.workspaceId || 'default';
-    const userEmail = request.headers['x-user-email'] as string | undefined;
+    const userEmail = request.user?.email;
 
     // 既にProプランの場合はエラー
     const currentPlan = await getWorkspacePlan(workspaceId);
@@ -184,7 +184,7 @@ export default async function billingRoutes(fastify: FastifyInstance): Promise<v
       // Find or create Stripe customer
       let customerId = await getStripeCustomerId(workspaceId);
       if (!customerId) {
-        const userEmail = request.headers['x-user-email'] as string | undefined;
+        const userEmail = request.user?.email;
         const customer = await stripe.customers.create({
           email: userEmail || undefined,
           metadata: { workspace_id: workspaceId },

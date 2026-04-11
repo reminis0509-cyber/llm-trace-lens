@@ -23,8 +23,8 @@ export default async function agentTrialStatusRoute(fastify: FastifyInstance): P
       }
 
       const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
-      const userEmail = (request.headers['x-user-email'] as string || '').toLowerCase();
-      if (adminEmails.includes(userEmail)) {
+      const userEmail = (request.user?.email || '').toLowerCase();
+      if (userEmail !== '' && adminEmails.includes(userEmail)) {
         return reply.code(200).send({
           success: true,
           trialInfo: {

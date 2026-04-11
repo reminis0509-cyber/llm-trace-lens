@@ -62,8 +62,8 @@ export default async function agentChatRoute(fastify: FastifyInstance): Promise<
 
       // 2. Trial / billing gate (admin bypass)
       const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
-      const userEmail = (request.headers['x-user-email'] as string || '').toLowerCase();
-      const isAdmin = adminEmails.includes(userEmail);
+      const userEmail = (request.user?.email || '').toLowerCase();
+      const isAdmin = userEmail !== '' && adminEmails.includes(userEmail);
       if (!isAdmin) {
         const billing = await enforceAgentBilling(workspaceId);
         if (!billing.allowed) {
