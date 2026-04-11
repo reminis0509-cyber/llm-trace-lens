@@ -570,8 +570,14 @@ export default function AiClerkChat() {
           {isWelcome ? (
             /* Welcome screen */
             <div className="flex flex-col items-center justify-center h-full pt-16 sm:pt-24">
-              {/* Mascot character — TODO: 別セッションで作り込み */}
-              <h2 className="text-xl font-semibold text-text-primary">
+              <img
+                src="/dashboard/mascot-idle.gif"
+                alt=""
+                className="w-16 h-16 sm:w-20 sm:h-20"
+                style={{ imageRendering: 'pixelated' }}
+                aria-hidden="true"
+              />
+              <h2 className="mt-4 text-xl font-semibold text-text-primary">
                 FujiTrace AI 事務員
               </h2>
               <p className="mt-2 text-sm text-text-secondary text-center max-w-sm">
@@ -611,9 +617,16 @@ export default function AiClerkChat() {
                 <Message key={msg.id} message={msg} />
               ))}
 
-              {/* Loading indicator */}
+              {/* Loading indicator with running mascot */}
               {isLoading && (
-                <div className="flex justify-start">
+                <div className="flex justify-start items-end gap-2">
+                  <img
+                    src="/dashboard/mascot-run.gif"
+                    alt=""
+                    className="w-10 h-10"
+                    style={{ imageRendering: 'pixelated' }}
+                    aria-hidden="true"
+                  />
                   <div className="bg-base-surface rounded-2xl rounded-bl-sm px-4 py-3">
                     <div className="flex gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-text-muted animate-bounce" style={{ animationDelay: '0ms' }} />
