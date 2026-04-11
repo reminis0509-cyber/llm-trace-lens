@@ -48,7 +48,15 @@ let cachedFunctionCallingTools: FunctionCallingTool[] | null = null;
 export function buildFunctionCallingTools(schemas: ToolSchema[]): FunctionCallingTool[] {
   if (cachedFunctionCallingTools) return cachedFunctionCallingTools;
 
-  const toolFunctions: FunctionCallingTool[] = schemas.map((schema) => ({
+  // OpenAI limits function calling to 128 tools.
+  // Filter out forbidden tools (they get rejected at execution anyway)
+  // and cap at 124 to leave room for meta-functions.
+  const MAX_TOOLS = 124;
+  const allowedSchemas = schemas
+    .filter((s) => !s.description.startsWith('[対応不可'))
+    .slice(0, MAX_TOOLS);
+
+  const toolFunctions: FunctionCallingTool[] = allowedSchemas.map((schema) => ({
     type: 'function' as const,
     function: {
       name: toFunctionName(schema.name),
