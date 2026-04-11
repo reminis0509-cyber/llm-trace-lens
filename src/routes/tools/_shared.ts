@@ -182,10 +182,16 @@ export async function enforceFreeQuota(
   workspaceId: string,
   request?: FastifyRequest,
 ): Promise<{ allowed: true } | { allowed: false; error: string; current: number; limit: number }> {
-  // Internal calls from AI agent (fastify.inject with INTERNAL_SECRET) bypass quota
   if (request) {
+    // Internal calls from AI agent (fastify.inject with INTERNAL_SECRET) bypass quota
     const internalSecret = request.headers['x-internal-secret'] as string | undefined;
     if (internalSecret && internalSecret === INTERNAL_SECRET) {
+      return { allowed: true };
+    }
+    // Admin users bypass quota
+    const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
+    const userEmail = ((request.headers['x-user-email'] as string) || '').toLowerCase();
+    if (userEmail && adminEmails.includes(userEmail)) {
       return { allowed: true };
     }
   }
