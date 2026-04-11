@@ -120,6 +120,12 @@ export default async function officeTaskExecuteRoute(fastify: FastifyInstance): 
       ];
 
       const inputData = extraFields as Record<string, unknown>;
+
+      // Auto-fill title from task name if not provided (common when called from AI agent)
+      if (!inputData['title'] && archetype.inputFields.some(f => f.name === 'title')) {
+        inputData['title'] = task.name;
+      }
+
       const issues = validateInput(inputData, allRules);
 
       const errors = issues.filter(i => i.severity === 'error');
