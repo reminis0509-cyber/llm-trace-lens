@@ -170,8 +170,10 @@ export default async function agentChatRoute(fastify: FastifyInstance): Promise<
       if (error instanceof ConversationAccessError) {
         return reply.code(403).send({ success: false, error: error.message });
       }
+      const errMsg = error instanceof Error ? error.message : String(error);
       request.log.error(error, 'Agent chat error');
       return reply.code(500).send({
+        _debug: errMsg,
         success: false,
         error: '内部エラーが発生しました。しばらくしてからお試しください。',
       });
