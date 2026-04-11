@@ -4,7 +4,7 @@
 /* ------------------------------------------------------------------ */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Settings2, X } from 'lucide-react';
+import { Send, Settings2, X, Paperclip } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 /* ------------------------------------------------------------------ */
@@ -22,6 +22,7 @@ interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  fileName?: string;
   toolCall?: ToolCallData;
   featureRequestLogged?: boolean;
   timestamp: Date;
@@ -69,10 +70,9 @@ const MAX_INPUT_LENGTH = 2000;
 const STORAGE_KEY = 'fujitrace-company-info';
 
 const SUGGESTION_CHIPS = [
-  { label: '\u898b\u7a4d\u66f8\u3092\u4f5c\u6210\u3057\u3066', icon: '\u{1f4dd}' },
-  { label: '\u8acb\u6c42\u66f8\u3092\u30c1\u30a7\u30c3\u30af\u3057\u3066', icon: '\u{1f50d}' },
-  { label: '\u5951\u7d04\u66f8\u3092\u78ba\u8a8d\u3057\u3066', icon: '\u{1f4c4}' },
-  { label: '\u7d4c\u8cbb\u3092\u7cbe\u7b97\u3057\u3066', icon: '\u{1f4b0}' },
+  { label: '見積書を作成して', icon: '' },
+  { label: '見積書をチェックして', icon: '' },
+  { label: 'できることを教えて', icon: '' },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -263,6 +263,13 @@ function Message({ message }: { message: ChatMessage }) {
             : 'bg-base-surface rounded-2xl rounded-bl-sm px-4 py-3'
         }`}
       >
+        {message.fileName && (
+          <div className="flex items-center gap-1.5 mb-1 text-xs text-text-muted">
+            <Paperclip className="w-3 h-3" strokeWidth={1.5} />
+            <span>{message.fileName}</span>
+          </div>
+        )}
+
         <p className={`text-sm whitespace-pre-wrap break-words leading-relaxed ${
           isUser ? 'text-white' : 'text-text-primary'
         }`}>
@@ -317,6 +324,8 @@ export default function AiClerkChat() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -426,6 +435,7 @@ export default function AiClerkChat() {
       id: crypto.randomUUID(),
       role: 'user',
       content: trimmed,
+      fileName: selectedFile?.name,
       timestamp: new Date(),
     };
     setMessages((prev) => [...prev, userMessage]);
@@ -454,14 +464,38 @@ export default function AiClerkChat() {
         messageContent = `[会社情報]\n${parts.join('\n')}\n\n[依頼]\n${trimmed}`;
       }
 
-      const res = await fetch('/api/agent/chat', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          ...(conversationId ? { conversation_id: conversationId } : {}),
-          message: messageContent,
-        }),
-      });
+      let res: Response;
+      if (selectedFile) {
+        // Multipart upload with file
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('message', messageContent);
+        if (conversationId) {
+          formData.append('conversation_id', conversationId);
+        }
+
+        // Remove Content-Type header so browser sets multipart boundary
+        const uploadHeaders = { ...headers };
+        delete uploadHeaders['Content-Type'];
+
+        res = await fetch('/api/agent/chat', {
+          method: 'POST',
+          headers: uploadHeaders,
+          body: formData,
+        });
+
+        setSelectedFile(null);
+      } else {
+        // Existing JSON path
+        res = await fetch('/api/agent/chat', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            ...(conversationId ? { conversation_id: conversationId } : {}),
+            message: messageContent,
+          }),
+        });
+      }
 
       if (!res.ok) {
         setIsProcessing(false);
@@ -526,7 +560,7 @@ export default function AiClerkChat() {
       setIsLoading(false);
       setTimeout(() => textareaRef.current?.focus(), 0);
     }
-  }, [input, isLoading, conversationId, companyInfo]);
+  }, [input, isLoading, conversationId, companyInfo, selectedFile]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -681,6 +715,25 @@ export default function AiClerkChat() {
             </div>
           )}
 
+          {/* File preview */}
+          {selectedFile && (
+            <div className="flex items-center gap-2 px-4 py-2 mb-1 bg-base-elevated rounded-lg text-sm">
+              <Paperclip className="w-4 h-4 text-text-muted flex-shrink-0" strokeWidth={1.5} />
+              <span className="text-text-secondary truncate">{selectedFile.name}</span>
+              <span className="text-text-muted text-xs flex-shrink-0">
+                ({(selectedFile.size / 1024).toFixed(0)} KB)
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedFile(null)}
+                className="ml-auto p-1 text-text-muted hover:text-text-primary"
+                aria-label="添付ファイルを削除"
+              >
+                <X className="w-3.5 h-3.5" strokeWidth={1.5} />
+              </button>
+            </div>
+          )}
+
           {/* Input row */}
           <div className="flex items-end gap-2">
             {/* Company info button */}
@@ -697,6 +750,33 @@ export default function AiClerkChat() {
             >
               <Settings2 className="w-5 h-5" strokeWidth={1.5} />
             </button>
+
+            {/* File attach button */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-shrink-0 p-2 text-text-muted hover:text-accent transition-colors"
+              aria-label="ファイルを添付"
+            >
+              <Paperclip className="w-5 h-5" strokeWidth={1.5} />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".txt,.csv,.pdf,.jpg,.jpeg,.png"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  if (file.size > 5 * 1024 * 1024) {
+                    setError('ファイルサイズは5MB以下にしてください');
+                    return;
+                  }
+                  setSelectedFile(file);
+                }
+                e.target.value = '';
+              }}
+            />
 
             {/* Textarea */}
             <div className="flex-1 relative">

@@ -39,6 +39,8 @@ export interface ClerkInput {
   conversationId?: string;
   message: string;
   workspaceId: string;
+  imageBase64?: string;
+  imageMimeType?: string;
 }
 
 export interface ClerkToolCall {
@@ -190,7 +192,7 @@ export async function executeClerk(
   fastify: FastifyInstance,
   input: ClerkInput,
 ): Promise<ClerkOutput> {
-  const { conversationId, message, workspaceId } = input;
+  const { conversationId, message, workspaceId, imageBase64, imageMimeType } = input;
 
   // 1. Load or create conversation
   const conversation = await loadOrCreateConversation(conversationId, workspaceId);
@@ -214,11 +216,21 @@ export async function executeClerk(
     }
   }
 
-  // Add the new user message
-  llmMessages.push({ role: 'user', content: message });
+  // Add the new user message (multimodal if image is attached)
+  if (imageBase64 && imageMimeType) {
+    llmMessages.push({
+      role: 'user',
+      content: [
+        ...(message ? [{ type: 'text' as const, text: message }] : []),
+        { type: 'image_url' as const, image_url: { url: `data:${imageMimeType};base64,${imageBase64}` } },
+      ],
+    });
+  } else {
+    llmMessages.push({ role: 'user', content: message });
+  }
 
-  // Record user message in conversation
-  conversation.messages.push({ role: 'user', content: message });
+  // Record user message in conversation (text only, don't store base64)
+  conversation.messages.push({ role: 'user', content: message || '[画像ファイル添付]' });
 
   // 4. Call LLM with tools
   const llmResult = await callLlmWithTools(

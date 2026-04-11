@@ -26,6 +26,7 @@
  * Rate limit: 20 req / hour / workspace.
  */
 import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { MultipartValue } from '@fastify/multipart';
 import { z } from 'zod';
 import { resolveWorkspaceId } from '../tools/_shared.js';
 import { executeClerk, ConversationAccessError } from '../../agent/clerk.js';
@@ -75,20 +76,87 @@ export default async function agentChatRoute(fastify: FastifyInstance): Promise<
         }
       }
 
-      // 3. Validate input
-      const parsed = requestSchema.safeParse(request.body);
-      if (!parsed.success) {
+      // 3. Parse input (JSON or multipart/form-data with file)
+      const contentType = request.headers['content-type'] || '';
+      let message = '';
+      let conversationId: string | undefined;
+      let imageBase64: string | undefined;
+      let imageMimeType: string | undefined;
+
+      if (contentType.includes('multipart/form-data')) {
+        const data = await request.file();
+        if (!data) {
+          return reply.code(400).send({ success: false, error: 'ファイルが見つかりません' });
+        }
+
+        const buffer = await data.toBuffer();
+
+        // File size check: 5MB limit for Vercel compatibility
+        if (buffer.length > 5 * 1024 * 1024) {
+          return reply.code(413).send({ success: false, error: 'ファイルサイズは5MB以下にしてください' });
+        }
+
+        // Extract form fields from the multipart data
+        const messageField = data.fields.message as MultipartValue<string> | undefined;
+        const convIdField = data.fields.conversation_id as MultipartValue<string> | undefined;
+
+        message = messageField?.type === 'field' ? messageField.value : '';
+        conversationId = convIdField?.type === 'field' && convIdField.value
+          ? convIdField.value
+          : undefined;
+
+        const fileName = data.filename;
+        const ext = fileName?.split('.').pop()?.toLowerCase() || '';
+        const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+
+        if (imageExts.includes(ext)) {
+          // Image: pass as base64 for GPT-4o Vision
+          imageBase64 = buffer.toString('base64');
+          imageMimeType = data.mimetype || `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+        } else {
+          // Text/CSV/PDF: extract text and prepend to message
+          const { extractText } = await import('../../chatbot/rag/chunker.js');
+          const allowedTextExts = ['pdf', 'txt', 'csv', 'json'];
+          const fileType = allowedTextExts.includes(ext) ? ext : 'txt';
+          const extractedText = await extractText(buffer, fileType);
+
+          const fileContext = `[添付ファイル: ${fileName}]\n${extractedText}`;
+          message = message.trim()
+            ? `${fileContext}\n\n[依頼]\n${message.trim()}`
+            : fileContext;
+        }
+
+        if (!message.trim() && !imageBase64) {
+          return reply.code(400).send({ success: false, error: 'メッセージまたはファイルを入力してください' });
+        }
+      } else {
+        // Existing JSON handling
+        const parsed = requestSchema.safeParse(request.body);
+        if (!parsed.success) {
+          return reply.code(400).send({
+            success: false,
+            error: parsed.error.issues.map((i) => i.message).join('; '),
+          });
+        }
+        message = parsed.data.message;
+        conversationId = parsed.data.conversation_id;
+      }
+
+      // Validate message length for multipart path (JSON path uses Zod)
+      if (message.length > 50000) {
         return reply.code(400).send({
           success: false,
-          error: parsed.error.issues.map((i) => i.message).join('; '),
+          error: '入力が長すぎます。ファイル内容を含めて50000文字以内にしてください。',
         });
       }
 
       // 4. Execute agent
       const result = await executeClerk(fastify, {
-        conversationId: parsed.data.conversation_id,
-        message: parsed.data.message,
+        conversationId,
+        message,
         workspaceId,
+        imageBase64,
+        imageMimeType,
       });
 
       // Get updated trial info (usage was recorded inside executeClerk)
