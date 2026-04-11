@@ -167,19 +167,43 @@ export function resolveToolName(
 
 /**
  * Sanitize a JSON Schema for OpenAI function calling.
- * OpenAI expects a plain object schema without top-level `$schema` or `$ref` wrappers.
- * zodToJsonSchema sometimes wraps in { definitions: ..., $ref: ... } format.
+ * - Resolves $ref wrappers from zodToJsonSchema
+ * - Strips `pattern` fields that use Unicode property escapes (\p{...})
+ *   which OpenAI does not support in function calling schemas
  */
 function sanitizeSchema(schema: Record<string, unknown>): Record<string, unknown> {
   // If the schema has a top-level $ref, resolve it from definitions
+  let resolved = schema;
   if (typeof schema['$ref'] === 'string' && schema['definitions']) {
     const refPath = (schema['$ref'] as string).replace('#/definitions/', '');
     const definitions = schema['definitions'] as Record<string, unknown>;
-    const resolved = definitions[refPath];
-    if (resolved && typeof resolved === 'object') {
-      return resolved as Record<string, unknown>;
+    const def = definitions[refPath];
+    if (def && typeof def === 'object') {
+      resolved = def as Record<string, unknown>;
     }
   }
-  // Return as-is if already a direct object schema
-  return schema;
+  // Deep-strip unsupported `pattern` fields
+  return stripUnsupportedPatterns(resolved);
+}
+
+function stripUnsupportedPatterns(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (key === 'pattern' && typeof value === 'string' && value.includes('\\p{')) {
+      // Skip Unicode property escape patterns — OpenAI rejects them
+      continue;
+    }
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      result[key] = stripUnsupportedPatterns(value as Record<string, unknown>);
+    } else if (Array.isArray(value)) {
+      result[key] = value.map((item) =>
+        item && typeof item === 'object' && !Array.isArray(item)
+          ? stripUnsupportedPatterns(item as Record<string, unknown>)
+          : item,
+      );
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
 }
