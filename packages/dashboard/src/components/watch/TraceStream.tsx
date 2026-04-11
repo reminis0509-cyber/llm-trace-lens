@@ -161,6 +161,29 @@ export function TraceStream({ traces, paused = false, onSelect }: Props) {
       >
         {ordered.length === 0 ? (
           <div className="watch-feed-empty">
+            {/* Skeleton loading cards */}
+            <ul className="watch-feed-list" style={{ opacity: 0.45 }}>
+              {[...Array(5)].map((_, i) => (
+                <li key={i} className="watch-feed-row" style={{ pointerEvents: 'none' }}>
+                  <div className="watch-feed-outer-time">
+                    <div style={{ width: 32, height: 10, borderRadius: 3, background: '#e2e8f0' }} />
+                  </div>
+                  <div className="watch-feed-card" style={{ borderLeftColor: '#e2e8f0' }}>
+                    <div className="watch-feed-row-main">
+                      <div className="watch-feed-row-head" style={{ marginBottom: 8 }}>
+                        <div style={{ width: 36, height: 14, borderRadius: 3, background: '#e2e8f0' }} />
+                        <div style={{ width: 80, height: 10, borderRadius: 3, background: '#e2e8f0' }} />
+                      </div>
+                      <div style={{ width: '70%', height: 14, borderRadius: 3, background: '#e2e8f0', marginBottom: 4 }} />
+                      <div style={{ width: '45%', height: 14, borderRadius: 3, background: '#e2e8f0' }} />
+                    </div>
+                    <div className="watch-feed-row-score">
+                      <div style={{ width: 32, height: 28, borderRadius: 3, background: '#e2e8f0' }} />
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
             <div className="watch-feed-empty-pulse" />
             <div className="watch-feed-empty-text">トレース待機中</div>
           </div>

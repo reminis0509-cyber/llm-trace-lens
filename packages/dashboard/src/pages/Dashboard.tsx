@@ -113,7 +113,15 @@ export function Dashboard() {
   const demoMode = useMemo(() => isDemoMode(), []);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [volume, setVolume] = useState(0.55);
-  const [liveTraces, setLiveTraces] = useState<StreamTrace[]>([]);
+  // Restore cached traces for instant display, then refresh from API
+  const [liveTraces, setLiveTraces] = useState<StreamTrace[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const cached = sessionStorage.getItem('fujitrace-traces-cache');
+      if (cached) return JSON.parse(cached) as StreamTrace[];
+    } catch { /* ignore */ }
+    return [];
+  });
   const [watchStats, setWatchStats] = useState<RecentStats>({ total: 0, passes: 0, warns: 0, fails: 0 });
   const [loadingTrace, setLoadingTrace] = useState(false);
   const recentLevelsRef = useRef<ValidationLevel[]>([]);
@@ -143,7 +151,17 @@ export function Dashboard() {
     setWatchStats({ total, passes, warns, fails });
   }, []);
 
-  // Initial load of real traces
+  // Persist traces to sessionStorage for instant load on next visit
+  useEffect(() => {
+    if (demoMode || liveTraces.length === 0) return;
+    try {
+      // Keep only the last 12 traces to stay small
+      const toCache = liveTraces.slice(-12);
+      sessionStorage.setItem('fujitrace-traces-cache', JSON.stringify(toCache));
+    } catch { /* quota exceeded — ignore */ }
+  }, [liveTraces, demoMode]);
+
+  // Initial load of real traces (refreshes over cached data)
   useEffect(() => {
     if (demoMode) return;
     let cancelled = false;
