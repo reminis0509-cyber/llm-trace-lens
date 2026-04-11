@@ -63,8 +63,8 @@ async function extractUserInfo(request: FastifyRequest): Promise<UserInfo | null
   const authHeader = request.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.slice(7);
-    const supabaseUrl = process.env['SUPABASE_URL'];
-    const supabaseAnonKey = process.env['SUPABASE_ANON_KEY'];
+    const supabaseUrl = process.env['SUPABASE_URL'] || process.env['VITE_SUPABASE_URL'];
+    const supabaseAnonKey = process.env['SUPABASE_ANON_KEY'] || process.env['VITE_SUPABASE_ANON_KEY'];
 
     if (supabaseUrl && supabaseAnonKey && token.length > 0) {
       try {
