@@ -764,16 +764,23 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
       }
 
       const body = await res.json();
-      if (body.success && body.data) {
-        let resultText = body.data.reply || '';
-        if (body.data.tool_call?.result) {
-          const tr = body.data.tool_call.result as Record<string, unknown>;
-          if (tr.result) resultText += '\n\n' + String(tr.result);
-          if (tr.structured_result) resultText += '\n\n' + JSON.stringify(tr.structured_result, null, 2);
+      if (!res.ok || !body.success) {
+        setError(body.error || `エラーが発生しました (${res.status})`);
+      } else if (body.data) {
+        // Check if tool call returned an error (e.g. quota exceeded)
+        const toolResult = body.data.tool_call?.result as Record<string, unknown> | undefined;
+        if (toolResult && toolResult.success === false) {
+          setError(String(toolResult.error || body.data.reply || 'ツール実行エラー'));
+        } else {
+          let resultText = body.data.reply || '';
+          if (toolResult) {
+            if (toolResult.result) resultText += '\n\n' + String(toolResult.result);
+            if (toolResult.structured_result) resultText += '\n\n' + JSON.stringify(toolResult.structured_result, null, 2);
+          }
+          setResult(resultText);
         }
-        setResult(resultText);
       } else {
-        setError(body.error || 'エラーが発生しました');
+        setError('レスポンスの形式が不正です');
       }
     } catch {
       setError('通信エラーが発生しました');

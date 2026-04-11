@@ -180,7 +180,15 @@ export async function isFreePlan(workspaceId: string): Promise<boolean> {
  */
 export async function enforceFreeQuota(
   workspaceId: string,
+  request?: FastifyRequest,
 ): Promise<{ allowed: true } | { allowed: false; error: string; current: number; limit: number }> {
+  // Internal calls from AI agent (fastify.inject with INTERNAL_SECRET) bypass quota
+  if (request) {
+    const internalSecret = request.headers['x-internal-secret'] as string | undefined;
+    if (internalSecret && internalSecret === INTERNAL_SECRET) {
+      return { allowed: true };
+    }
+  }
   const free = await isFreePlan(workspaceId);
   if (!free) {
     return { allowed: true };

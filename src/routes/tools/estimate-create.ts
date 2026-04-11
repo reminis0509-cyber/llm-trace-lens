@@ -156,8 +156,8 @@ export default async function estimateCreateRoute(fastify: FastifyInstance): Pro
       }
       const { conversation_history, business_info_id, industry } = parsed.data;
 
-      // 3. Free-plan quota check
-      const quota = await enforceFreeQuota(workspaceId);
+      // 3. Free-plan quota check (internal calls from AI agent bypass via INTERNAL_SECRET)
+      const quota = await enforceFreeQuota(workspaceId, request);
       if (!quota.allowed) {
         return reply.code(429).send({ success: false, error: quota.error });
       }

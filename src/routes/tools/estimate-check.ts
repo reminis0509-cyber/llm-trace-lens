@@ -133,7 +133,7 @@ export default async function estimateCheckRoute(fastify: FastifyInstance): Prom
       }
       const { estimate, industry, business_info_id } = parsed.data;
 
-      const quota = await enforceFreeQuota(workspaceId);
+      const quota = await enforceFreeQuota(workspaceId, request);
       if (!quota.allowed) {
         return reply.code(429).send({ success: false, error: quota.error });
       }

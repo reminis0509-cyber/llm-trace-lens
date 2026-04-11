@@ -103,8 +103,8 @@ export default async function officeTaskExecuteRoute(fastify: FastifyInstance): 
       });
     }
 
-    // 5. Free quota check
-    const quota = await enforceFreeQuota(workspaceId);
+    // 5. Free quota check (internal calls from AI agent bypass via INTERNAL_SECRET)
+    const quota = await enforceFreeQuota(workspaceId, request);
     if (!quota.allowed) {
       return reply.code(429).send({ success: false, error: quota.error });
     }
