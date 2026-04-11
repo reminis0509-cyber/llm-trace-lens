@@ -1,56 +1,31 @@
 /* ------------------------------------------------------------------ */
-/*  AiClerkChat — Dashboard AI clerk chat interface (Redesigned)       */
-/*  Inspired by ChatGPT / DeepSeek / Copilot, adapted for JP B2B      */
+/*  AiClerkChat — Card-based task hub for AI clerk                     */
+/*  Redesigned from chat interface to structured task forms             */
 /* ------------------------------------------------------------------ */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Settings2, X, Paperclip } from 'lucide-react';
+import { ArrowLeft, X, Paperclip } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
-interface ToolCallData {
-  toolName: string;
-  matchType: 'exact' | 'adapted';
-  adaptedFrom?: string;
-  result: unknown;
-}
-
-interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  fileName?: string;
-  toolCall?: ToolCallData;
-  featureRequestLogged?: boolean;
-  timestamp: Date;
-}
+type ViewType =
+  | { type: 'hub' }
+  | { type: 'estimate-create' }
+  | { type: 'estimate-check' }
+  | { type: 'invoice-create' }
+  | { type: 'invoice-check' }
+  | { type: 'delivery-note-create' }
+  | { type: 'purchase-order-create' }
+  | { type: 'cover-letter-create' };
 
 interface TrialInfo {
   used: number;
   limit: number;
   remaining: number;
   isTrialExhausted: boolean;
-}
-
-interface ApiResponse {
-  success: boolean;
-  data: {
-    conversation_id: string;
-    reply: string;
-    tool_call?: {
-      tool_name: string;
-      match_type: 'exact' | 'adapted';
-      adapted_from?: string;
-      result: unknown;
-    };
-    feature_request_logged?: boolean;
-    trace_id?: string;
-    trialInfo?: TrialInfo;
-  };
-  error?: string;
 }
 
 interface CompanyInfo {
@@ -62,18 +37,140 @@ interface CompanyInfo {
   invoiceNumber: string;
 }
 
+interface TaskCardDef {
+  id: string;
+  title: string;
+  description: string;
+  actions: Array<{
+    label: string;
+    view: ViewType;
+  }>;
+}
+
+interface GenericFormField {
+  key: string;
+  label: string;
+  type: 'text' | 'date' | 'select' | 'textarea' | 'items';
+  placeholder?: string;
+  options?: string[];
+  required?: boolean;
+}
+
+interface GenericFormConfig {
+  title: string;
+  taskId: string;
+  fields: GenericFormField[];
+}
+
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
 
-const MAX_INPUT_LENGTH = 2000;
 const STORAGE_KEY = 'fujitrace-company-info';
 
-const SUGGESTION_CHIPS = [
-  { label: '見積書を作成して', icon: '' },
-  { label: '見積書をチェックして', icon: '' },
-  { label: 'できることを教えて', icon: '' },
+const TASK_CARDS: TaskCardDef[] = [
+  {
+    id: 'estimate',
+    title: '見積書',
+    description: '明細・金額を入力して見積書を自動生成・チェック',
+    actions: [
+      { label: '作成する', view: { type: 'estimate-create' } },
+      { label: 'チェックする', view: { type: 'estimate-check' } },
+    ],
+  },
+  {
+    id: 'invoice',
+    title: '請求書',
+    description: 'インボイス対応の請求書を作成・チェック',
+    actions: [
+      { label: '作成する', view: { type: 'invoice-create' } },
+      { label: 'チェックする', view: { type: 'invoice-check' } },
+    ],
+  },
+  {
+    id: 'delivery-note',
+    title: '納品書',
+    description: '納品書を自動生成',
+    actions: [
+      { label: '作成する', view: { type: 'delivery-note-create' } },
+    ],
+  },
+  {
+    id: 'purchase-order',
+    title: '発注書',
+    description: '発注書を自動生成',
+    actions: [
+      { label: '作成する', view: { type: 'purchase-order-create' } },
+    ],
+  },
+  {
+    id: 'cover-letter',
+    title: '送付状',
+    description: '送付状を自動生成',
+    actions: [
+      { label: '作成する', view: { type: 'cover-letter-create' } },
+    ],
+  },
 ];
+
+const FORM_CONFIGS: Record<string, GenericFormConfig> = {
+  'estimate-check': {
+    title: '見積書チェック',
+    taskId: 'estimate.check',
+    fields: [
+      { key: 'content', label: '見積書の内容（テキスト貼り付け、またはファイル添付）', type: 'textarea', placeholder: '見積書の内容をここに貼り付けてください...', required: true },
+    ],
+  },
+  'invoice-create': {
+    title: '請求書作成',
+    taskId: 'invoice.create',
+    fields: [
+      { key: 'client', label: '宛先（会社名）', type: 'text', placeholder: '株式会社○○', required: true },
+      { key: 'invoiceNumber', label: '請求書番号', type: 'text', placeholder: 'INV-2026-001' },
+      { key: 'items', label: '明細', type: 'items', required: true },
+      { key: 'dueDate', label: '支払期限', type: 'date', required: true },
+      { key: 'bankAccount', label: '振込先口座', type: 'textarea', placeholder: '銀行名 支店名 普通 口座番号 口座名義' },
+      { key: 'paymentTerms', label: '支払条件', type: 'select', options: ['月末締め翌月末払い', '月末締め翌々月末払い', '納品後30日以内', '前払い'] },
+    ],
+  },
+  'invoice-check': {
+    title: '請求書チェック',
+    taskId: 'invoice.check',
+    fields: [
+      { key: 'content', label: '請求書の内容（テキスト貼り付け、またはファイル添付）', type: 'textarea', placeholder: '請求書の内容をここに貼り付けてください...', required: true },
+    ],
+  },
+  'delivery-note-create': {
+    title: '納品書作成',
+    taskId: 'delivery_note.create',
+    fields: [
+      { key: 'client', label: '宛先（会社名）', type: 'text', placeholder: '株式会社○○', required: true },
+      { key: 'deliveryDate', label: '納品日', type: 'date', required: true },
+      { key: 'items', label: '明細', type: 'items', required: true },
+      { key: 'notes', label: '備考', type: 'textarea', placeholder: '特記事項があれば入力' },
+    ],
+  },
+  'purchase-order-create': {
+    title: '発注書作成',
+    taskId: 'purchase_order.create',
+    fields: [
+      { key: 'client', label: '発注先（会社名）', type: 'text', placeholder: '株式会社○○', required: true },
+      { key: 'items', label: '明細', type: 'items', required: true },
+      { key: 'deliveryDate', label: '納期', type: 'date' },
+      { key: 'paymentTerms', label: '支払条件', type: 'select', options: ['月末締め翌月末払い', '月末締め翌々月末払い', '納品後30日以内'] },
+    ],
+  },
+  'cover-letter-create': {
+    title: '送付状作成',
+    taskId: 'cover_letter.create',
+    fields: [
+      { key: 'client', label: '宛先（会社名・担当者名）', type: 'text', placeholder: '株式会社○○ ○○様', required: true },
+      { key: 'subject', label: '件名', type: 'text', placeholder: '見積書送付のご案内', required: true },
+      { key: 'enclosures', label: '同封物', type: 'textarea', placeholder: '見積書 1部\nカタログ 1部' },
+      { key: 'body', label: '本文（任意、空白ならAIが生成）', type: 'textarea', placeholder: '' },
+    ],
+  },
+};
 
 /* ------------------------------------------------------------------ */
 /*  Auth helper                                                        */
@@ -116,56 +213,6 @@ function saveCompanyInfo(info: CompanyInfo): void {
 
 function hasCompanyInfo(info: CompanyInfo): boolean {
   return !!(info.companyName || info.address || info.phone || info.email);
-}
-
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
-
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString('ja-JP', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-/* ------------------------------------------------------------------ */
-/*  Tool result display                                                */
-/* ------------------------------------------------------------------ */
-
-function ToolResult({ toolName, matchType, adaptedFrom, result }: {
-  toolName: string;
-  matchType: 'exact' | 'adapted';
-  adaptedFrom?: string;
-  result: unknown;
-}) {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <div className="mt-2 border border-border rounded-card overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-3 py-2 text-xs text-text-secondary bg-base-elevated hover:bg-base transition-colors"
-        aria-expanded={expanded}
-      >
-        <span className="font-medium">
-          {toolName}
-          {matchType === 'adapted' && adaptedFrom && (
-            <span className="ml-1 text-text-muted">({adaptedFrom})</span>
-          )}
-        </span>
-        <span>{expanded ? '-' : '+'}</span>
-      </button>
-      {expanded && (
-        <div className="px-3 py-2 text-xs font-mono text-text-secondary bg-base overflow-x-auto max-h-48 overflow-y-auto">
-          <pre className="whitespace-pre-wrap break-words">
-            {typeof result === 'string' ? result : JSON.stringify(result, null, 2)}
-          </pre>
-        </div>
-      )}
-    </div>
-  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -248,58 +295,515 @@ function CompanyInfoModal({ info, onSave, onClose }: {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Message component                                                  */
+/*  TaskCard                                                           */
 /* ------------------------------------------------------------------ */
 
-function Message({ message }: { message: ChatMessage }) {
-  const isUser = message.role === 'user';
-
+function TaskCard({ card, onAction }: { card: TaskCardDef; onAction: (view: ViewType) => void }) {
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={`max-w-[85%] sm:max-w-[75%] ${
-          isUser
-            ? 'bg-accent text-white rounded-2xl rounded-br-sm px-4 py-2.5'
-            : 'bg-base-surface rounded-2xl rounded-bl-sm px-4 py-3'
-        }`}
-      >
-        {message.fileName && (
-          <div className="flex items-center gap-1.5 mb-1 text-xs text-text-muted">
-            <Paperclip className="w-3 h-3" strokeWidth={1.5} />
-            <span>{message.fileName}</span>
-          </div>
-        )}
-
-        <p className={`text-sm whitespace-pre-wrap break-words leading-relaxed ${
-          isUser ? 'text-white' : 'text-text-primary'
-        }`}>
-          {message.content}
-        </p>
-
-        {message.toolCall && (
-          <ToolResult
-            toolName={message.toolCall.toolName}
-            matchType={message.toolCall.matchType}
-            adaptedFrom={message.toolCall.adaptedFrom}
-            result={message.toolCall.result}
-          />
-        )}
-
-        {message.featureRequestLogged && (
-          <div className="mt-2 bg-base-elevated border border-border rounded-card p-3 text-sm text-text-secondary">
-            ご要望を記録しました。FujiTraceチームが対応を検討します。
-          </div>
-        )}
-
-        <p
-          className={`text-[10px] mt-1.5 ${
-            isUser ? 'text-white/60 text-right' : 'text-text-muted'
-          }`}
-        >
-          {formatTime(message.timestamp)}
-        </p>
+    <div className="surface-card p-5">
+      <h3 className="text-base font-medium text-text-primary">{card.title}</h3>
+      <p className="mt-1 text-sm text-text-muted">{card.description}</p>
+      <div className="flex gap-2 mt-4">
+        {card.actions.map((action) => (
+          <button
+            key={action.label}
+            type="button"
+            onClick={() => onAction(action.view)}
+            className="px-4 py-2 text-sm text-white bg-accent rounded-card hover:bg-accent/90 transition-colors"
+          >
+            {action.label}
+          </button>
+        ))}
       </div>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  TaskViewWrapper                                                    */
+/* ------------------------------------------------------------------ */
+
+function TaskViewWrapper({ title, onBack, children }: { title: string; onBack: () => void; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 48px - 5rem)' }}>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
+        <button onClick={onBack} className="p-1 text-text-muted hover:text-text-primary transition-colors" aria-label="戻る">
+          <ArrowLeft className="w-5 h-5" strokeWidth={1.5} />
+        </button>
+        <h2 className="text-base font-medium text-text-primary">{title}</h2>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="max-w-2xl mx-auto">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  EstimateCreateForm                                                 */
+/* ------------------------------------------------------------------ */
+
+function EstimateCreateForm({ companyInfo, onBack }: { companyInfo: CompanyInfo; onBack: () => void }) {
+  const [clientName, setClientName] = useState('');
+  const [subject, setSubject] = useState('');
+  const [items, setItems] = useState([{ name: '', quantity: 1, unitPrice: 0 }]);
+  const [deliveryDate, setDeliveryDate] = useState('');
+  const [paymentTerms, setPaymentTerms] = useState('月末締め翌月末払い');
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<Record<string, unknown> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const addItem = () => setItems([...items, { name: '', quantity: 1, unitPrice: 0 }]);
+  const removeItem = (index: number) => setItems(items.filter((_, i) => i !== index));
+  const updateItem = (index: number, field: string, value: string | number) => {
+    const updated = [...items];
+    updated[index] = { ...updated[index], [field]: value };
+    setItems(updated);
+  };
+
+  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+  const tax = Math.floor(subtotal * 0.1);
+  const total = subtotal + tax;
+
+  const handleSubmit = async () => {
+    if (!clientName.trim()) { setError('宛先を入力してください'); return; }
+    if (items.some(i => !i.name.trim())) { setError('全ての明細に品名を入力してください'); return; }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const headers = await getAuthHeaders();
+
+      const ci = companyInfo;
+      const parts: string[] = [];
+      if (ci.companyName) parts.push(`発行元: ${ci.companyName}`);
+      if (ci.address) parts.push(`住所: ${ci.address}`);
+      if (ci.phone) parts.push(`電話: ${ci.phone}`);
+      if (ci.email) parts.push(`メール: ${ci.email}`);
+      if (ci.representative) parts.push(`代表者: ${ci.representative}`);
+      if (ci.invoiceNumber) parts.push(`インボイス番号: ${ci.invoiceNumber}`);
+
+      const itemLines = items.map(i => `- ${i.name}: ${i.quantity}個 × ¥${i.unitPrice.toLocaleString()}`).join('\n');
+
+      const userMsg = `${parts.join('\n')}\n\n宛先: ${clientName}\n件名: ${subject || 'Webサイト制作'}\n\n明細:\n${itemLines}\n\n納期: ${deliveryDate || '未定'}\n支払条件: ${paymentTerms}`;
+
+      const res = await fetch('/api/tools/estimate/create', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          conversation_history: [{ role: 'user', content: userMsg }],
+          business_info_id: 'default',
+          industry: '',
+        }),
+      });
+
+      const body = await res.json();
+      if (body.success) {
+        setResult(body.data);
+      } else {
+        setError(body.error || 'エラーが発生しました');
+      }
+    } catch {
+      setError('通信エラーが発生しました');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <TaskViewWrapper title="見積書作成" onBack={onBack}>
+        <div className="flex flex-col items-center justify-center py-16">
+          <img src="/dashboard/mascot-run.gif" alt="" className="w-16 h-16" style={{ imageRendering: 'pixelated', animation: 'mascot-run 0.3s ease-in-out infinite alternate' }} />
+          <p className="mt-4 text-sm text-text-secondary">見積書を作成中...</p>
+        </div>
+      </TaskViewWrapper>
+    );
+  }
+
+  if (result) {
+    const estimate = (result as Record<string, unknown>).estimate as Record<string, unknown> | undefined;
+    const verification = (result as Record<string, unknown>).verification as Record<string, unknown> | undefined;
+    return (
+      <TaskViewWrapper title="見積書作成" onBack={onBack}>
+        <div className="space-y-4">
+          {estimate && (
+            <div className="surface-card p-5">
+              <h3 className="text-sm font-medium text-text-primary mb-3">見積書ドラフト</h3>
+              <div className="text-sm text-text-secondary space-y-1">
+                <p>見積番号: {String((estimate as Record<string, unknown>).estimate_number ?? '')}</p>
+                <p>宛先: {String(((estimate as Record<string, unknown>).client as Record<string, unknown> | undefined)?.company_name ?? '')}</p>
+                <p>合計: ¥{Number((estimate as Record<string, unknown>).total ?? 0).toLocaleString()}</p>
+              </div>
+            </div>
+          )}
+          {verification && (
+            <div className="surface-card p-5">
+              <h3 className="text-sm font-medium text-text-primary mb-3">FujiTrace 品質チェック</h3>
+              {Array.isArray((verification as Record<string, unknown>).critical_issues) && ((verification as Record<string, unknown>).critical_issues as Array<Record<string, unknown>>).length > 0 && (
+                <div className="text-sm p-3 rounded-card border-l-2 border-status-fail bg-status-fail/5 mb-2">
+                  {((verification as Record<string, unknown>).critical_issues as Array<Record<string, unknown>>).map((issue, i) => (
+                    <p key={i} className="text-status-fail">{String(issue.message)}</p>
+                  ))}
+                </div>
+              )}
+              {Array.isArray((verification as Record<string, unknown>).warnings) && ((verification as Record<string, unknown>).warnings as Array<Record<string, unknown>>).length > 0 && (
+                <div className="text-sm p-3 rounded-card border-l-2 border-status-warn bg-status-warn/5 mb-2">
+                  {((verification as Record<string, unknown>).warnings as Array<Record<string, unknown>>).map((issue, i) => (
+                    <p key={i} className="text-status-warn">{String(issue.message)}</p>
+                  ))}
+                </div>
+              )}
+              {Array.isArray((verification as Record<string, unknown>).suggestions) && ((verification as Record<string, unknown>).suggestions as string[]).length > 0 && (
+                <div className="text-sm text-text-muted mt-2">
+                  {((verification as Record<string, unknown>).suggestions as string[]).map((s, i) => (
+                    <p key={i}>- {s}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <button
+            onClick={() => { setResult(null); }}
+            className="px-4 py-2 text-sm text-accent border border-accent rounded-card hover:bg-accent/5 transition-colors"
+          >
+            もう一度作成する
+          </button>
+        </div>
+      </TaskViewWrapper>
+    );
+  }
+
+  return (
+    <TaskViewWrapper title="見積書作成" onBack={onBack}>
+      {error && (
+        <div className="text-sm p-3 rounded-card border-l-2 border-status-fail bg-status-fail/5 mb-4">
+          <p className="text-status-fail">{error}</p>
+        </div>
+      )}
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm text-text-secondary mb-1">宛先（会社名）</label>
+          <input
+            type="text"
+            value={clientName}
+            onChange={e => setClientName(e.target.value)}
+            placeholder="株式会社○○"
+            className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm text-text-secondary mb-1">件名</label>
+          <input
+            type="text"
+            value={subject}
+            onChange={e => setSubject(e.target.value)}
+            placeholder="Webサイト制作費用"
+            className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm text-text-secondary mb-2">明細</label>
+          {items.map((item, idx) => (
+            <div key={idx} className="flex gap-2 mb-2 items-end">
+              <div className="flex-1">
+                {idx === 0 && <span className="text-xs text-text-muted">品名</span>}
+                <input
+                  type="text"
+                  value={item.name}
+                  onChange={e => updateItem(idx, 'name', e.target.value)}
+                  placeholder="デザイン費"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                />
+              </div>
+              <div className="w-20">
+                {idx === 0 && <span className="text-xs text-text-muted">数量</span>}
+                <input
+                  type="number"
+                  min="1"
+                  value={item.quantity}
+                  onChange={e => updateItem(idx, 'quantity', parseInt(e.target.value) || 1)}
+                  className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                />
+              </div>
+              <div className="w-32">
+                {idx === 0 && <span className="text-xs text-text-muted">単価 (円)</span>}
+                <input
+                  type="number"
+                  min="0"
+                  value={item.unitPrice}
+                  onChange={e => updateItem(idx, 'unitPrice', parseInt(e.target.value) || 0)}
+                  className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                />
+              </div>
+              {items.length > 1 && (
+                <button onClick={() => removeItem(idx)} className="p-2 text-text-muted hover:text-status-fail transition-colors" aria-label="明細を削除">
+                  <X className="w-4 h-4" strokeWidth={1.5} />
+                </button>
+              )}
+            </div>
+          ))}
+          <button onClick={addItem} className="text-sm text-accent hover:text-accent/80 transition-colors mt-1">
+            + 明細を追加
+          </button>
+        </div>
+
+        <div className="surface-card p-4 text-sm">
+          <div className="flex justify-between text-text-secondary"><span>小計</span><span>¥{subtotal.toLocaleString()}</span></div>
+          <div className="flex justify-between text-text-secondary mt-1"><span>消費税 (10%)</span><span>¥{tax.toLocaleString()}</span></div>
+          <div className="flex justify-between font-medium text-text-primary mt-2 pt-2 border-t border-border"><span>合計</span><span>¥{total.toLocaleString()}</span></div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm text-text-secondary mb-1">納期</label>
+            <input
+              type="date"
+              value={deliveryDate}
+              onChange={e => setDeliveryDate(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-text-secondary mb-1">支払条件</label>
+            <select
+              value={paymentTerms}
+              onChange={e => setPaymentTerms(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+            >
+              <option>月末締め翌月末払い</option>
+              <option>月末締め翌々月末払い</option>
+              <option>納品後30日以内</option>
+              <option>納品後即日</option>
+              <option>前払い</option>
+            </select>
+          </div>
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={isLoading}
+          className="w-full py-3 text-sm text-white bg-accent rounded-card hover:bg-accent/90 transition-colors disabled:opacity-50"
+        >
+          見積書を作成
+        </button>
+      </div>
+    </TaskViewWrapper>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  GenericDocumentForm                                                 */
+/* ------------------------------------------------------------------ */
+
+function GenericDocumentForm({ config, companyInfo, onBack }: { config: GenericFormConfig; companyInfo: CompanyInfo; onBack: () => void }) {
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
+  const [items, setItems] = useState([{ name: '', quantity: 1, unitPrice: 0 }]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSubmit = async () => {
+    for (const field of config.fields) {
+      if (field.required && field.type !== 'items' && !formData[field.key]) {
+        setError(`${field.label}を入力してください`);
+        return;
+      }
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const headers = await getAuthHeaders();
+
+      const ci = companyInfo;
+      const ciParts: string[] = [];
+      if (ci.companyName) ciParts.push(`発行元: ${ci.companyName}`);
+      if (ci.address) ciParts.push(`住所: ${ci.address}`);
+      if (ci.phone) ciParts.push(`電話: ${ci.phone}`);
+      if (ci.email) ciParts.push(`メール: ${ci.email}`);
+      if (ci.representative) ciParts.push(`代表者: ${ci.representative}`);
+      if (ci.invoiceNumber) ciParts.push(`インボイス番号: ${ci.invoiceNumber}`);
+
+      const formParts: string[] = [];
+      for (const field of config.fields) {
+        if (field.type === 'items') {
+          const itemLines = items
+            .filter(i => i.name.trim())
+            .map(i => `- ${i.name}: ${i.quantity}個 × ¥${i.unitPrice.toLocaleString()}`)
+            .join('\n');
+          if (itemLines) formParts.push(`明細:\n${itemLines}`);
+        } else {
+          const val = formData[field.key];
+          if (val) formParts.push(`${field.label}: ${val}`);
+        }
+      }
+
+      const message = `[会社情報]\n${ciParts.join('\n')}\n\n[依頼]\n${config.title}を作成してください。\n\n${formParts.join('\n')}`;
+
+      let res: Response;
+      if (attachedFile) {
+        const fd = new FormData();
+        fd.append('file', attachedFile);
+        fd.append('message', message);
+        const uploadHeaders = { ...headers };
+        delete uploadHeaders['Content-Type'];
+        res = await fetch('/api/agent/chat', { method: 'POST', headers: uploadHeaders, body: fd });
+      } else {
+        res = await fetch('/api/agent/chat', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ message }),
+        });
+      }
+
+      const body = await res.json();
+      if (body.success && body.data) {
+        let resultText = body.data.reply || '';
+        if (body.data.tool_call?.result) {
+          const tr = body.data.tool_call.result as Record<string, unknown>;
+          if (tr.result) resultText += '\n\n' + String(tr.result);
+          if (tr.structured_result) resultText += '\n\n' + JSON.stringify(tr.structured_result, null, 2);
+        }
+        setResult(resultText);
+      } else {
+        setError(body.error || 'エラーが発生しました');
+      }
+    } catch {
+      setError('通信エラーが発生しました');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <TaskViewWrapper title={config.title} onBack={onBack}>
+        <div className="flex flex-col items-center justify-center py-16">
+          <img src="/dashboard/mascot-run.gif" alt="" className="w-16 h-16" style={{ imageRendering: 'pixelated', animation: 'mascot-run 0.3s ease-in-out infinite alternate' }} />
+          <p className="mt-4 text-sm text-text-secondary">{config.title}を処理中...</p>
+        </div>
+      </TaskViewWrapper>
+    );
+  }
+
+  if (result) {
+    return (
+      <TaskViewWrapper title={config.title} onBack={onBack}>
+        <div className="space-y-4">
+          <div className="surface-card p-5">
+            <h3 className="text-sm font-medium text-text-primary mb-3">作成結果</h3>
+            <div className="text-sm text-text-secondary whitespace-pre-wrap">{result}</div>
+          </div>
+          <button
+            onClick={() => { setResult(null); setFormData({}); }}
+            className="px-4 py-2 text-sm text-accent border border-accent rounded-card hover:bg-accent/5 transition-colors"
+          >
+            もう一度作成する
+          </button>
+        </div>
+      </TaskViewWrapper>
+    );
+  }
+
+  return (
+    <TaskViewWrapper title={config.title} onBack={onBack}>
+      {error && (
+        <div className="text-sm p-3 rounded-card border-l-2 border-status-fail bg-status-fail/5 mb-4">
+          <p className="text-status-fail">{error}</p>
+        </div>
+      )}
+      <div className="space-y-4">
+        {config.fields.map(field => {
+          if (field.type === 'items') {
+            const itemSubtotal = items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+            const itemTax = Math.floor(itemSubtotal * 0.1);
+            const itemTotal = itemSubtotal + itemTax;
+            return (
+              <div key={field.key}>
+                <label className="block text-sm text-text-secondary mb-2">{field.label}</label>
+                {items.map((item, idx) => (
+                  <div key={idx} className="flex gap-2 mb-2 items-end">
+                    <div className="flex-1">
+                      {idx === 0 && <span className="text-xs text-text-muted">品名</span>}
+                      <input type="text" value={item.name} onChange={e => { const u = [...items]; u[idx] = { ...u[idx], name: e.target.value }; setItems(u); }} placeholder="品名" className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent" />
+                    </div>
+                    <div className="w-20">
+                      {idx === 0 && <span className="text-xs text-text-muted">数量</span>}
+                      <input type="number" min="1" value={item.quantity} onChange={e => { const u = [...items]; u[idx] = { ...u[idx], quantity: parseInt(e.target.value) || 1 }; setItems(u); }} className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent" />
+                    </div>
+                    <div className="w-32">
+                      {idx === 0 && <span className="text-xs text-text-muted">単価 (円)</span>}
+                      <input type="number" min="0" value={item.unitPrice} onChange={e => { const u = [...items]; u[idx] = { ...u[idx], unitPrice: parseInt(e.target.value) || 0 }; setItems(u); }} className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent" />
+                    </div>
+                    {items.length > 1 && (
+                      <button onClick={() => setItems(items.filter((_, i) => i !== idx))} className="p-2 text-text-muted hover:text-status-fail transition-colors" aria-label="明細を削除"><X className="w-4 h-4" strokeWidth={1.5} /></button>
+                    )}
+                  </div>
+                ))}
+                <button onClick={() => setItems([...items, { name: '', quantity: 1, unitPrice: 0 }])} className="text-sm text-accent hover:text-accent/80 transition-colors mt-1">+ 明細を追加</button>
+                <div className="surface-card p-3 mt-3 text-sm">
+                  <div className="flex justify-between text-text-secondary"><span>小計</span><span>¥{itemSubtotal.toLocaleString()}</span></div>
+                  <div className="flex justify-between text-text-secondary mt-1"><span>消費税 (10%)</span><span>¥{itemTax.toLocaleString()}</span></div>
+                  <div className="flex justify-between font-medium text-text-primary mt-2 pt-2 border-t border-border"><span>合計</span><span>¥{itemTotal.toLocaleString()}</span></div>
+                </div>
+              </div>
+            );
+          }
+          if (field.type === 'select') {
+            return (
+              <div key={field.key}>
+                <label className="block text-sm text-text-secondary mb-1">{field.label}</label>
+                <select value={(formData[field.key] as string) || field.options?.[0] || ''} onChange={e => setFormData({ ...formData, [field.key]: e.target.value })} className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent">
+                  {field.options?.map(opt => <option key={opt}>{opt}</option>)}
+                </select>
+              </div>
+            );
+          }
+          if (field.type === 'textarea') {
+            return (
+              <div key={field.key}>
+                <label className="block text-sm text-text-secondary mb-1">{field.label}</label>
+                <textarea value={(formData[field.key] as string) || ''} onChange={e => setFormData({ ...formData, [field.key]: e.target.value })} placeholder={field.placeholder} rows={4} className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent resize-none" />
+                {field.key === 'content' && (
+                  <div className="mt-2">
+                    <input ref={fileInputRef} type="file" accept=".txt,.csv,.pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f && f.size <= 5 * 1024 * 1024) setAttachedFile(f); e.target.value = ''; }} />
+                    <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-1 text-sm text-accent hover:text-accent/80 transition-colors">
+                      <Paperclip className="w-4 h-4" strokeWidth={1.5} />
+                      ファイルを添付
+                    </button>
+                    {attachedFile && (
+                      <span className="ml-2 text-xs text-text-muted">
+                        {attachedFile.name} ({(attachedFile.size / 1024).toFixed(0)} KB)
+                        <button onClick={() => setAttachedFile(null)} className="text-status-fail ml-1" aria-label="添付ファイルを削除">x</button>
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          }
+          return (
+            <div key={field.key}>
+              <label className="block text-sm text-text-secondary mb-1">{field.label}</label>
+              <input type={field.type} value={(formData[field.key] as string) || ''} onChange={e => setFormData({ ...formData, [field.key]: e.target.value })} placeholder={field.placeholder} className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent" />
+            </div>
+          );
+        })}
+
+        <button onClick={handleSubmit} disabled={isLoading} className="w-full py-3 text-sm text-white bg-accent rounded-card hover:bg-accent/90 transition-colors disabled:opacity-50">
+          {config.title.includes('チェック') ? 'チェック開始' : '作成開始'}
+        </button>
+      </div>
+    </TaskViewWrapper>
   );
 }
 
@@ -308,34 +812,15 @@ function Message({ message }: { message: ChatMessage }) {
 /* ------------------------------------------------------------------ */
 
 export default function AiClerkChat() {
-  const [conversationId, setConversationId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<ViewType>({ type: 'hub' });
   const [trialInfo, setTrialInfo] = useState<TrialInfo | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [setupSuccess, setSetupSuccess] = useState(false);
   const [isSettingUp, setIsSettingUp] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>(loadCompanyInfo);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [hasSeenCompanySetup, setHasSeenCompanySetup] = useState(false);
-
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
-  // Auto-scroll on new messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
-
-  // Focus input on mount
-  useEffect(() => {
-    textareaRef.current?.focus();
-  }, []);
 
   // Auto-open company info modal on mount if company info is empty
   useEffect(() => {
@@ -344,14 +829,6 @@ export default function AiClerkChat() {
       setHasSeenCompanySetup(true);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Auto-resize textarea
-  const adjustTextarea = useCallback(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
-  }, []);
 
   // Fetch trial status
   const fetchTrialStatus = useCallback(async () => {
@@ -421,409 +898,129 @@ export default function AiClerkChat() {
     saveCompanyInfo(info);
   }, []);
 
-  // Send message
-  const handleSend = useCallback(async (text?: string) => {
+  const handleTaskAction = useCallback((targetView: ViewType) => {
     if (!hasCompanyInfo(companyInfo)) {
       setShowCompanyModal(true);
       return;
     }
+    setView(targetView);
+  }, [companyInfo]);
 
-    const trimmed = (text || input).trim();
-    if (!trimmed || isLoading) return;
+  // Hub view
+  if (view.type === 'hub') {
+    return (
+      <div className="flex flex-col items-center" style={{ height: 'calc(100vh - 48px - 5rem)' }}>
+        {/* Company Info Modal */}
+        {showCompanyModal && (
+          <CompanyInfoModal
+            info={companyInfo}
+            onSave={handleSaveCompanyInfo}
+            onClose={() => setShowCompanyModal(false)}
+          />
+        )}
 
-    const userMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: trimmed,
-      fileName: selectedFile?.name,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
-    setError(null);
-    setIsLoading(true);
-    setIsProcessing(true);
+        {/* Payment setup success message */}
+        {setupSuccess && (
+          <div className="flex-shrink-0 mb-2">
+            <span className="text-xs text-status-pass bg-status-pass/10 px-2 py-1 rounded-card">
+              お支払い方法の登録が完了しました
+            </span>
+          </div>
+        )}
 
-    try {
-      const headers = await getAuthHeaders();
-
-      // Build message with company info context if available
-      let messageContent = trimmed;
-      const ci = companyInfo;
-      if (hasCompanyInfo(ci)) {
-        const parts: string[] = [];
-        if (ci.companyName) parts.push(`会社名: ${ci.companyName}`);
-        if (ci.address) parts.push(`住所: ${ci.address}`);
-        if (ci.phone) parts.push(`電話: ${ci.phone}`);
-        if (ci.email) parts.push(`メール: ${ci.email}`);
-        if (ci.representative) parts.push(`代表者: ${ci.representative}`);
-        if (ci.invoiceNumber) parts.push(`インボイス登録番号: ${ci.invoiceNumber}`);
-        messageContent = `[会社情報]\n${parts.join('\n')}\n\n[依頼]\n${trimmed}`;
-      }
-
-      let res: Response;
-      if (selectedFile) {
-        // Multipart upload with file
-        const formData = new FormData();
-        formData.append('file', selectedFile);
-        formData.append('message', messageContent);
-        if (conversationId) {
-          formData.append('conversation_id', conversationId);
-        }
-
-        // Remove Content-Type header so browser sets multipart boundary
-        const uploadHeaders = { ...headers };
-        delete uploadHeaders['Content-Type'];
-
-        res = await fetch('/api/agent/chat', {
-          method: 'POST',
-          headers: uploadHeaders,
-          body: formData,
-        });
-
-        setSelectedFile(null);
-      } else {
-        // Existing JSON path
-        res = await fetch('/api/agent/chat', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            ...(conversationId ? { conversation_id: conversationId } : {}),
-            message: messageContent,
-          }),
-        });
-      }
-
-      if (!res.ok) {
-        setIsProcessing(false);
-        if (res.status === 401) {
-          setError('認証エラーが発生しました。再ログインしてください。');
-          return;
-        }
-        if (res.status === 402) {
-          const errBody = (await res.json().catch(() => null)) as {
-            error?: string;
-            trialInfo?: TrialInfo;
-          } | null;
-          if (errBody?.trialInfo) setTrialInfo(errBody.trialInfo);
-          setError(errBody?.error ?? '無料トライアルが終了しました。');
-          return;
-        }
-        if (res.status === 403) {
-          setError('AI事務員はProプランの機能です。');
-          return;
-        }
-        const errBody = (await res.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        setError(errBody?.error ?? `エラーが発生しました (${res.status})`);
-        return;
-      }
-
-      const body = (await res.json()) as ApiResponse;
-
-      if (!body.success || !body.data) {
-        setIsProcessing(false);
-        setError(body.error ?? 'レスポンスの形式が不正です。');
-        return;
-      }
-
-      const { data } = body;
-      setConversationId(data.conversation_id);
-      if (data.trialInfo) setTrialInfo(data.trialInfo);
-
-      const assistantMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: data.reply,
-        toolCall: data.tool_call
-          ? {
-              toolName: data.tool_call.tool_name,
-              matchType: data.tool_call.match_type,
-              adaptedFrom: data.tool_call.adapted_from,
-              result: data.tool_call.result,
-            }
-          : undefined,
-        featureRequestLogged: data.feature_request_logged,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-
-      setIsProcessing(false);
-    } catch {
-      setIsProcessing(false);
-      setError('通信エラーが発生しました。ネットワーク接続を確認してください。');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => textareaRef.current?.focus(), 0);
-    }
-  }, [input, isLoading, conversationId, companyInfo, selectedFile]);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-        e.preventDefault();
-        handleSend();
-      }
-    },
-    [handleSend]
-  );
-
-  const isWelcome = messages.length === 0;
-
-  return (
-    <div className="flex flex-col" style={{ height: 'calc(100vh - 48px - 5rem)' }}>
-      {/* Company info modal */}
-      {showCompanyModal && (
-        <CompanyInfoModal
-          info={companyInfo}
-          onSave={handleSaveCompanyInfo}
-          onClose={() => setShowCompanyModal(false)}
-        />
-      )}
-
-      {/* Payment setup success message */}
-      {setupSuccess && (
-        <div className="flex-shrink-0 mb-2">
-          <span className="text-xs text-status-pass bg-status-pass/10 px-2 py-1 rounded-card">
-            お支払い方法の登録が完了しました
-          </span>
-        </div>
-      )}
-
-      {/* Trial status badge */}
-      {trialInfo && !isAdmin && trialInfo.remaining === 0 && (
-        <div className="flex-shrink-0 mb-3 flex flex-col items-center gap-2">
-          <span className="text-xs text-status-fail">
-            無料トライアル（{trialInfo.limit}回）が終了しました
-          </span>
-          <button
-            type="button"
-            onClick={handleSetupPayment}
-            disabled={isSettingUp}
-            className="text-sm text-white bg-accent hover:bg-accent/90 px-4 py-2 rounded-card disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            aria-label="お支払い方法を登録する"
-          >
-            {isSettingUp ? '処理中...' : 'お支払い方法を登録する'}
-          </button>
-        </div>
-      )}
-
-      {/* Messages area — centered like ChatGPT */}
-      <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="max-w-3xl mx-auto px-4">
-          {isWelcome ? (
-            /* Welcome screen */
-            <div className="flex flex-col items-center justify-center h-full pt-16 sm:pt-24">
-              <img
-                src="/dashboard/mascot-idle.gif"
-                alt=""
-                className="w-16 h-16 sm:w-20 sm:h-20"
-                style={{ imageRendering: 'pixelated' }}
-                aria-hidden="true"
-              />
-              <h2 className="mt-4 text-xl font-semibold text-text-primary">
-                FujiTrace AI 事務員
-              </h2>
-              <p className="mt-2 text-sm text-text-secondary text-center max-w-sm">
-                {hasCompanyInfo(companyInfo)
-                  ? '事務作業をお手伝いします。下のボタンから始めるか、自由に入力してください。'
-                  : '事務作業をお手伝いします。まずは会社情報を設定してから、下のボタンで始めるか自由に入力してください。'}
-              </p>
-
-              {/* Trial remaining badge */}
-              {trialInfo && !isAdmin && trialInfo.remaining > 0 && (
-                <span className={`mt-3 text-xs px-2 py-1 rounded-card ${
-                  trialInfo.remaining === 1
-                    ? 'text-status-warn bg-status-warn/10'
-                    : 'text-text-secondary bg-base-elevated'
-                }`}>
-                  お試し: 残り{trialInfo.remaining}回
-                </span>
-              )}
-
-              {/* Suggestion chips */}
-              <div className="flex flex-wrap justify-center gap-2 mt-8">
-                {SUGGESTION_CHIPS.map((chip) => (
-                  <button
-                    key={chip.label}
-                    type="button"
-                    onClick={() => handleSend(chip.label)}
-                    disabled={isLoading}
-                    className="px-4 py-2.5 text-sm text-text-secondary bg-white border border-border rounded-full hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
-                  >
-                    {chip.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            /* Chat messages */
-            <div className="flex flex-col gap-4 py-6">
-              {messages.map((msg) => (
-                <Message key={msg.id} message={msg} />
-              ))}
-
-              {/* Loading indicator with running mascot */}
-              {isLoading && (
-                <div className="flex justify-start items-end gap-2">
-                  <img
-                    src="/dashboard/mascot-run.gif"
-                    alt=""
-                    className="w-10 h-10"
-                    style={{
-                      imageRendering: 'pixelated' as const,
-                      animation: 'mascot-run 0.3s ease-in-out infinite alternate',
-                    }}
-                    aria-hidden="true"
-                  />
-                  <div className="bg-base-surface rounded-2xl rounded-bl-sm px-4 py-3">
-                    <div className="flex gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-text-muted animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1.5 h-1.5 rounded-full bg-text-muted animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1.5 h-1.5 rounded-full bg-text-muted animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div ref={messagesEndRef} />
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Bottom input area */}
-      <div className="flex-shrink-0 border-t border-border bg-white">
-        <div className="max-w-3xl mx-auto px-4 py-3">
-          {/* Suggestion chips (after messages) */}
-          {!isWelcome && !isLoading && (
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {SUGGESTION_CHIPS.map((chip) => (
-                <button
-                  key={chip.label}
-                  type="button"
-                  onClick={() => handleSend(chip.label)}
-                  className="px-3 py-1 text-xs text-text-secondary bg-base-elevated border border-border-subtle rounded-full hover:border-accent hover:text-accent transition-colors"
-                >
-                  {chip.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* File preview */}
-          {selectedFile && (
-            <div className="flex items-center gap-2 px-4 py-2 mb-1 bg-base-elevated rounded-lg text-sm">
-              <Paperclip className="w-4 h-4 text-text-muted flex-shrink-0" strokeWidth={1.5} />
-              <span className="text-text-secondary truncate">{selectedFile.name}</span>
-              <span className="text-text-muted text-xs flex-shrink-0">
-                ({(selectedFile.size / 1024).toFixed(0)} KB)
-              </span>
-              <button
-                type="button"
-                onClick={() => setSelectedFile(null)}
-                className="ml-auto p-1 text-text-muted hover:text-text-primary"
-                aria-label="添付ファイルを削除"
-              >
-                <X className="w-3.5 h-3.5" strokeWidth={1.5} />
-              </button>
-            </div>
-          )}
-
-          {/* Input row */}
-          <div className="flex items-end gap-2">
-            {/* Company info button */}
+        {/* Trial exhausted + payment setup */}
+        {trialInfo && !isAdmin && trialInfo.remaining === 0 && (
+          <div className="flex-shrink-0 mb-3 flex flex-col items-center gap-2">
+            <span className="text-xs text-status-fail">
+              無料トライアル（{trialInfo.limit}回）が終了しました
+            </span>
             <button
               type="button"
-              onClick={() => setShowCompanyModal(true)}
-              className={`flex-shrink-0 p-2 rounded-card transition-colors ${
-                hasCompanyInfo(companyInfo)
-                  ? 'text-accent hover:bg-accent-dim'
-                  : 'text-text-muted hover:text-text-secondary hover:bg-base-elevated'
-              }`}
-              title="会社基本情報を設定"
-              aria-label="会社基本情報を設定"
+              onClick={handleSetupPayment}
+              disabled={isSettingUp}
+              className="text-sm text-white bg-accent hover:bg-accent/90 px-4 py-2 rounded-card disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              aria-label="お支払い方法を登録する"
             >
-              <Settings2 className="w-5 h-5" strokeWidth={1.5} />
-            </button>
-
-            {/* File attach button */}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex-shrink-0 p-2 text-text-muted hover:text-accent transition-colors"
-              aria-label="ファイルを添付"
-            >
-              <Paperclip className="w-5 h-5" strokeWidth={1.5} />
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".txt,.csv,.pdf,.jpg,.jpeg,.png"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  if (file.size > 5 * 1024 * 1024) {
-                    setError('ファイルサイズは5MB以下にしてください');
-                    return;
-                  }
-                  setSelectedFile(file);
-                }
-                e.target.value = '';
-              }}
-            />
-
-            {/* Textarea */}
-            <div className="flex-1 relative">
-              <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => {
-                  setInput(e.target.value.slice(0, MAX_INPUT_LENGTH));
-                  adjustTextarea();
-                }}
-                onKeyDown={handleKeyDown}
-                placeholder="メッセージを入力..."
-                disabled={isLoading}
-                rows={1}
-                className="w-full px-4 py-2.5 border border-border rounded-xl text-sm text-text-primary placeholder-text-muted bg-base-surface focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed resize-none overflow-hidden"
-                style={{ minHeight: '42px', maxHeight: '160px' }}
-                aria-label="メッセージ入力"
-              />
-            </div>
-
-            {/* Send button */}
-            <button
-              type="button"
-              onClick={() => handleSend()}
-              disabled={isLoading || !input.trim()}
-              className="flex-shrink-0 p-2.5 bg-accent text-white rounded-xl hover:bg-accent/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              aria-label="送信"
-            >
-              <Send className="w-5 h-5" strokeWidth={1.5} />
+              {isSettingUp ? '処理中...' : 'お支払い方法を登録する'}
             </button>
           </div>
+        )}
 
-          {/* Error message */}
-          {error && (
-            <p className="mt-2 text-sm text-status-fail text-center" role="alert">
-              {error}
-            </p>
-          )}
+        {/* Error message */}
+        {error && (
+          <p className="mt-2 text-sm text-status-fail text-center" role="alert">
+            {error}
+          </p>
+        )}
 
-          {/* Trial remaining (inline, when messages exist) */}
-          {!isWelcome && trialInfo && !isAdmin && trialInfo.remaining > 0 && (
-            <p className="mt-1.5 text-[10px] text-text-muted text-center">
+        {/* Header */}
+        <div className="flex flex-col items-center pt-8 sm:pt-12 mb-8">
+          <img
+            src="/dashboard/mascot-idle.gif"
+            alt=""
+            className="w-16 h-16 sm:w-20 sm:h-20"
+            style={{ imageRendering: 'pixelated' }}
+            aria-hidden="true"
+          />
+          <h2 className="mt-3 text-xl font-semibold text-text-primary">FujiTrace AI 事務員</h2>
+          <p className="mt-1 text-sm text-text-secondary">作業を選んで開始してください</p>
+
+          {/* Trial badge */}
+          {trialInfo && !isAdmin && trialInfo.remaining > 0 && (
+            <span className="mt-2 text-xs px-2 py-1 rounded-card text-text-secondary bg-base-elevated">
               お試し: 残り{trialInfo.remaining}回
-            </p>
+            </span>
           )}
         </div>
+
+        {/* Task Cards Grid */}
+        <div className="w-full max-w-2xl px-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {TASK_CARDS.map(card => (
+            <TaskCard key={card.id} card={card} onAction={handleTaskAction} />
+          ))}
+        </div>
+
+        {/* Company Info Settings Button */}
+        <button onClick={() => setShowCompanyModal(true)} className="mt-6 text-xs text-text-muted hover:text-accent transition-colors">
+          会社情報を設定
+        </button>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // Estimate create has its own specialized form
+  if (view.type === 'estimate-create') {
+    return (
+      <>
+        {showCompanyModal && (
+          <CompanyInfoModal
+            info={companyInfo}
+            onSave={handleSaveCompanyInfo}
+            onClose={() => setShowCompanyModal(false)}
+          />
+        )}
+        <EstimateCreateForm companyInfo={companyInfo} onBack={() => setView({ type: 'hub' })} />
+      </>
+    );
+  }
+
+  // All other tasks use the generic form
+  const configKey = view.type;
+  const config = FORM_CONFIGS[configKey];
+  if (config) {
+    return (
+      <>
+        {showCompanyModal && (
+          <CompanyInfoModal
+            info={companyInfo}
+            onSave={handleSaveCompanyInfo}
+            onClose={() => setShowCompanyModal(false)}
+          />
+        )}
+        <GenericDocumentForm config={config} companyInfo={companyInfo} onBack={() => setView({ type: 'hub' })} />
+      </>
+    );
+  }
+
+  return null;
 }
