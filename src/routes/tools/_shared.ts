@@ -292,17 +292,16 @@ export interface LlmToolCallResult {
 }
 
 /**
- * Call an LLM via the FujiTrace proxy with OpenAI function-calling support.
+ * Call OpenAI directly with function-calling support.
  *
- * Similar to `callLlmViaProxy` but includes the `tools` array and
- * `tool_choice: 'auto'` in the payload, and parses `tool_calls` from the
- * response. Used by the AI 事務員 agent for tool dispatch.
+ * Does NOT go through the FujiTrace proxy (which strips tools/tool_choice
+ * and forces its own JSON output format via the enforcer). Instead, calls
+ * the OpenAI API directly to preserve function-calling semantics.
  *
- * Default model is `gpt-4o` (not gpt-4o-mini) because the agent needs
- * better reasoning for tool matching decisions.
+ * Used by the AI 事務員 agent for tool dispatch.
  */
 export async function callLlmWithTools(
-  fastify: FastifyInstance,
+  _fastify: FastifyInstance,
   messages: LlmMessage[],
   tools: unknown[],
   opts?: { model?: string; temperature?: number; maxTokens?: number },
@@ -312,26 +311,28 @@ export async function callLlmWithTools(
     throw new Error('OPENAI_API_KEY is not configured');
   }
 
-  const injectResponse = await fastify.inject({
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
-    url: '/v1/chat/completions',
-    headers: { 'content-type': 'application/json' },
-    payload: {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
       model: opts?.model || 'gpt-4o',
       messages,
       tools,
       tool_choice: 'auto',
       temperature: opts?.temperature ?? 0.2,
-      maxTokens: opts?.maxTokens ?? 2048,
-      api_key: apiKey,
-    },
+      max_tokens: opts?.maxTokens ?? 4096,
+    }),
   });
 
-  if (injectResponse.statusCode !== 200) {
-    throw new Error(`LLM proxy returned ${injectResponse.statusCode}: ${injectResponse.body}`);
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`OpenAI API returned ${response.status}: ${errorBody}`);
   }
 
-  const parsed = JSON.parse(injectResponse.body) as {
+  const parsed = (await response.json()) as {
     choices?: Array<{
       message?: {
         content?: string | null;
@@ -345,7 +346,7 @@ export async function callLlmWithTools(
         }>;
       };
     }>;
-    _trace?: { requestId?: string };
+    id?: string;
   };
 
   const message = parsed.choices?.[0]?.message;
@@ -358,7 +359,7 @@ export async function callLlmWithTools(
       arguments: tc.function.arguments,
     },
   }));
-  const traceId = parsed._trace?.requestId ?? null;
+  const traceId = parsed.id ?? null;
 
   return { content, toolCalls, traceId };
 }
