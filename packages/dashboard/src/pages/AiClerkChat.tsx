@@ -722,6 +722,7 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
     try {
       const headers = await getAuthHeaders();
 
+      // Build instruction from company info + form data
       const ci = companyInfo;
       const ciParts: string[] = [];
       if (ci.companyName) ciParts.push(`発行元: ${ci.companyName}`);
@@ -745,42 +746,53 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
         }
       }
 
-      const message = `[会社情報]\n${ciParts.join('\n')}\n\n[依頼]\n${config.title}を作成してください。\n\n${formParts.join('\n')}`;
+      const instruction = `${ciParts.join('\n')}\n\n${config.title}を作成してください。\n\n${formParts.join('\n')}`;
 
+      // Call office-task-execute directly (skips AI agent, avoids 60s timeout)
+      const isCheckTask = config.taskId.includes('.check');
       let res: Response;
+
       if (attachedFile) {
+        // For file-attached check tasks, use agent chat (supports multipart)
         const fd = new FormData();
         fd.append('file', attachedFile);
-        fd.append('message', message);
+        fd.append('message', `[会社情報]\n${ciParts.join('\n')}\n\n[依頼]\n${instruction}`);
         const uploadHeaders = { ...headers };
         delete uploadHeaders['Content-Type'];
         res = await fetch('/api/agent/chat', { method: 'POST', headers: uploadHeaders, body: fd });
       } else {
-        res = await fetch('/api/agent/chat', {
+        // Direct tool execution — single LLM call, ~10s instead of ~60s
+        res = await fetch('/api/tools/office-task/execute', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ message }),
+          body: JSON.stringify({
+            task_id: config.taskId,
+            instruction,
+            context: isCheckTask ? (formData['content'] as string || '') : '',
+          }),
         });
       }
 
-      const body = await res.json();
-      if (!res.ok || !body.success) {
-        setError(body.error || `エラーが発生しました (${res.status})`);
-      } else if (body.data) {
-        // Check if tool call returned an error (e.g. quota exceeded)
-        const toolResult = body.data.tool_call?.result as Record<string, unknown> | undefined;
-        if (toolResult && toolResult.success === false) {
-          setError(String(toolResult.error || body.data.reply || 'ツール実行エラー'));
-        } else {
-          let resultText = body.data.reply || '';
-          if (toolResult) {
-            if (toolResult.result) resultText += '\n\n' + String(toolResult.result);
-            if (toolResult.structured_result) resultText += '\n\n' + JSON.stringify(toolResult.structured_result, null, 2);
-          }
-          setResult(resultText);
-        }
+      const body = await res.json() as Record<string, unknown>;
+      if (!res.ok || body.success === false) {
+        setError(String(body.error || `エラーが発生しました (${res.status})`));
       } else {
-        setError('レスポンスの形式が不正です');
+        // Direct tool response: { success, result, structured_result, ... }
+        let resultText = '';
+        if (body.data && typeof body.data === 'object') {
+          // Agent chat response format
+          const data = body.data as Record<string, unknown>;
+          resultText = String(data.reply || '');
+          const tr = (data.tool_call as Record<string, unknown>)?.result as Record<string, unknown> | undefined;
+          if (tr?.result) resultText += '\n\n' + String(tr.result);
+        } else if (body.result) {
+          // Direct tool response format
+          resultText = String(body.result);
+        } else if (body.structured_result) {
+          resultText = JSON.stringify(body.structured_result, null, 2);
+        }
+        if (!resultText) resultText = JSON.stringify(body, null, 2);
+        setResult(resultText);
       }
     } catch {
       setError('通信エラーが発生しました');
