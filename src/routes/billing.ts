@@ -3,14 +3,17 @@
  * Stripe Checkout / Customer Portal / Webhook
  */
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { getStripe, isStripeConfigured, getProPriceId, getWebhookSecret } from '../billing/stripe.js';
+import type Stripe from 'stripe';
+import { getStripe, isStripeConfigured, getProPriceId, getWebhookSecret, getMeteredPriceIds } from '../billing/stripe.js';
 import {
   getStripeCustomerId,
   setStripeCustomerId,
   getWorkspaceByStripeCustomer,
   setSubscriptionStatus,
   getSubscriptionStatus,
+  setDefaultPaymentMethod,
 } from '../billing/storage.js';
+import { resolveWorkspaceId } from './tools/_shared.js';
 import { updateWorkspacePlan, getWorkspacePlan } from '../plans/storage.js';
 
 export default async function billingRoutes(fastify: FastifyInstance): Promise<void> {
@@ -78,16 +81,27 @@ export default async function billingRoutes(fastify: FastifyInstance): Promise<v
 
       const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
 
-      // Checkout Session 作成
+      // Checkout Session 作成（固定料金 + 従量課金アイテム）
+      const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
+        {
+          price: getProPriceId(),
+          quantity: 1,
+        },
+      ];
+
+      // 従量課金の Price が設定されていれば追加（metered items は quantity 不要）
+      const meteredPrices = getMeteredPriceIds('pro');
+      if (meteredPrices.traceOveragePriceId) {
+        lineItems.push({ price: meteredPrices.traceOveragePriceId });
+      }
+      if (meteredPrices.evalOveragePriceId) {
+        lineItems.push({ price: meteredPrices.evalOveragePriceId });
+      }
+
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         mode: 'subscription',
-        line_items: [
-          {
-            price: getProPriceId(),
-            quantity: 1,
-          },
-        ],
+        line_items: lineItems,
         success_url: `${baseUrl}/?tab=plan&checkout=success`,
         cancel_url: `${baseUrl}/?tab=plan&checkout=cancel`,
         metadata: {
@@ -149,6 +163,61 @@ export default async function billingRoutes(fastify: FastifyInstance): Promise<v
   });
 
   /**
+   * POST /api/billing/agent-setup
+   * Create a Stripe Checkout Session in setup mode for agent per-use billing.
+   * Request: (no body required)
+   * Response: { setupUrl: string }
+   */
+  fastify.post('/api/billing/agent-setup', async (request: FastifyRequest, reply: FastifyReply) => {
+    if (!isStripeConfigured()) {
+      return reply.code(503).send({ error: 'Stripe is not configured' });
+    }
+
+    const workspaceId = await resolveWorkspaceId(request);
+    if (!workspaceId) {
+      return reply.code(401).send({ error: '認証が必要です' });
+    }
+
+    try {
+      const stripe = getStripe();
+
+      // Find or create Stripe customer
+      let customerId = await getStripeCustomerId(workspaceId);
+      if (!customerId) {
+        const userEmail = request.headers['x-user-email'] as string | undefined;
+        const customer = await stripe.customers.create({
+          email: userEmail || undefined,
+          metadata: { workspace_id: workspaceId },
+        });
+        customerId = customer.id;
+        await setStripeCustomerId(workspaceId, customerId);
+      }
+
+      const origin = request.headers.origin
+        || (request.headers.referer as string | undefined)?.replace(/\/[^/]*$/, '')
+        || 'https://www.fujitrace.jp';
+
+      const session = await stripe.checkout.sessions.create({
+        mode: 'setup',
+        customer: customerId,
+        payment_method_types: ['card'],
+        success_url: `${origin}/tools/clerk?setup=success`,
+        cancel_url: `${origin}/tools/clerk?setup=cancel`,
+        metadata: {
+          workspace_id: workspaceId,
+          purpose: 'agent_per_use',
+        },
+      });
+
+      return reply.send({ setupUrl: session.url });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      fastify.log.error({ err: error }, '[Billing] Agent setup session creation failed');
+      return reply.code(500).send({ error: `セットアップセッションの作成に失敗しました: ${message}` });
+    }
+  });
+
+  /**
    * POST /api/billing/webhook
    * Stripe Webhook 受信
    * 重要: raw body が必要（署名検証のため）
@@ -186,7 +255,7 @@ export default async function billingRoutes(fastify: FastifyInstance): Promise<v
           const customerId = session.customer as string;
           const subscriptionId = session.subscription as string;
 
-          if (workspaceId) {
+          if (workspaceId && session.mode === 'subscription') {
             // Customer マッピング保存
             await setStripeCustomerId(workspaceId, customerId);
 
@@ -198,7 +267,27 @@ export default async function billingRoutes(fastify: FastifyInstance): Promise<v
             // ステータス保存
             await setSubscriptionStatus(workspaceId, 'active', subscriptionId);
 
-            console.log(`[Billing] Checkout完了: workspace=${workspaceId}, subscription=${subscriptionId}`);
+            fastify.log.info({ workspaceId, subscriptionId }, 'Checkout completed (subscription)');
+          }
+
+          // Handle setup mode sessions (payment method collection for agent per-use)
+          if (session.mode === 'setup' && session.setup_intent) {
+            const stripe = getStripe();
+            const setupIntentId = typeof session.setup_intent === 'string'
+              ? session.setup_intent
+              : session.setup_intent.id;
+            const setupIntent = await stripe.setupIntents.retrieve(setupIntentId);
+
+            if (setupIntent.payment_method) {
+              const paymentMethodId = typeof setupIntent.payment_method === 'string'
+                ? setupIntent.payment_method
+                : setupIntent.payment_method.id;
+              const wsId = session.metadata?.workspace_id;
+              if (wsId) {
+                await setDefaultPaymentMethod(wsId, paymentMethodId);
+                fastify.log.info({ workspaceId: wsId }, 'Agent per-use payment method saved');
+              }
+            }
           }
           break;
         }
@@ -238,13 +327,28 @@ export default async function billingRoutes(fastify: FastifyInstance): Promise<v
           break;
         }
 
+        case 'invoice.payment_succeeded': {
+          const successInvoice = event.data.object;
+          const successCustomerId = successInvoice.customer as string;
+          const successWorkspaceId = await getWorkspaceByStripeCustomer(successCustomerId);
+
+          if (successWorkspaceId) {
+            console.log(
+              `[Billing] 請求書支払い成功: workspace=${successWorkspaceId}, invoice=${successInvoice.id}, amount=${successInvoice.amount_paid}`
+            );
+          }
+          break;
+        }
+
         case 'invoice.payment_failed': {
           const invoice = event.data.object;
           const customerId = invoice.customer as string;
           const workspaceId = await getWorkspaceByStripeCustomer(customerId);
 
           if (workspaceId) {
-            console.warn(`[Billing] 支払い失敗: workspace=${workspaceId}, invoice=${invoice.id}`);
+            console.warn(
+              `[Billing] 支払い失敗: workspace=${workspaceId}, invoice=${invoice.id}, amount=${invoice.amount_due}`
+            );
             // TODO: 管理者にメール通知
           }
           break;

@@ -3,9 +3,8 @@
  *
  * Business rule:
  *   - First 3 uses per workspace are free (lifetime, not monthly).
- *   - After that, each use costs ¥10.
- *   - Until Stripe metered billing is wired, uses >= 3 are simply blocked
- *     with a message asking the user to contact sales.
+ *   - After that, each use costs ¥10 via Stripe PaymentIntent (off_session).
+ *   - If no payment method is on file, the user is prompted to set one up.
  *
  * Usage is tracked in the `ai_tools_usage` table (migration 010)
  * with tool_name='agent' and action='chat'.
@@ -54,28 +53,57 @@ export async function getTrialStatus(workspaceId: string): Promise<TrialInfo> {
   };
 }
 
+export interface BillingResult {
+  allowed: boolean;
+  trialInfo: TrialInfo;
+  error?: string;
+  /** URL for payment method setup (returned when no payment method on file) */
+  setupUrl?: string;
+  /** true if ¥10 was charged for this use */
+  charged?: boolean;
+}
+
 /**
  * Main billing gate: determine whether a workspace is allowed to use the
  * agent right now.
  *
- * - used < 3  -> allowed
- * - used >= 3 -> blocked with Japanese error message
+ * - used < 3  -> allowed (free trial)
+ * - used >= 3, payment method on file -> attempt ¥10 charge
+ * - used >= 3, no payment method -> blocked with setup prompt
  */
-export async function enforceAgentBilling(workspaceId: string): Promise<{
-  allowed: boolean;
-  trialInfo: TrialInfo;
-  error?: string;
-}> {
+export async function enforceAgentBilling(workspaceId: string): Promise<BillingResult> {
   const trialInfo = await getTrialStatus(workspaceId);
 
+  // Free trial still available
   if (!trialInfo.isTrialExhausted) {
     return { allowed: true, trialInfo };
+  }
+
+  // Trial exhausted — attempt per-use charge
+  const { getStripeCustomerId, getDefaultPaymentMethod } = await import('../billing/storage.js');
+  const { chargeAgentPerUse } = await import('../billing/stripe.js');
+
+  const customerId = await getStripeCustomerId(workspaceId);
+  const paymentMethodId = await getDefaultPaymentMethod(workspaceId);
+
+  // No payment method on file — need setup
+  if (!customerId || !paymentMethodId) {
+    return {
+      allowed: false,
+      trialInfo,
+      error: `無料トライアル（${AGENT_FREE_TRIAL_LIMIT}回）が終了しました。ご利用を継続するには、お支払い方法の登録が必要です。`,
+    };
+  }
+
+  // Attempt charge
+  const chargeResult = await chargeAgentPerUse(customerId, paymentMethodId, workspaceId);
+  if (chargeResult.success) {
+    return { allowed: true, trialInfo, charged: true };
   }
 
   return {
     allowed: false,
     trialInfo,
-    error:
-      '無料トライアル（3回）が終了しました。従量課金（¥10/回）でご利用を継続するにはお問い合わせください。',
+    error: '決済に失敗しました。お支払い方法をご確認ください。',
   };
 }

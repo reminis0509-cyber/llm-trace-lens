@@ -95,3 +95,27 @@ export async function getSubscriptionStatus(workspaceId: string): Promise<{
     return null;
   }
 }
+
+/**
+ * Store default payment method for agent per-use billing.
+ */
+export async function setDefaultPaymentMethod(workspaceId: string, paymentMethodId: string): Promise<void> {
+  if (!isKVAvailable()) return;
+  try {
+    await kv.set(`workspace:${workspaceId}:default_payment_method`, paymentMethodId);
+  } catch (error) {
+    console.error('[BillingStorage] Failed to save payment method:', error);
+  }
+}
+
+/**
+ * Get default payment method for agent per-use billing.
+ */
+export async function getDefaultPaymentMethod(workspaceId: string): Promise<string | null> {
+  if (!isKVAvailable()) return null;
+  try {
+    return await kv.get<string>(`workspace:${workspaceId}:default_payment_method`);
+  } catch {
+    return null;
+  }
+}

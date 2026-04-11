@@ -107,6 +107,8 @@ export default function ClerkChat() {
   const [error, setError] = useState<string | null>(null);
   const [trialInfo, setTrialInfo] = useState<TrialInfo | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [setupSuccess, setSetupSuccess] = useState(false);
+  const [isSettingUp, setIsSettingUp] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -121,28 +123,68 @@ export default function ClerkChat() {
     inputRef.current?.focus();
   }, []);
 
+  // Fetch trial status
+  const fetchTrialStatus = useCallback(async () => {
+    try {
+      const res = await fetch('/api/agent/trial-status', {
+        headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        const body = (await res.json()) as {
+          success: boolean;
+          data: { trialInfo: TrialInfo; isAdmin?: boolean };
+        };
+        if (body.success && body.data?.trialInfo) {
+          setTrialInfo(body.data.trialInfo);
+          if (body.data.isAdmin) setIsAdmin(true);
+        }
+      }
+    } catch {
+      // Silent fail — trial badge is non-critical
+    }
+  }, []);
+
   // Fetch trial status on mount
   useEffect(() => {
-    const fetchTrialStatus = async () => {
-      try {
-        const res = await fetch('/api/agent/trial-status', {
-          headers: getAuthHeaders(),
-        });
-        if (res.ok) {
-          const body = (await res.json()) as {
-            success: boolean;
-            data: { trialInfo: TrialInfo; isAdmin?: boolean };
-          };
-          if (body.success && body.data?.trialInfo) {
-            setTrialInfo(body.data.trialInfo);
-            if (body.data.isAdmin) setIsAdmin(true);
-          }
-        }
-      } catch {
-        // Silent fail — trial badge is non-critical
-      }
-    };
     fetchTrialStatus();
+  }, [fetchTrialStatus]);
+
+  // Handle ?setup=success return from Stripe Checkout
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('setup') === 'success') {
+      setError(null);
+      setSetupSuccess(true);
+      window.history.replaceState({}, '', window.location.pathname);
+      fetchTrialStatus();
+      // Auto-hide success message after 5 seconds
+      const timer = setTimeout(() => setSetupSuccess(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [fetchTrialStatus]);
+
+  // Redirect to Stripe Checkout for payment method registration
+  const handleSetupPayment = useCallback(async () => {
+    setIsSettingUp(true);
+    try {
+      const res = await fetch('/api/billing/agent-setup', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      const body = (await res.json()) as {
+        setupUrl?: string;
+        error?: string;
+      };
+      if (body.setupUrl) {
+        window.location.href = body.setupUrl;
+      } else {
+        setError(body.error || 'お支払い方法の登録に失敗しました。');
+      }
+    } catch {
+      setError('お支払い方法の登録に失敗しました。');
+    } finally {
+      setIsSettingUp(false);
+    }
   }, []);
 
   const handleSend = useCallback(async () => {
@@ -250,13 +292,33 @@ export default function ClerkChat() {
         <p className="text-sm text-gray-500 mt-1">
           自然言語で事務作業を依頼できます
         </p>
+        {/* Payment setup success message */}
+        {setupSuccess && (
+          <div className="mt-2">
+            <span className="text-xs text-green-700 bg-green-50 px-2 py-1 rounded">
+              お支払い方法の登録が完了しました
+            </span>
+          </div>
+        )}
         {/* Trial status badge */}
         {trialInfo && !isAdmin && (
           <div className="mt-2">
             {trialInfo.remaining === 0 ? (
-              <span className="text-xs text-red-600">
-                無料トライアル（{trialInfo.limit}回）が終了しました
-              </span>
+              <div className="flex flex-col items-start gap-2">
+                <span className="text-xs text-red-600">
+                  無料トライアル（{trialInfo.limit}回）が終了しました
+                </span>
+                <button
+                  type="button"
+                  onClick={handleSetupPayment}
+                  disabled={isSettingUp}
+                  className="text-sm text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isSettingUp
+                    ? '処理中...'
+                    : 'お支払い方法を登録する \u2192'}
+                </button>
+              </div>
             ) : trialInfo.remaining === 1 ? (
               <span className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded">
                 お試し: 残り1回
