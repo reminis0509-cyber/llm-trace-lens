@@ -237,7 +237,7 @@ export async function executeClerk(
     fastify,
     llmMessages,
     functionCallingTools,
-    { model: 'gpt-4o', temperature: 0.2, maxTokens: 2048 },
+    { model: 'gpt-4o', temperature: 0.2, maxTokens: 4096 },
   );
 
   let reply = '';
