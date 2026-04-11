@@ -48,15 +48,14 @@ let cachedFunctionCallingTools: FunctionCallingTool[] | null = null;
 export function buildFunctionCallingTools(schemas: ToolSchema[]): FunctionCallingTool[] {
   if (cachedFunctionCallingTools) return cachedFunctionCallingTools;
 
-  // OpenAI limits function calling to 128 tools.
-  // Filter out forbidden tools (they get rejected at execution anyway)
-  // and cap at 124 to leave room for meta-functions.
-  const MAX_TOOLS = 124;
-  const allowedSchemas = schemas
-    .filter((s) => !s.description.startsWith('[対応不可'))
-    .slice(0, MAX_TOOLS);
+  // Phase 0: Only send dedicated tools (estimate.*) as individual functions.
+  // All other office tasks use a single generic dispatcher to stay well under
+  // OpenAI's 128-tool limit and avoid massive token overhead from 147 schemas.
+  const dedicatedSchemas = schemas.filter((s) =>
+    s.name.startsWith('estimate.'),
+  );
 
-  const toolFunctions: FunctionCallingTool[] = allowedSchemas.map((schema) => ({
+  const toolFunctions: FunctionCallingTool[] = dedicatedSchemas.map((schema) => ({
     type: 'function' as const,
     function: {
       name: toFunctionName(schema.name),
@@ -64,6 +63,37 @@ export function buildFunctionCallingTools(schemas: ToolSchema[]): FunctionCallin
       parameters: sanitizeSchema(schema.inputSchema),
     },
   }));
+
+  // Generic office task dispatcher — covers all 145 catalog tasks
+  const officeTaskDispatcher: FunctionCallingTool = {
+    type: 'function',
+    function: {
+      name: 'office_task_execute',
+      description:
+        '汎用事務タスクを実行します。見積書以外の全事務作業（請求書チェック、契約書確認、経費精算、チェックリスト作成、コンプライアンス確認、議事録作成、稟議書作成、送付状作成など）はこの関数を使ってください。task_id にはシステムプロンプトのタスク一覧から適切なIDを指定してください。',
+      parameters: {
+        type: 'object',
+        properties: {
+          task_id: {
+            type: 'string',
+            description: 'タスクID（例: invoice.check, contract.review, expense.report）',
+          },
+          instruction: {
+            type: 'string',
+            description: 'ユーザーの依頼内容をそのまま記載',
+          },
+          context: {
+            type: 'string',
+            description: '添付ファイルの内容や追加の参考情報（任意）',
+          },
+        },
+        required: ['task_id', 'instruction'],
+        additionalProperties: false,
+      },
+    },
+  };
+
+  toolFunctions.push(officeTaskDispatcher);
 
   // Meta-function: adapted tool invocation
   const adaptTool: FunctionCallingTool = {

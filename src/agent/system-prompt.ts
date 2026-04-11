@@ -23,15 +23,22 @@ function loadAgentPromptTemplate(relativePath: string): string {
 }
 
 /**
- * Format tool schemas into a human-readable list for the system prompt.
+ * Format tool schemas into a compact list for the system prompt.
+ * Dedicated tools (estimate.*) get full detail; office tasks get a compact ID list.
  */
 function formatToolsList(schemas: ToolSchema[]): string {
-  return schemas
-    .map(
-      (s) =>
-        `- **${s.name}**: ${s.description}\n  - HTTP: ${s.method} ${s.path}\n  - 責任レベル: ${s.responsibilityLevel}`,
-    )
+  const dedicated = schemas.filter((s) => s.name.startsWith('estimate.'));
+  const officeTasks = schemas.filter((s) => !s.name.startsWith('estimate.') && !s.description.startsWith('[対応不可'));
+
+  const dedicatedList = dedicated
+    .map((s) => `- **${s.name}**: ${s.description}`)
     .join('\n');
+
+  const officeTaskList = officeTasks
+    .map((s) => `- ${s.name}: ${s.description.slice(0, 60)}`)
+    .join('\n');
+
+  return `### 専用ツール（function callingで直接呼び出し可能）\n${dedicatedList}\n\n### 汎用オフィスタスク（office_task_execute で task_id を指定）\n${officeTaskList}`;
 }
 
 /**

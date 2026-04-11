@@ -258,7 +258,34 @@ export async function executeClerk(
         parsedArgs = {};
       }
 
-      if (functionName === '_log_feature_request') {
+      if (functionName === 'office_task_execute') {
+        // Generic office task dispatcher
+        const execResult = await executeToolViaInject(
+          fastify,
+          '/api/tools/office-task/execute',
+          'POST',
+          parsedArgs,
+          workspaceId,
+        );
+
+        toolCallResult = {
+          tool_name: typeof parsedArgs['task_id'] === 'string' ? parsedArgs['task_id'] : 'office_task',
+          match_type: 'exact',
+          result: execResult.body,
+        };
+
+        conversation.messages.push({
+          role: 'assistant',
+          content: null,
+          tool_calls: [{ id: tc.id, function: { name: functionName, arguments: tc.function.arguments } }],
+        });
+        conversation.messages.push({
+          role: 'tool',
+          content: JSON.stringify(execResult.body),
+          tool_call_id: tc.id,
+        });
+
+      } else if (functionName === '_log_feature_request') {
         // Log feature request to 欲望データベース
         const summary = typeof parsedArgs['user_request_summary'] === 'string'
           ? parsedArgs['user_request_summary']
