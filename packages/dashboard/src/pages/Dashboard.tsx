@@ -7,6 +7,7 @@ import { Settings } from './Settings';
 import { ApiKeys } from './ApiKeys';
 import { AdminDashboard } from './AdminDashboard';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import AiClerkChat from './AiClerkChat';
 import { useAuth } from '../contexts/AuthContext';
 import { useRole } from '../contexts/RoleContext';
 import { TraceStream, type StreamTrace } from '../components/watch/TraceStream';
@@ -519,18 +520,7 @@ export function Dashboard() {
             </div>
           )}
           {activeTab === 'ai-clerk' && (
-            <div className="flex flex-col items-center justify-center py-24">
-              <div className="w-16 h-16 rounded-2xl bg-accent-dim flex items-center justify-center mb-6">
-                <Bot className="w-8 h-8 text-accent" />
-              </div>
-              <h2 className="text-xl font-semibold text-text-primary mb-2">AI事務員</h2>
-              <p className="text-text-secondary text-sm text-center max-w-md">
-                日本企業向けAI事務員プラットフォーム。見積書作成、請求書チェックなど、業務を自動化します。
-              </p>
-              <span className="mt-4 px-4 py-1.5 text-xs font-medium text-accent bg-accent-dim rounded-full">
-                Coming Soon
-              </span>
-            </div>
+            <AiClerkChat />
           )}
           {/* Hidden: フィードバック機能はユーザー需要が来たら復活 */}
           {/* {activeTab === 'analytics' && (

@@ -12,9 +12,16 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
     'Content-Type': 'application/json',
   };
 
-  if (session?.user) {
-    headers['X-User-ID'] = session.user.id;
-    headers['X-User-Email'] = session.user.email || '';
+  if (session) {
+    // JWT for server-side verification (secure)
+    if (session.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+    // Fallback headers
+    if (session.user) {
+      headers['X-User-ID'] = session.user.id;
+      headers['X-User-Email'] = session.user.email || '';
+    }
   }
 
   return headers;
