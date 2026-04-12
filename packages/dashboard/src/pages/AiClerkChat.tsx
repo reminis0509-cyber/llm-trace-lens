@@ -760,7 +760,7 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
       const instruction = `${ciParts.join('\n')}\n\n${config.title}を作成してください。\n\n${formParts.join('\n')}`;
 
       // Call office-task-execute directly (skips AI agent, avoids 60s timeout)
-      const isCheckTask = config.taskId.includes('.check');
+      const isCheckTask = config.taskId.includes('check');
       let res: Response;
 
       if (attachedFile) {
