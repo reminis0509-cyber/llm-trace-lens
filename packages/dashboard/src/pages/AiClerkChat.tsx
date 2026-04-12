@@ -414,27 +414,47 @@ function EstimateResult({ result, onReset, onBack, embedded }: {
   const verification = result.verification as Record<string, unknown> | undefined;
   const [mode, setMode] = useState<'preview' | 'edit'>('preview');
   const [editText, setEditText] = useState(() => estimate ? formatEstimateText(estimate) : '');
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const pdfBlobRef = useRef<Blob | null>(null);
 
   const estNum = estimate ? String((estimate as Record<string, unknown>).estimate_number ?? 'draft') : 'draft';
 
-  const handleDownloadPdf = async () => {
+  const getIssuer = () => {
+    const raw = localStorage.getItem('fujitrace-company-info');
+    return raw ? JSON.parse(raw) : {};
+  };
+
+  // Generate PDF preview on mount
+  useEffect(() => {
     if (!estimate) return;
-    setIsPdfLoading(true);
-    try {
-      const { generateEstimatePdf } = await import('../lib/estimate-pdf.js');
-      // Read issuer info from localStorage
-      const raw = localStorage.getItem('fujitrace-company-info');
-      const issuer = raw ? JSON.parse(raw) : {};
-      const blob = await generateEstimatePdf(estimate as Parameters<typeof generateEstimatePdf>[0], issuer);
-      const url = URL.createObjectURL(blob);
+    let cancelled = false;
+    (async () => {
+      try {
+        setIsPdfLoading(true);
+        const { generateEstimatePdf } = await import('../lib/estimate-pdf.js');
+        const blob = await generateEstimatePdf(estimate as Parameters<typeof generateEstimatePdf>[0], getIssuer());
+        if (cancelled) return;
+        pdfBlobRef.current = blob;
+        setPdfUrl(URL.createObjectURL(blob));
+      } catch (err) {
+        console.error('PDF preview generation failed:', err);
+      } finally {
+        if (!cancelled) setIsPdfLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [estimate]);
+
+  const handleDownloadPdf = () => {
+    if (pdfBlobRef.current) {
+      const url = URL.createObjectURL(pdfBlobRef.current);
       const a = document.createElement('a');
       a.href = url;
       a.download = `見積書_${estNum}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('PDF generation failed:', err);
+    } else {
       // Fallback to text download
       const blob = new Blob([editText], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -443,8 +463,6 @@ function EstimateResult({ result, onReset, onBack, embedded }: {
       a.download = `見積書_${estNum}.txt`;
       a.click();
       URL.revokeObjectURL(url);
-    } finally {
-      setIsPdfLoading(false);
     }
   };
 
@@ -475,9 +493,18 @@ function EstimateResult({ result, onReset, onBack, embedded }: {
           </div>
 
           {mode === 'preview' ? (
-            <div className="text-sm text-text-secondary whitespace-pre-wrap font-mono bg-gray-50 p-4 rounded-card border border-border leading-relaxed">
-              {editText}
-            </div>
+            isPdfLoading ? (
+              <div className="flex items-center justify-center py-16 bg-gray-50 rounded-card border border-border">
+                <img src="/dashboard/mascot-run.gif" alt="" className="w-12 h-12" style={{ imageRendering: 'pixelated' }} />
+                <p className="ml-3 text-sm text-text-secondary">PDFを生成中...</p>
+              </div>
+            ) : pdfUrl ? (
+              <iframe src={pdfUrl} className="w-full rounded-card border border-border" style={{ height: '600px' }} title="見積書プレビュー" />
+            ) : (
+              <div className="text-sm text-text-secondary whitespace-pre-wrap font-mono bg-gray-50 p-4 rounded-card border border-border leading-relaxed">
+                {editText}
+              </div>
+            )
           ) : (
             <textarea
               value={editText}
