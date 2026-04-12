@@ -127,7 +127,7 @@ const TASK_CONFIGS: Record<string, TaskConfig> = {
     },
     checkConfig: {
       title: '見積書チェック',
-      taskId: 'estimate.check',
+      taskId: 'accounting.estimate_check',
       fields: [
         { key: 'content', label: 'チェックしたい見積書の内容を貼り付け、またはファイルを添付してください', type: 'textarea', placeholder: '見積書の内容をここに貼り付け...', required: true },
       ],
@@ -138,7 +138,7 @@ const TASK_CONFIGS: Record<string, TaskConfig> = {
     hasCheck: true,
     createConfig: {
       title: '請求書作成',
-      taskId: 'invoice.create',
+      taskId: 'accounting.invoice_create',
       fields: [
         { key: 'client', label: '宛先（会社名）', type: 'text', placeholder: '株式会社○○', required: true },
         { key: 'invoiceNumber', label: '請求書番号', type: 'text', placeholder: 'INV-2026-001' },
@@ -150,7 +150,7 @@ const TASK_CONFIGS: Record<string, TaskConfig> = {
     },
     checkConfig: {
       title: '請求書チェック',
-      taskId: 'invoice.check',
+      taskId: 'accounting.invoice_check',
       fields: [
         { key: 'content', label: 'チェックしたい請求書の内容を貼り付け、またはファイルを添付してください', type: 'textarea', placeholder: '請求書の内容をここに貼り付け...', required: true },
       ],
@@ -161,7 +161,7 @@ const TASK_CONFIGS: Record<string, TaskConfig> = {
     hasCheck: false,
     createConfig: {
       title: '納品書作成',
-      taskId: 'delivery_note.create',
+      taskId: 'accounting.delivery_note_create',
       fields: [
         { key: 'client', label: '宛先（会社名）', type: 'text', placeholder: '株式会社○○', required: true },
         { key: 'deliveryDate', label: '納品日', type: 'date', required: true },
@@ -175,7 +175,7 @@ const TASK_CONFIGS: Record<string, TaskConfig> = {
     hasCheck: false,
     createConfig: {
       title: '発注書作成',
-      taskId: 'purchase_order.create',
+      taskId: 'accounting.purchase_order_create',
       fields: [
         { key: 'client', label: '発注先（会社名）', type: 'text', placeholder: '株式会社○○', required: true },
         { key: 'items', label: '明細', type: 'items', required: true },
@@ -189,7 +189,7 @@ const TASK_CONFIGS: Record<string, TaskConfig> = {
     hasCheck: false,
     createConfig: {
       title: '送付状作成',
-      taskId: 'cover_letter.create',
+      taskId: 'general_affairs.cover_letter_create',
       fields: [
         { key: 'client', label: '宛先（会社名・担当者名）', type: 'text', placeholder: '株式会社○○ ○○様', required: true },
         { key: 'subject', label: '件名', type: 'text', placeholder: '見積書送付のご案内', required: true },
