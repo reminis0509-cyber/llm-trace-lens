@@ -374,6 +374,141 @@ function TaskViewWrapper({ title, onBack, children, embedded }: { title: string;
 }
 
 /* ------------------------------------------------------------------ */
+/*  EstimateResult — Preview + Edit + Download                         */
+/* ------------------------------------------------------------------ */
+
+function formatEstimateText(estimate: Record<string, unknown>): string {
+  const e = estimate;
+  const client = e.client as Record<string, unknown> | undefined;
+  const estItems = (e.items as Array<Record<string, unknown>>) ?? [];
+  return [
+    `見積書`,
+    ``,
+    `見積番号: ${e.estimate_number ?? ''}`,
+    `発行日: ${e.issue_date ?? ''}`,
+    `有効期限: ${e.valid_until ?? ''}`,
+    ``,
+    `宛先: ${client?.company_name ?? ''} ${client?.honorific ?? ''}`,
+    `件名: ${e.subject ?? ''}`,
+    ``,
+    `--- 明細 ---`,
+    ...estItems.map((it, i) => `${i + 1}. ${it.name}  数量${it.quantity}  単価¥${Number(it.unit_price ?? 0).toLocaleString()}  金額¥${Number(it.subtotal ?? 0).toLocaleString()}`),
+    ``,
+    `小計: ¥${Number(e.subtotal ?? 0).toLocaleString()}`,
+    `消費税: ¥${Number(e.tax_amount ?? 0).toLocaleString()}`,
+    `合計: ¥${Number(e.total ?? 0).toLocaleString()}`,
+    ``,
+    e.payment_terms ? `支払条件: ${e.payment_terms}` : '',
+    e.delivery_date ? `納期: ${e.delivery_date}` : '',
+    e.notes ? `備考: ${e.notes}` : '',
+  ].filter(Boolean).join('\n');
+}
+
+function EstimateResult({ result, onReset, onBack, embedded }: {
+  result: Record<string, unknown>;
+  onReset: () => void;
+  onBack: () => void;
+  embedded?: boolean;
+}) {
+  const estimate = result.estimate as Record<string, unknown> | undefined;
+  const verification = result.verification as Record<string, unknown> | undefined;
+  const [mode, setMode] = useState<'preview' | 'edit'>('preview');
+  const [editText, setEditText] = useState(() => estimate ? formatEstimateText(estimate) : '');
+
+  const handleDownload = () => {
+    const blob = new Blob([editText], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const num = estimate ? String((estimate as Record<string, unknown>).estimate_number ?? 'draft') : 'draft';
+    a.download = `見積書_${num}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <TaskViewWrapper title="見積書作成" onBack={onBack} embedded={embedded}>
+      <div className="space-y-4">
+        {/* Preview / Edit tabs */}
+        <div className="surface-card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex gap-3">
+              <button
+                onClick={() => setMode('preview')}
+                className={`text-sm transition-colors ${mode === 'preview' ? 'text-accent font-medium border-b-2 border-accent pb-1' : 'text-text-muted hover:text-text-secondary pb-1'}`}
+              >
+                プレビュー
+              </button>
+              <button
+                onClick={() => setMode('edit')}
+                className={`text-sm transition-colors ${mode === 'edit' ? 'text-accent font-medium border-b-2 border-accent pb-1' : 'text-text-muted hover:text-text-secondary pb-1'}`}
+              >
+                編集
+              </button>
+            </div>
+            <button onClick={handleDownload} className="inline-flex items-center gap-1 text-sm text-accent hover:text-accent/80 transition-colors">
+              <Download className="w-4 h-4" strokeWidth={1.5} />
+              ダウンロード
+            </button>
+          </div>
+
+          {mode === 'preview' ? (
+            <div className="text-sm text-text-secondary whitespace-pre-wrap font-mono bg-gray-50 p-4 rounded-card border border-border leading-relaxed">
+              {editText}
+            </div>
+          ) : (
+            <textarea
+              value={editText}
+              onChange={e => setEditText(e.target.value)}
+              rows={20}
+              className="w-full px-4 py-3 text-sm font-mono border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent resize-y leading-relaxed"
+            />
+          )}
+        </div>
+
+        {/* Verification */}
+        {verification && (
+          <div className="surface-card p-5">
+            <h3 className="text-sm font-medium text-text-primary mb-3">FujiTrace 品質チェック</h3>
+            {Array.isArray((verification as Record<string, unknown>).critical_issues) && ((verification as Record<string, unknown>).critical_issues as Array<Record<string, unknown>>).length > 0 && (
+              <div className="text-sm p-3 rounded-card border-l-2 border-status-fail bg-status-fail/5 mb-2">
+                {((verification as Record<string, unknown>).critical_issues as Array<Record<string, unknown>>).map((issue, i) => (
+                  <p key={i} className="text-status-fail">{String(issue.message)}</p>
+                ))}
+              </div>
+            )}
+            {Array.isArray((verification as Record<string, unknown>).warnings) && ((verification as Record<string, unknown>).warnings as Array<Record<string, unknown>>).length > 0 && (
+              <div className="text-sm p-3 rounded-card border-l-2 border-status-warn bg-status-warn/5 mb-2">
+                {((verification as Record<string, unknown>).warnings as Array<Record<string, unknown>>).map((issue, i) => (
+                  <p key={i} className="text-status-warn">{String(issue.message)}</p>
+                ))}
+              </div>
+            )}
+            {Array.isArray((verification as Record<string, unknown>).suggestions) && ((verification as Record<string, unknown>).suggestions as string[]).length > 0 && (
+              <details className="text-sm">
+                <summary className="text-text-muted cursor-pointer hover:text-text-secondary">改善提案 ({((verification as Record<string, unknown>).suggestions as string[]).length}件)</summary>
+                <div className="mt-2 text-text-muted pl-3">
+                  {((verification as Record<string, unknown>).suggestions as string[]).map((s, i) => (
+                    <p key={i}>- {s}</p>
+                  ))}
+                </div>
+              </details>
+            )}
+          </div>
+        )}
+
+        <button
+          onClick={onReset}
+          className="px-4 py-2 text-sm text-accent border border-accent rounded-card hover:bg-accent/5 transition-colors"
+        >
+          もう一度作成する
+        </button>
+      </div>
+    </TaskViewWrapper>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  EstimateCreateForm                                                 */
 /* ------------------------------------------------------------------ */
 
@@ -456,98 +591,7 @@ function EstimateCreateForm({ companyInfo, onBack, embedded }: { companyInfo: Co
   }
 
   if (result) {
-    const estimate = (result as Record<string, unknown>).estimate as Record<string, unknown> | undefined;
-    const verification = (result as Record<string, unknown>).verification as Record<string, unknown> | undefined;
-
-    const downloadEstimate = () => {
-      if (!estimate) return;
-      const e = estimate as Record<string, unknown>;
-      const client = e.client as Record<string, unknown> | undefined;
-      const estItems = (e.items as Array<Record<string, unknown>>) ?? [];
-      const lines = [
-        `見積書`,
-        ``,
-        `見積番号: ${e.estimate_number ?? ''}`,
-        `発行日: ${e.issue_date ?? ''}`,
-        `有効期限: ${e.valid_until ?? ''}`,
-        ``,
-        `宛先: ${client?.company_name ?? ''} ${client?.honorific ?? ''}`,
-        `件名: ${e.subject ?? ''}`,
-        ``,
-        `--- 明細 ---`,
-        ...estItems.map((it, i) => `${i + 1}. ${it.name}  数量${it.quantity}  単価¥${Number(it.unit_price ?? 0).toLocaleString()}  金額¥${Number(it.subtotal ?? 0).toLocaleString()}`),
-        ``,
-        `小計: ¥${Number(e.subtotal ?? 0).toLocaleString()}`,
-        `消費税: ¥${Number(e.tax_amount ?? 0).toLocaleString()}`,
-        `合計: ¥${Number(e.total ?? 0).toLocaleString()}`,
-        ``,
-        e.payment_terms ? `支払条件: ${e.payment_terms}` : '',
-        e.delivery_date ? `納期: ${e.delivery_date}` : '',
-        e.notes ? `備考: ${e.notes}` : '',
-      ].filter(Boolean).join('\n');
-      const blob = new Blob([lines], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `見積書_${e.estimate_number ?? 'draft'}.txt`;
-      a.click();
-      URL.revokeObjectURL(url);
-    };
-
-    return (
-      <TaskViewWrapper title="見積書作成" onBack={onBack} embedded={embedded}>
-        <div className="space-y-4">
-          {estimate && (
-            <div className="surface-card p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-text-primary">見積書ドラフト</h3>
-                <button onClick={downloadEstimate} className="inline-flex items-center gap-1 text-sm text-accent hover:text-accent/80 transition-colors">
-                  <Download className="w-4 h-4" strokeWidth={1.5} />
-                  ダウンロード
-                </button>
-              </div>
-              <div className="text-sm text-text-secondary space-y-1">
-                <p>見積番号: {String((estimate as Record<string, unknown>).estimate_number ?? '')}</p>
-                <p>宛先: {String(((estimate as Record<string, unknown>).client as Record<string, unknown> | undefined)?.company_name ?? '')}</p>
-                <p>合計: ¥{Number((estimate as Record<string, unknown>).total ?? 0).toLocaleString()}</p>
-              </div>
-            </div>
-          )}
-          {verification && (
-            <div className="surface-card p-5">
-              <h3 className="text-sm font-medium text-text-primary mb-3">FujiTrace 品質チェック</h3>
-              {Array.isArray((verification as Record<string, unknown>).critical_issues) && ((verification as Record<string, unknown>).critical_issues as Array<Record<string, unknown>>).length > 0 && (
-                <div className="text-sm p-3 rounded-card border-l-2 border-status-fail bg-status-fail/5 mb-2">
-                  {((verification as Record<string, unknown>).critical_issues as Array<Record<string, unknown>>).map((issue, i) => (
-                    <p key={i} className="text-status-fail">{String(issue.message)}</p>
-                  ))}
-                </div>
-              )}
-              {Array.isArray((verification as Record<string, unknown>).warnings) && ((verification as Record<string, unknown>).warnings as Array<Record<string, unknown>>).length > 0 && (
-                <div className="text-sm p-3 rounded-card border-l-2 border-status-warn bg-status-warn/5 mb-2">
-                  {((verification as Record<string, unknown>).warnings as Array<Record<string, unknown>>).map((issue, i) => (
-                    <p key={i} className="text-status-warn">{String(issue.message)}</p>
-                  ))}
-                </div>
-              )}
-              {Array.isArray((verification as Record<string, unknown>).suggestions) && ((verification as Record<string, unknown>).suggestions as string[]).length > 0 && (
-                <div className="text-sm text-text-muted mt-2">
-                  {((verification as Record<string, unknown>).suggestions as string[]).map((s, i) => (
-                    <p key={i}>- {s}</p>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-          <button
-            onClick={() => { setResult(null); }}
-            className="px-4 py-2 text-sm text-accent border border-accent rounded-card hover:bg-accent/5 transition-colors"
-          >
-            もう一度作成する
-          </button>
-        </div>
-      </TaskViewWrapper>
-    );
+    return <EstimateResult result={result} onReset={() => setResult(null)} onBack={onBack} embedded={embedded} />;
   }
 
   return (
