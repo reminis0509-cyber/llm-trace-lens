@@ -253,7 +253,7 @@ export interface LlmCallResult {
  * the chatbot engine (see src/chatbot/chat-engine.ts).
  */
 export async function callLlmViaProxy(
-  fastify: FastifyInstance,
+  _fastify: FastifyInstance,
   messages: LlmMessage[],
   opts?: { model?: string; temperature?: number; maxTokens?: number },
 ): Promise<LlmCallResult> {
@@ -262,30 +262,33 @@ export async function callLlmViaProxy(
     throw new Error('OPENAI_API_KEY is not configured');
   }
 
-  const injectResponse = await fastify.inject({
+  // Call OpenAI directly (proxy enforcer adds overhead and forces JSON mode)
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
-    url: '/v1/chat/completions',
-    headers: { 'content-type': 'application/json' },
-    payload: {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
       model: opts?.model || 'gpt-4o-mini',
       messages,
       temperature: opts?.temperature ?? 0.2,
-      maxTokens: opts?.maxTokens ?? 2048,
-      api_key: apiKey,
-    },
+      max_tokens: opts?.maxTokens ?? 2048,
+    }),
   });
 
-  if (injectResponse.statusCode !== 200) {
-    throw new Error(`LLM proxy returned ${injectResponse.statusCode}: ${injectResponse.body}`);
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`OpenAI API returned ${response.status}: ${errorBody}`);
   }
 
-  const parsed = JSON.parse(injectResponse.body) as {
+  const parsed = (await response.json()) as {
     choices?: Array<{ message?: { content?: string } }>;
-    _trace?: { requestId?: string };
+    id?: string;
   };
 
   const content = parsed.choices?.[0]?.message?.content ?? '';
-  const traceId = parsed._trace?.requestId ?? null;
+  const traceId = parsed.id ?? null;
 
   return { content, traceId };
 }
