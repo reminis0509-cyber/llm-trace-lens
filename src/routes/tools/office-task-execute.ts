@@ -201,11 +201,14 @@ export default async function officeTaskExecuteRoute(fastify: FastifyInstance): 
       }
 
       // 6d. Call LLM
+      // Use GPT-4o for check/compliance tasks (better arithmetic reasoning)
+      // Use GPT-4o-mini for creation tasks (fast & cheap)
+      const isCheckTask = task.archetype === 'document_check' || task.archetype === 'compliance_check';
       const llmResult = await callLlmViaProxy(fastify, [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userContent },
       ], {
-        model: process.env.AI_TOOLS_MODEL || 'gpt-4o-mini',
+        model: process.env.AI_TOOLS_MODEL || (isCheckTask ? 'gpt-4o' : 'gpt-4o-mini'),
         temperature: 0.3,
         maxTokens: 4096,
       });
