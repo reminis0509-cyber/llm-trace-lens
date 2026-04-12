@@ -428,7 +428,6 @@ function EstimateCreateForm({ companyInfo, onBack, embedded }: { companyInfo: Co
         body: JSON.stringify({
           conversation_history: [{ role: 'user', content: userMsg }],
           business_info_id: 'default',
-          industry: '',
         }),
       });
 
