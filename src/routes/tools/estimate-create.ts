@@ -187,7 +187,303 @@ interface CreateLlmOutput {
   next_question?: string | null;
 }
 
+/**
+ * POST /api/tools/estimate/create-stream
+ *
+ * SSE streaming variant of `/api/tools/estimate/create`.
+ * Returns the same payload but streams step-progress events in real time.
+ *
+ * SSE events:
+ *   event: step   — emitted after each processing phase completes
+ *   event: done   — final event carrying the full response payload
+ *   event: error  — emitted on unrecoverable failure, then stream closes
+ */
+async function estimateCreateStreamRoute(fastify: FastifyInstance): Promise<void> {
+  fastify.post('/api/tools/estimate/create-stream', {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: '1 hour',
+        keyGenerator: async (request: FastifyRequest) => {
+          const workspaceId = await resolveWorkspaceId(request);
+          return workspaceId ? `ws:${workspaceId}` : `ip:${request.ip}`;
+        },
+        errorResponseBuilder: () => ({
+          success: false,
+          error: 'リクエスト制限を超えました。しばらくお待ちください。',
+        }),
+      },
+    },
+  }, async (request, reply) => {
+    // SSE headers
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+
+    function sendEvent(event: string, data: unknown): void {
+      reply.raw.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    }
+
+    try {
+      const traceStartMs = performance.now();
+      const skeletonSteps: SkeletonStep[] = [];
+      const llmModel = process.env.AI_TOOLS_MODEL || 'gpt-4o-mini';
+
+      // ── Step 0: 入力データ受信 ──
+      const step0Start = performance.now();
+
+      const workspaceId = await resolveWorkspaceId(request);
+      if (!workspaceId) {
+        sendEvent('error', { success: false, error: '認証が必要です' });
+        reply.raw.end();
+        return reply;
+      }
+
+      const parsed = requestSchema.safeParse(request.body);
+      if (!parsed.success) {
+        sendEvent('error', {
+          success: false,
+          error: '入力が不正です',
+          details: parsed.error.errors,
+        });
+        reply.raw.end();
+        return reply;
+      }
+      const { conversation_history, business_info_id, industry } = parsed.data;
+
+      const quota = await enforceFreeQuota(workspaceId, request);
+      if (!quota.allowed) {
+        sendEvent('error', { success: false, error: quota.error });
+        reply.raw.end();
+        return reply;
+      }
+
+      await ensureAiToolsTables();
+      const db = getKnex();
+      const businessInfo = await db<BusinessInfoRecord>('user_business_info')
+        .where({ id: business_info_id, workspace_id: workspaceId })
+        .first();
+
+      const template = loadPromptTemplate('estimate/create.md');
+      const today = new Date().toISOString().slice(0, 10);
+      const systemPrompt = renderTemplate(template, {
+        business_info_json: businessInfo
+          ? JSON.stringify(businessInfo, null, 2)
+          : '未登録（会話履歴内の情報を使用してください）',
+        conversation_history: JSON.stringify(conversation_history, null, 2),
+        today,
+      });
+
+      const messages = [
+        { role: 'system' as const, content: systemPrompt },
+        ...conversation_history.map((m) => ({ role: m.role, content: m.content })),
+      ];
+
+      const step0: SkeletonStep = {
+        index: 0,
+        name: '入力データ受信',
+        status: 'completed',
+        durationMs: Math.round(performance.now() - step0Start),
+        details: {
+          businessInfoFound: !!businessInfo,
+          conversationTurns: conversation_history.length,
+        },
+      };
+      skeletonSteps.push(step0);
+      sendEvent('step', step0);
+
+      // ── Step 1: AI見積書生成 ──
+      const step1Start = performance.now();
+
+      const llm = await callLlmViaProxy(fastify, messages, {
+        model: llmModel,
+        temperature: 0.2,
+        maxTokens: 2048,
+      });
+
+      const fullInputText = messages.map(m => m.content).join('\n');
+      const step1Details = llmStepDetails(llmModel, 0.2, llm.usage, fullInputText, llm.content);
+      const step1: SkeletonStep = {
+        index: 1,
+        name: 'AI見積書生成',
+        status: 'completed',
+        durationMs: Math.round(performance.now() - step1Start),
+        details: step1Details,
+      };
+      skeletonSteps.push(step1);
+      sendEvent('step', step1);
+
+      // Parse LLM JSON
+      let output: CreateLlmOutput;
+      try {
+        output = parseLlmJson<CreateLlmOutput>(llm.content);
+      } catch (parseErr) {
+        request.log.error({ parseErr, raw: llm.content }, 'estimate/create-stream JSON parse failed');
+        sendEvent('error', {
+          success: false,
+          error: 'AIの出力を解析できませんでした。もう一度お試しください。',
+        });
+        reply.raw.end();
+        return reply;
+      }
+
+      if (!output.estimate) {
+        // Model needs more information — send done with partial result
+        const partialUsage = llm.usage ?? {
+          promptTokens: estimateTokens(fullInputText),
+          completionTokens: estimateTokens(llm.content),
+        };
+        const doneStep: SkeletonStep = {
+          index: 2,
+          name: '完了',
+          status: 'completed',
+          durationMs: 0,
+          details: {},
+        };
+        skeletonSteps.push(doneStep);
+        sendEvent('step', doneStep);
+
+        const partialTrace: SkeletonTrace = {
+          taskId: 'estimate.create',
+          taskName: '見積書作成',
+          steps: skeletonSteps,
+          totalDurationMs: Math.round(performance.now() - traceStartMs),
+          totalCostYen: estimateCostYen(partialUsage),
+          model: llmModel,
+          tokenUsage: { input: partialUsage.promptTokens, output: partialUsage.completionTokens },
+        };
+        sendEvent('done', {
+          success: true,
+          data: {
+            estimate: null,
+            next_question: output.next_question ?? '追加情報が必要です。続けて教えてください。',
+            trace_id: llm.traceId,
+            skeleton_trace: partialTrace,
+          },
+        });
+        reply.raw.end();
+        return reply;
+      }
+
+      // ── Step 2: 自動検証 ──
+      const step2Start = performance.now();
+      let verification: VerificationPayload;
+      let step2: SkeletonStep;
+      try {
+        const outcome = await runEstimateVerification(fastify, {
+          workspaceId,
+          estimate: output.estimate,
+          industry,
+          businessInfoId: business_info_id,
+          log: request.log,
+          actionTag: 'estimate.verify_inline',
+        });
+        verification = {
+          status: outcome.check_result.status,
+          critical_issues: outcome.check_result.critical_issues,
+          warnings: outcome.check_result.warnings,
+          suggestions: outcome.check_result.suggestions,
+          responsibility_notice: outcome.check_result.responsibility_notice,
+          arithmetic_check: outcome.arithmetic_check,
+          trace_id: outcome.trace_id,
+        };
+        const issueCount =
+          outcome.check_result.critical_issues.length +
+          outcome.check_result.warnings.length;
+        step2 = {
+          index: 2,
+          name: '自動検証',
+          status: 'completed',
+          durationMs: Math.round(performance.now() - step2Start),
+          details: {
+            status: outcome.check_result.status,
+            issueCount,
+            arithmeticOk: outcome.arithmetic_check.ok,
+          },
+        };
+      } catch (verifyErr) {
+        const reason = verifyErr instanceof Error ? verifyErr.message : String(verifyErr);
+        request.log.error(
+          { verifyErr, action: 'estimate.verify_inline' },
+          'inline verification failed (stream); returning estimate without verification',
+        );
+        verification = emptyVerificationError(reason);
+        step2 = {
+          index: 2,
+          name: '自動検証',
+          status: 'error',
+          durationMs: Math.round(performance.now() - step2Start),
+          details: { reason },
+        };
+      }
+      skeletonSteps.push(step2);
+      sendEvent('step', step2);
+
+      // ── Step 3: 完了 ──
+      const step3: SkeletonStep = {
+        index: 3,
+        name: '完了',
+        status: 'completed',
+        durationMs: 0,
+        details: {},
+      };
+      skeletonSteps.push(step3);
+      sendEvent('step', step3);
+
+      // Build skeleton trace
+      const llmUsage = llm.usage ?? {
+        promptTokens: estimateTokens(fullInputText),
+        completionTokens: estimateTokens(llm.content),
+      };
+      const skeletonTrace: SkeletonTrace = {
+        taskId: 'estimate.create',
+        taskName: '見積書作成',
+        steps: skeletonSteps,
+        totalDurationMs: Math.round(performance.now() - traceStartMs),
+        totalCostYen: estimateCostYen(llmUsage),
+        model: llmModel,
+        tokenUsage: { input: llmUsage.promptTokens, output: llmUsage.completionTokens },
+      };
+
+      // Record usage
+      await recordUsage(workspaceId, 'estimate', 'create', llm.traceId);
+
+      // Send final done event
+      sendEvent('done', {
+        success: true,
+        data: {
+          estimate: output.estimate,
+          next_question: output.next_question ?? null,
+          trace_id: llm.traceId,
+          verification,
+          skeleton_trace: skeletonTrace,
+        },
+      });
+
+      reply.raw.end();
+      return reply;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      request.log.error({ err }, 'estimate/create-stream failed');
+      sendEvent('error', {
+        success: false,
+        error: '見積書の生成中にエラーが発生しました',
+        detail: process.env.NODE_ENV !== 'production' ? message : undefined,
+      });
+      reply.raw.end();
+      return reply;
+    }
+  });
+}
+
 export default async function estimateCreateRoute(fastify: FastifyInstance): Promise<void> {
+  // Register the SSE streaming variant
+  await estimateCreateStreamRoute(fastify);
+
+  // Register the original JSON endpoint
   fastify.post('/api/tools/estimate/create', {
     config: {
       rateLimit: {

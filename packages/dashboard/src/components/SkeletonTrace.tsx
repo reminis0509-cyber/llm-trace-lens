@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
+import { playStepCompleteSound, playCompletionSound } from '../utils/stepSound';
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 
-interface SkeletonStep {
+export interface SkeletonStep {
   index: number;
   name: string;
   status: 'completed' | 'error';
@@ -20,41 +21,28 @@ export interface SkeletonTrace {
   tokenUsage?: { input: number; output: number };
 }
 
-interface SkeletonTraceProps {
+/* ─── Streaming props (real-time SSE view) ──────────────────────────────── */
+
+interface StreamingSkeletonTraceProps {
+  /** Steps received so far (grows as SSE events arrive) */
+  steps: SkeletonStep[];
+  /** Known step names for this task type (shows pending steps not yet completed) */
+  expectedSteps: string[];
+  /** Task name to display as title */
+  taskName: string;
+  /** Whether execution is still in progress */
+  isExecuting: boolean;
+  /** Full trace data (available after completion) */
+  trace: SkeletonTrace | null;
+  /** Whether to play sounds (default true) */
+  soundEnabled?: boolean;
+}
+
+/* ─── Static props (post-completion report view) ────────────────────────── */
+
+interface StaticSkeletonTraceProps {
   trace: SkeletonTrace | null;
   isLoading: boolean;
-}
-
-/* ─── Skeleton placeholder bars (loading state) ─────────────────────────── */
-
-function SkeletonBar({ width, className = '' }: { width: string; className?: string }) {
-  return (
-    <div
-      className={`h-3 rounded bg-gray-200 animate-pulse ${className}`}
-      style={{ width }}
-    />
-  );
-}
-
-function SkeletonStepPlaceholder({ index }: { index: number }) {
-  return (
-    <div
-      className="relative pl-8 pb-5 animate-trace-enter trace-row-stagger"
-      style={{ '--stagger': index } as React.CSSProperties}
-    >
-      {/* Timeline dot */}
-      <div className="absolute left-[7px] top-1 w-3 h-3 rounded-full bg-gray-200 animate-pulse" />
-
-      <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 space-y-2">
-        <div className="flex items-center justify-between">
-          <SkeletonBar width="40%" />
-          <SkeletonBar width="48px" />
-        </div>
-        <SkeletonBar width="60%" className="h-2" />
-        <SkeletonBar width="35%" className="h-2" />
-      </div>
-    </div>
-  );
 }
 
 /* ─── Step detail renderer ──────────────────────────────────────────────── */
@@ -108,18 +96,100 @@ function extractIssues(details: Record<string, unknown> | undefined): string[] {
   return details.issues.filter((v): v is string => typeof v === 'string');
 }
 
-/* ─── Completed step card ───────────────────────────────────────────────── */
+/* ─── Spinner SVG ──────────────────────────────────────────────────────── */
 
-function StepRow({ step, index }: { step: SkeletonStep; index: number }) {
+function Spinner() {
+  return (
+    <svg
+      className="w-4 h-4 text-blue-500 animate-spin flex-shrink-0"
+      fill="none"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+      />
+    </svg>
+  );
+}
+
+/* ─── Checkmark icon ───────────────────────────────────────────────────── */
+
+function CheckIcon({ className }: { className: string }) {
+  return (
+    <svg
+      className={`w-4 h-4 flex-shrink-0 ${className}`}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M5 13l4 4L19 7"
+      />
+    </svg>
+  );
+}
+
+/* ─── Error icon ───────────────────────────────────────────────────────── */
+
+function ErrorIcon() {
+  return (
+    <svg
+      className="w-4 h-4 text-red-500 flex-shrink-0"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M6 18L18 6M6 6l12 12"
+      />
+    </svg>
+  );
+}
+
+/* ─── Pending circle icon ──────────────────────────────────────────────── */
+
+function PendingIcon() {
+  return (
+    <svg
+      className="w-4 h-4 text-gray-300 flex-shrink-0"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="8" strokeWidth={2} />
+    </svg>
+  );
+}
+
+/* ─── Completed step row ───────────────────────────────────────────────── */
+
+function CompletedStepRow({ step }: { step: SkeletonStep }) {
   const isError = step.status === 'error';
   const detailLines = useMemo(() => extractDetailLines(step.details), [step.details]);
   const issues = useMemo(() => extractIssues(step.details), [step.details]);
 
   return (
-    <div
-      className="relative pl-8 pb-5 opacity-0 animate-trace-enter trace-row-stagger"
-      style={{ '--stagger': index } as React.CSSProperties}
-    >
+    <div className="relative pl-8 pb-3">
       {/* Timeline dot */}
       <div
         className={`absolute left-[5px] top-1.5 w-3.5 h-3.5 rounded-full border-2 ${
@@ -131,7 +201,7 @@ function StepRow({ step, index }: { step: SkeletonStep; index: number }) {
 
       {/* Step card */}
       <div
-        className={`rounded-lg border bg-gray-50 p-3 ${
+        className={`rounded-lg border bg-gray-50 p-3 transition-all duration-300 ${
           isError
             ? 'border-l-[3px] border-l-red-500 border-t-gray-100 border-r-gray-100 border-b-gray-100'
             : 'border-l-[3px] border-l-green-500 border-t-gray-100 border-r-gray-100 border-b-gray-100'
@@ -140,38 +210,7 @@ function StepRow({ step, index }: { step: SkeletonStep; index: number }) {
         {/* Header row */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {/* Icon */}
-            {isError ? (
-              <svg
-                className="w-4 h-4 text-red-500 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            ) : (
-              <svg
-                className="w-4 h-4 text-green-500 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            )}
+            {isError ? <ErrorIcon /> : <CheckIcon className="text-green-500" />}
             <span className="text-sm font-medium text-gray-800">{step.name}</span>
           </div>
           <span className="text-xs text-gray-500 font-mono tabular-nums">
@@ -207,59 +246,46 @@ function StepRow({ step, index }: { step: SkeletonStep; index: number }) {
   );
 }
 
-/* ─── Main component ────────────────────────────────────────────────────── */
+/* ─── In-progress step row ─────────────────────────────────────────────── */
 
-export function SkeletonTrace({ trace, isLoading }: SkeletonTraceProps) {
-  /* ── Loading state ─────────────────────────────────────────────────── */
-  if (isLoading || !trace) {
-    return (
-      <div className="w-full rounded-xl border border-gray-100 bg-white p-5">
-        {/* Header */}
-        <div className="flex items-center gap-2 mb-5">
-          <img
-            src="/dashboard/mascot-run.gif"
-            alt="処理中"
-            width={32}
-            height={32}
-            className="flex-shrink-0"
-          />
-          <span className="text-sm text-gray-500">FujiTrace が処理しています...</span>
-        </div>
-
-        {/* Timeline line */}
-        <div className="relative">
-          <div className="absolute left-[13px] top-0 bottom-0 w-px bg-gray-200" />
-          {[0, 1, 2].map((i) => (
-            <SkeletonStepPlaceholder key={i} index={i} />
-          ))}
-        </div>
-
-        {/* Footer placeholder */}
-        <div className="mt-3 pt-3 border-t border-gray-100 space-y-1">
-          <SkeletonBar width="50%" />
-          <SkeletonBar width="35%" className="h-2" />
-        </div>
-      </div>
-    );
-  }
-
-  /* ── Completed state ───────────────────────────────────────────────── */
+function InProgressStepRow({ name }: { name: string }) {
   return (
-    <div className="w-full rounded-xl border border-gray-100 bg-white p-5">
-      {/* Title */}
-      <h3 className="text-sm font-medium text-gray-800 mb-4">{trace.taskName}</h3>
-
-      {/* Steps timeline */}
-      <div className="relative">
-        {/* Vertical line */}
-        <div className="absolute left-[13px] top-0 bottom-0 w-px bg-gray-200" />
-
-        {trace.steps.map((step, i) => (
-          <StepRow key={step.index} step={step} index={i} />
-        ))}
+    <div className="relative pl-8 pb-3">
+      <div className="absolute left-[5px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-blue-500 bg-blue-50" />
+      <div className="rounded-lg border border-l-[3px] border-l-blue-500 border-t-gray-100 border-r-gray-100 border-b-gray-100 bg-blue-50/30 p-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Spinner />
+            <span className="text-sm font-medium text-gray-800">{name}</span>
+          </div>
+          <span className="text-xs text-blue-500 font-medium">処理中...</span>
+        </div>
       </div>
+    </div>
+  );
+}
 
-      {/* Footer: summary */}
+/* ─── Pending step row ─────────────────────────────────────────────────── */
+
+function PendingStepRow({ name }: { name: string }) {
+  return (
+    <div className="relative pl-8 pb-3">
+      <div className="absolute left-[5px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-gray-200 bg-gray-50" />
+      <div className="rounded-lg border border-l-[3px] border-l-gray-200 border-t-gray-100 border-r-gray-100 border-b-gray-100 bg-gray-50/50 p-3">
+        <div className="flex items-center gap-2">
+          <PendingIcon />
+          <span className="text-sm text-gray-400">{name}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Summary footer ───────────────────────────────────────────────────── */
+
+function TraceSummaryFooter({ trace }: { trace: SkeletonTrace }) {
+  return (
+    <>
       <div className="mt-2 pt-3 border-t border-gray-100 space-y-0.5">
         <div className="flex flex-wrap gap-x-3 text-xs text-gray-500">
           <span>
@@ -285,7 +311,6 @@ export function SkeletonTrace({ trace, isLoading }: SkeletonTraceProps) {
         )}
       </div>
 
-      {/* Pro upsell hint */}
       <div className="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-400">
         これは直近の実行レポートです。過去の全履歴・傾向分析は{' '}
         <a href="/dashboard/traces" className="text-blue-500 hover:underline">
@@ -293,6 +318,199 @@ export function SkeletonTrace({ trace, isLoading }: SkeletonTraceProps) {
         </a>{' '}
         で確認できます。
       </div>
+    </>
+  );
+}
+
+/* ─── Streaming SkeletonTrace (real-time SSE view) ──────────────────────── */
+
+export function StreamingSkeletonTrace({
+  steps,
+  expectedSteps,
+  taskName,
+  isExecuting,
+  trace,
+  soundEnabled = true,
+}: StreamingSkeletonTraceProps) {
+  const prevStepCountRef = useRef(0);
+  const wasExecutingRef = useRef(false);
+
+  // Play step sound when a new step arrives
+  useEffect(() => {
+    if (soundEnabled && steps.length > prevStepCountRef.current && prevStepCountRef.current > 0) {
+      playStepCompleteSound();
+    }
+    // Also play for first step (index 0)
+    if (soundEnabled && steps.length === 1 && prevStepCountRef.current === 0) {
+      playStepCompleteSound();
+    }
+    prevStepCountRef.current = steps.length;
+  }, [steps.length, soundEnabled]);
+
+  // Play completion sound when execution finishes
+  useEffect(() => {
+    if (soundEnabled && wasExecutingRef.current && !isExecuting && steps.length > 0) {
+      playCompletionSound();
+    }
+    wasExecutingRef.current = isExecuting;
+  }, [isExecuting, soundEnabled, steps.length]);
+
+  // Build a map of completed step indices for fast lookup
+  const completedStepMap = useMemo(() => {
+    const map = new Map<number, SkeletonStep>();
+    for (const step of steps) {
+      map.set(step.index, step);
+    }
+    return map;
+  }, [steps]);
+
+  // If trace is available (post-completion static view), render the full report
+  if (trace && !isExecuting) {
+    return (
+      <div className="w-full rounded-xl border border-gray-100 bg-white p-5">
+        <h3 className="text-sm font-medium text-gray-800 mb-4">{trace.taskName}</h3>
+        <div className="relative">
+          <div className="absolute left-[13px] top-0 bottom-0 w-px bg-gray-200" />
+          {trace.steps.map((step) => (
+            <CompletedStepRow key={step.index} step={step} />
+          ))}
+        </div>
+        <TraceSummaryFooter trace={trace} />
+      </div>
+    );
+  }
+
+  // Streaming view: show all expected steps in different states
+  const completedCount = steps.length;
+
+  return (
+    <div className="w-full rounded-xl border border-gray-100 bg-white p-5">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-5">
+        <img
+          src="/dashboard/mascot-run.gif"
+          alt="処理中"
+          width={32}
+          height={32}
+          className="flex-shrink-0"
+          style={{ imageRendering: 'pixelated' }}
+        />
+        <div>
+          <span className="text-sm font-medium text-gray-800">{taskName}</span>
+          {isExecuting && (
+            <span className="ml-2 text-xs text-gray-400">
+              {completedCount} / {expectedSteps.length}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Steps timeline */}
+      <div className="relative">
+        <div className="absolute left-[13px] top-0 bottom-0 w-px bg-gray-200" />
+
+        {expectedSteps.map((stepName, idx) => {
+          const completedStep = completedStepMap.get(idx);
+
+          if (completedStep) {
+            // Completed: green border, checkmark, details
+            return <CompletedStepRow key={idx} step={completedStep} />;
+          }
+
+          if (idx === completedCount && isExecuting) {
+            // In-progress: blue border, spinner
+            return <InProgressStepRow key={idx} name={stepName} />;
+          }
+
+          // Pending: gray, no details
+          return <PendingStepRow key={idx} name={stepName} />;
+        })}
+      </div>
+
+      {/* Summary after completion (when we have steps but trace is not yet set) */}
+      {!isExecuting && steps.length > 0 && (
+        <div className="mt-2 pt-3 border-t border-gray-100">
+          <div className="flex flex-wrap gap-x-3 text-xs text-gray-500">
+            <span>
+              合計 {(steps.reduce((s, st) => s + st.durationMs, 0) / 1000).toFixed(1)}秒
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Static SkeletonTrace (backwards-compatible) ───────────────────────── */
+
+function SkeletonBar({ width, className = '' }: { width: string; className?: string }) {
+  return (
+    <div
+      className={`h-3 rounded bg-gray-200 animate-pulse ${className}`}
+      style={{ width }}
+    />
+  );
+}
+
+function SkeletonStepPlaceholder({ index }: { index: number }) {
+  return (
+    <div
+      className="relative pl-8 pb-5 animate-trace-enter trace-row-stagger"
+      style={{ '--stagger': index } as React.CSSProperties}
+    >
+      <div className="absolute left-[7px] top-1 w-3 h-3 rounded-full bg-gray-200 animate-pulse" />
+      <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <SkeletonBar width="40%" />
+          <SkeletonBar width="48px" />
+        </div>
+        <SkeletonBar width="60%" className="h-2" />
+        <SkeletonBar width="35%" className="h-2" />
+      </div>
+    </div>
+  );
+}
+
+export function SkeletonTrace({ trace, isLoading }: StaticSkeletonTraceProps) {
+  /* Loading state */
+  if (isLoading || !trace) {
+    return (
+      <div className="w-full rounded-xl border border-gray-100 bg-white p-5">
+        <div className="flex items-center gap-2 mb-5">
+          <img
+            src="/dashboard/mascot-run.gif"
+            alt="処理中"
+            width={32}
+            height={32}
+            className="flex-shrink-0"
+          />
+          <span className="text-sm text-gray-500">FujiTrace が処理しています...</span>
+        </div>
+        <div className="relative">
+          <div className="absolute left-[13px] top-0 bottom-0 w-px bg-gray-200" />
+          {[0, 1, 2].map((i) => (
+            <SkeletonStepPlaceholder key={i} index={i} />
+          ))}
+        </div>
+        <div className="mt-3 pt-3 border-t border-gray-100 space-y-1">
+          <SkeletonBar width="50%" />
+          <SkeletonBar width="35%" className="h-2" />
+        </div>
+      </div>
+    );
+  }
+
+  /* Completed state */
+  return (
+    <div className="w-full rounded-xl border border-gray-100 bg-white p-5">
+      <h3 className="text-sm font-medium text-gray-800 mb-4">{trace.taskName}</h3>
+      <div className="relative">
+        <div className="absolute left-[13px] top-0 bottom-0 w-px bg-gray-200" />
+        {trace.steps.map((step) => (
+          <CompletedStepRow key={step.index} step={step} />
+        ))}
+      </div>
+      <TraceSummaryFooter trace={trace} />
     </div>
   );
 }

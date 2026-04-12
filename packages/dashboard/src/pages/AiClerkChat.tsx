@@ -8,8 +8,8 @@ import { ArrowLeft, X, Paperclip, Download } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { supabase } from '../lib/supabase';
-import { SkeletonTrace as SkeletonTraceComponent } from '../components/SkeletonTrace';
-import type { SkeletonTrace } from '../components/SkeletonTrace';
+import { SkeletonTrace as SkeletonTraceComponent, StreamingSkeletonTrace } from '../components/SkeletonTrace';
+import type { SkeletonTrace, SkeletonStep } from '../components/SkeletonTrace';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -573,6 +573,9 @@ function EstimateCreateForm({ companyInfo, onBack, embedded }: { companyInfo: Co
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [skeletonTrace, setSkeletonTrace] = useState<SkeletonTrace | null>(null);
+  const [sseSteps, setSseSteps] = useState<SkeletonStep[]>([]);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const estimateExpectedSteps = ['入力データ受信', 'AI見積書生成', '自動検証', '完了'];
 
   const addItem = () => setItems([...items, { name: '', quantity: 1, unitPrice: '' }]);
   const removeItem = (index: number) => setItems(items.filter((_, i) => i !== index));
@@ -591,8 +594,10 @@ function EstimateCreateForm({ companyInfo, onBack, embedded }: { companyInfo: Co
     if (items.some(i => !i.name.trim())) { setError('全ての明細に品名を入力してください'); return; }
 
     setIsLoading(true);
+    setIsExecuting(true);
     setError(null);
     setSkeletonTrace(null);
+    setSseSteps([]);
 
     try {
       const headers = await getAuthHeaders();
@@ -610,7 +615,8 @@ function EstimateCreateForm({ companyInfo, onBack, embedded }: { companyInfo: Co
 
       const userMsg = `${parts.join('\n')}\n\n宛先: ${clientName}\n件名: ${subject || 'Webサイト制作'}\n\n明細:\n${itemLines}\n\n納期: ${deliveryDate || '未定'}\n支払条件: ${paymentTerms}`;
 
-      const res = await fetch('/api/tools/estimate/create', {
+      // Try SSE streaming endpoint first, fall back to non-streaming
+      const res = await fetch('/api/tools/estimate/create-stream', {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -619,26 +625,92 @@ function EstimateCreateForm({ companyInfo, onBack, embedded }: { companyInfo: Co
         }),
       });
 
-      const body = await res.json();
-      if (body.success) {
-        setResult(body.data);
-        if (body.data?.skeleton_trace) {
-          setSkeletonTrace(body.data.skeleton_trace as SkeletonTrace);
+      if (!res.ok || !res.body) {
+        // Fall back to non-streaming endpoint
+        const fallbackRes = await fetch('/api/tools/estimate/create', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            conversation_history: [{ role: 'user', content: userMsg }],
+            business_info_id: 'default',
+          }),
+        });
+        const body = await fallbackRes.json() as Record<string, unknown>;
+        if ((body as { success?: boolean }).success) {
+          setResult(body.data as Record<string, unknown>);
+          const data = body.data as Record<string, unknown> | undefined;
+          if (data?.skeleton_trace) {
+            setSkeletonTrace(data.skeleton_trace as SkeletonTrace);
+          }
+        } else {
+          setError(String(body.error || 'エラーが発生しました'));
         }
-      } else {
-        setError(body.error || 'エラーが発生しました');
+        setIsExecuting(false);
+        setIsLoading(false);
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        let currentEvent = '';
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            currentEvent = line.slice(7);
+          } else if (line.startsWith('data: ') && currentEvent) {
+            try {
+              const data = JSON.parse(line.slice(6)) as Record<string, unknown>;
+              if (currentEvent === 'step') {
+                setSseSteps(prev => [...prev, data as unknown as SkeletonStep]);
+              } else if (currentEvent === 'done') {
+                const doneData = data as { success?: boolean; data?: Record<string, unknown> };
+                if (doneData.success && doneData.data) {
+                  setResult(doneData.data);
+                  if (doneData.data.skeleton_trace) {
+                    setSkeletonTrace(doneData.data.skeleton_trace as SkeletonTrace);
+                  }
+                } else {
+                  setError(String(data.error || 'エラーが発生しました'));
+                }
+              } else if (currentEvent === 'error') {
+                setError(String(data.error || 'エラーが発生しました'));
+              }
+            } catch {
+              /* ignore parse errors */
+            }
+            currentEvent = '';
+          }
+        }
       }
     } catch {
       setError('通信エラーが発生しました');
     } finally {
+      setIsExecuting(false);
       setIsLoading(false);
     }
   };
 
-  if (isLoading) {
+  if (isLoading || isExecuting) {
     return (
       <TaskViewWrapper title="見積書作成" onBack={onBack} embedded={embedded}>
-        <SkeletonTraceComponent trace={skeletonTrace} isLoading={isLoading} />
+        <StreamingSkeletonTrace
+          steps={sseSteps}
+          expectedSteps={estimateExpectedSteps}
+          taskName="見積書作成"
+          isExecuting={isExecuting}
+          trace={null}
+          soundEnabled={true}
+        />
       </TaskViewWrapper>
     );
   }
@@ -870,7 +942,14 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
   const [error, setError] = useState<string | null>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [skeletonTrace, setSkeletonTrace] = useState<SkeletonTrace | null>(null);
+  const [sseSteps, setSseSteps] = useState<SkeletonStep[]>([]);
+  const [isExecuting, setIsExecuting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isCheckTask = config.taskId.includes('check');
+  const expectedStepNames = isCheckTask
+    ? ['入力データ受信', '数値データ抽出', '算術検証', 'AI品質チェック', '結果統合']
+    : ['入力データ受信', 'AI生成', '出力検証'];
 
   const handleSubmit = async () => {
     for (const field of config.fields) {
@@ -881,8 +960,65 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
     }
 
     setIsLoading(true);
+    setIsExecuting(true);
     setError(null);
     setSkeletonTrace(null);
+    setSseSteps([]);
+
+    const handleDoneResponse = (data: Record<string, unknown>) => {
+      if (data.skeleton_trace) {
+        setSkeletonTrace(data.skeleton_trace as SkeletonTrace);
+      }
+      const isCheckResponse = data.archetype === 'document_check';
+
+      if (isCheckResponse) {
+        const structured = data.structured_result as CheckResultData | undefined;
+        const arithmeticCheck = data.arithmetic_check as CheckResultData['arithmetic_check'] | undefined;
+        if (structured) {
+          const cr: CheckResultData = {
+            status: structured.status as string | undefined,
+            critical_issues: (structured.critical_issues as CheckResultData['critical_issues']) ?? [],
+            warnings: (structured.warnings as CheckResultData['warnings']) ?? [],
+            suggestions: (structured.suggestions as string[]) ?? [],
+            arithmetic_check: arithmeticCheck,
+          };
+          setCheckResult(cr);
+        } else {
+          try {
+            const parsed = JSON.parse(data.result as string) as CheckResultData;
+            parsed.arithmetic_check = arithmeticCheck;
+            setCheckResult(parsed);
+          } catch {
+            setResult(data.result as string || JSON.stringify(data, null, 2));
+          }
+        }
+      } else {
+        let resultText = '';
+        const structured = data.structured_result as Record<string, unknown> | undefined;
+        if (structured?.document) {
+          resultText = String(structured.document);
+          if (structured.summary) resultText += '\n\n' + String(structured.summary);
+          const warnings = structured.warnings as string[] | undefined;
+          if (warnings?.length) resultText += '\n\n注意事項:\n' + warnings.map(w => '- ' + w).join('\n');
+        } else if (data.result && typeof data.result === 'string') {
+          try {
+            const parsed = JSON.parse(data.result as string) as Record<string, unknown>;
+            if (parsed.document) {
+              resultText = String(parsed.document);
+              if (parsed.summary) resultText += '\n\n' + String(parsed.summary);
+            } else {
+              resultText = data.result as string;
+            }
+          } catch {
+            resultText = data.result as string;
+          }
+        } else if (data.reply) {
+          resultText = String(data.reply);
+        }
+        if (!resultText) resultText = JSON.stringify(data, null, 2);
+        setResult(resultText);
+      }
+    };
 
     try {
       const headers = await getAuthHeaders();
@@ -913,21 +1049,39 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
 
       const instruction = `${ciParts.join('\n')}\n\n${config.title}を作成してください。\n\n${formParts.join('\n')}`;
 
-      // Call office-task-execute directly (skips AI agent, avoids 60s timeout)
-      const isCheckTask = config.taskId.includes('check');
-      let res: Response;
-
       if (attachedFile) {
-        // For file-attached check tasks, use agent chat (supports multipart)
+        // For file-attached check tasks, use agent chat (supports multipart, no SSE)
         const fd = new FormData();
         fd.append('file', attachedFile);
         fd.append('message', `[会社情報]\n${ciParts.join('\n')}\n\n[依頼]\n${instruction}`);
         const uploadHeaders = { ...headers };
         delete uploadHeaders['Content-Type'];
-        res = await fetch('/api/agent/chat', { method: 'POST', headers: uploadHeaders, body: fd });
-      } else {
-        // Direct tool execution — single LLM call, ~10s instead of ~60s
-        res = await fetch('/api/tools/office-task/execute', {
+        const res = await fetch('/api/agent/chat', { method: 'POST', headers: uploadHeaders, body: fd });
+        const body = await res.json() as Record<string, unknown>;
+        if (!res.ok || body.success === false) {
+          setError(String(body.error || `エラーが発生しました (${res.status})`));
+        } else {
+          handleDoneResponse((body.data ?? body) as Record<string, unknown>);
+        }
+        setIsExecuting(false);
+        setIsLoading(false);
+        return;
+      }
+
+      // Try SSE streaming endpoint first
+      const res = await fetch('/api/tools/office-task/execute-stream', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          task_id: config.taskId,
+          instruction,
+          ...(isCheckTask ? { document_text: formData['content'] as string || '' } : {}),
+        }),
+      });
+
+      if (!res.ok || !res.body) {
+        // Fall back to non-streaming endpoint
+        const fallbackRes = await fetch('/api/tools/office-task/execute', {
           method: 'POST',
           headers,
           body: JSON.stringify({
@@ -936,80 +1090,75 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
             ...(isCheckTask ? { document_text: formData['content'] as string || '' } : {}),
           }),
         });
+        const body = await fallbackRes.json() as Record<string, unknown>;
+        if (!fallbackRes.ok || body.success === false) {
+          setError(String(body.error || `エラーが発生しました (${fallbackRes.status})`));
+        } else {
+          handleDoneResponse((body.data ?? body) as Record<string, unknown>);
+        }
+        setIsExecuting(false);
+        setIsLoading(false);
+        return;
       }
 
-      const body = await res.json() as Record<string, unknown>;
-      if (!res.ok || body.success === false) {
-        setError(String(body.error || `エラーが発生しました (${res.status})`));
-      } else {
-        const data = (body.data ?? body) as Record<string, unknown>;
-        if (data.skeleton_trace) {
-          setSkeletonTrace(data.skeleton_trace as SkeletonTrace);
-        }
-        const isCheckResponse = data.archetype === 'document_check';
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-        if (isCheckResponse) {
-          // Parse structured check result for tiered display
-          const structured = data.structured_result as CheckResultData | undefined;
-          const arithmeticCheck = data.arithmetic_check as CheckResultData['arithmetic_check'] | undefined;
-          if (structured) {
-            const cr: CheckResultData = {
-              status: structured.status as string | undefined,
-              critical_issues: (structured.critical_issues as CheckResultData['critical_issues']) ?? [],
-              warnings: (structured.warnings as CheckResultData['warnings']) ?? [],
-              suggestions: (structured.suggestions as string[]) ?? [],
-              arithmetic_check: arithmeticCheck,
-            };
-            setCheckResult(cr);
-          } else {
-            // Fallback: try parsing raw result as JSON
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        let currentEvent = '';
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            currentEvent = line.slice(7);
+          } else if (line.startsWith('data: ') && currentEvent) {
             try {
-              const parsed = JSON.parse(data.result as string) as CheckResultData;
-              parsed.arithmetic_check = arithmeticCheck;
-              setCheckResult(parsed);
-            } catch {
-              setResult(data.result as string || JSON.stringify(data, null, 2));
-            }
-          }
-        } else {
-          // Extract the document text from the response
-          let resultText = '';
-          const structured = data.structured_result as Record<string, unknown> | undefined;
-          if (structured?.document) {
-            resultText = String(structured.document);
-            if (structured.summary) resultText += '\n\n' + String(structured.summary);
-            const warnings = structured.warnings as string[] | undefined;
-            if (warnings?.length) resultText += '\n\n注意事項:\n' + warnings.map(w => '- ' + w).join('\n');
-          } else if (data.result && typeof data.result === 'string') {
-            try {
-              const parsed = JSON.parse(data.result as string) as Record<string, unknown>;
-              if (parsed.document) {
-                resultText = String(parsed.document);
-                if (parsed.summary) resultText += '\n\n' + String(parsed.summary);
-              } else {
-                resultText = data.result as string;
+              const data = JSON.parse(line.slice(6)) as Record<string, unknown>;
+              if (currentEvent === 'step') {
+                setSseSteps(prev => [...prev, data as unknown as SkeletonStep]);
+              } else if (currentEvent === 'done') {
+                const doneData = data as { success?: boolean; data?: Record<string, unknown> };
+                if (doneData.success && doneData.data) {
+                  handleDoneResponse(doneData.data);
+                } else {
+                  setError(String(data.error || 'エラーが発生しました'));
+                }
+              } else if (currentEvent === 'error') {
+                setError(String(data.error || 'エラーが発生しました'));
               }
             } catch {
-              resultText = data.result as string;
+              /* ignore parse errors */
             }
-          } else if (data.reply) {
-            resultText = String(data.reply);
+            currentEvent = '';
           }
-          if (!resultText) resultText = JSON.stringify(data, null, 2);
-          setResult(resultText);
         }
       }
     } catch {
       setError('通信エラーが発生しました');
     } finally {
+      setIsExecuting(false);
       setIsLoading(false);
     }
   };
 
-  if (isLoading) {
+  if (isLoading || isExecuting) {
     return (
       <TaskViewWrapper title={config.title} onBack={onBack} embedded={embedded}>
-        <SkeletonTraceComponent trace={skeletonTrace} isLoading={isLoading} />
+        <StreamingSkeletonTrace
+          steps={sseSteps}
+          expectedSteps={expectedStepNames}
+          taskName={config.title}
+          isExecuting={isExecuting}
+          trace={null}
+          soundEnabled={true}
+        />
       </TaskViewWrapper>
     );
   }

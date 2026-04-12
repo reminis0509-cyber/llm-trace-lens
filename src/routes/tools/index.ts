@@ -7,6 +7,7 @@
  *   POST         /api/tools/estimate/check
  *   POST         /api/tools/estimate/pdf
  *   POST         /api/tools/office-task/execute
+ *   POST         /api/tools/office-task/execute-stream  (SSE)
  *   GET          /api/tools/estimate/openapi.json
  */
 import type { FastifyInstance } from 'fastify';
