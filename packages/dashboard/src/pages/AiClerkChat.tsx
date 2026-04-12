@@ -414,16 +414,38 @@ function EstimateResult({ result, onReset, onBack, embedded }: {
   const verification = result.verification as Record<string, unknown> | undefined;
   const [mode, setMode] = useState<'preview' | 'edit'>('preview');
   const [editText, setEditText] = useState(() => estimate ? formatEstimateText(estimate) : '');
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
 
-  const handleDownload = () => {
-    const blob = new Blob([editText], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const num = estimate ? String((estimate as Record<string, unknown>).estimate_number ?? 'draft') : 'draft';
-    a.download = `見積書_${num}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const estNum = estimate ? String((estimate as Record<string, unknown>).estimate_number ?? 'draft') : 'draft';
+
+  const handleDownloadPdf = async () => {
+    if (!estimate) return;
+    setIsPdfLoading(true);
+    try {
+      const { generateEstimatePdf } = await import('../lib/estimate-pdf.js');
+      // Read issuer info from localStorage
+      const raw = localStorage.getItem('fujitrace-company-info');
+      const issuer = raw ? JSON.parse(raw) : {};
+      const blob = await generateEstimatePdf(estimate as Parameters<typeof generateEstimatePdf>[0], issuer);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `見積書_${estNum}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      // Fallback to text download
+      const blob = new Blob([editText], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `見積書_${estNum}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setIsPdfLoading(false);
+    }
   };
 
   return (
@@ -446,9 +468,9 @@ function EstimateResult({ result, onReset, onBack, embedded }: {
                 編集
               </button>
             </div>
-            <button onClick={handleDownload} className="inline-flex items-center gap-1 text-sm text-accent hover:text-accent/80 transition-colors">
+            <button onClick={handleDownloadPdf} disabled={isPdfLoading} className="inline-flex items-center gap-1 text-sm text-accent hover:text-accent/80 transition-colors disabled:opacity-50">
               <Download className="w-4 h-4" strokeWidth={1.5} />
-              ダウンロード
+              {isPdfLoading ? 'PDF生成中...' : 'PDFダウンロード'}
             </button>
           </div>
 
