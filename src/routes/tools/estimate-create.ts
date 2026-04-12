@@ -162,24 +162,20 @@ export default async function estimateCreateRoute(fastify: FastifyInstance): Pro
         return reply.code(429).send({ success: false, error: quota.error });
       }
 
-      // 4. Load business info (must belong to workspace)
+      // 4. Load business info (optional — may not exist if user only saved to localStorage)
       await ensureAiToolsTables();
       const db = getKnex();
       const businessInfo = await db<BusinessInfoRecord>('user_business_info')
         .where({ id: business_info_id, workspace_id: workspaceId })
         .first();
-      if (!businessInfo) {
-        return reply.code(404).send({
-          success: false,
-          error: '事業情報が見つかりません。先に事業情報を登録してください。',
-        });
-      }
+      // If not found, continue with empty business info — the user's conversation
+      // message already contains company details (name, address, etc.)
 
       // 5. Build prompt
       const template = loadPromptTemplate('estimate/create.md');
       const today = new Date().toISOString().slice(0, 10);
       const systemPrompt = renderTemplate(template, {
-        business_info_json: JSON.stringify(businessInfo, null, 2),
+        business_info_json: businessInfo ? JSON.stringify(businessInfo, null, 2) : '未登録（会話履歴内の情報を使用してください）',
         conversation_history: JSON.stringify(conversation_history, null, 2),
         today,
       });
