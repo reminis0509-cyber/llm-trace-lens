@@ -777,21 +777,38 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
       if (!res.ok || body.success === false) {
         setError(String(body.error || `エラーが発生しました (${res.status})`));
       } else {
-        // Direct tool response: { success, result, structured_result, ... }
+        // Extract the document text from the response
         let resultText = '';
-        if (body.data && typeof body.data === 'object') {
+        const data = (body.data ?? body) as Record<string, unknown>;
+
+        // Try structured_result.document first (Markdown formatted)
+        const structured = data.structured_result as Record<string, unknown> | undefined;
+        if (structured?.document) {
+          resultText = String(structured.document);
+          // Append summary if available
+          if (structured.summary) resultText += '\n\n' + String(structured.summary);
+          // Append warnings
+          const warnings = structured.warnings as string[] | undefined;
+          if (warnings?.length) resultText += '\n\n注意事項:\n' + warnings.map(w => '- ' + w).join('\n');
+        } else if (data.result && typeof data.result === 'string') {
+          // Try parsing result as JSON to get document field
+          try {
+            const parsed = JSON.parse(data.result as string) as Record<string, unknown>;
+            if (parsed.document) {
+              resultText = String(parsed.document);
+              if (parsed.summary) resultText += '\n\n' + String(parsed.summary);
+            } else {
+              resultText = data.result as string;
+            }
+          } catch {
+            resultText = data.result as string;
+          }
+        } else if (data.reply) {
           // Agent chat response format
-          const data = body.data as Record<string, unknown>;
-          resultText = String(data.reply || '');
-          const tr = (data.tool_call as Record<string, unknown>)?.result as Record<string, unknown> | undefined;
-          if (tr?.result) resultText += '\n\n' + String(tr.result);
-        } else if (body.result) {
-          // Direct tool response format
-          resultText = String(body.result);
-        } else if (body.structured_result) {
-          resultText = JSON.stringify(body.structured_result, null, 2);
+          resultText = String(data.reply);
         }
-        if (!resultText) resultText = JSON.stringify(body, null, 2);
+
+        if (!resultText) resultText = JSON.stringify(data, null, 2);
         setResult(resultText);
       }
     } catch {
