@@ -5,6 +5,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { ArrowLeft, X, Paperclip } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { supabase } from '../lib/supabase';
 
 /* ------------------------------------------------------------------ */
@@ -768,7 +770,7 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
           body: JSON.stringify({
             task_id: config.taskId,
             instruction,
-            context: isCheckTask ? (formData['content'] as string || '') : '',
+            ...(isCheckTask ? { document_text: formData['content'] as string || '' } : {}),
           }),
         });
       }
@@ -834,8 +836,10 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
       <TaskViewWrapper title={config.title} onBack={onBack} embedded={embedded}>
         <div className="space-y-4">
           <div className="surface-card p-5">
-            <h3 className="text-sm font-medium text-text-primary mb-3">作成結果</h3>
-            <div className="text-sm text-text-secondary whitespace-pre-wrap">{result}</div>
+            <h3 className="text-sm font-medium text-text-primary mb-3">結果</h3>
+            <div className="text-sm text-text-secondary prose prose-sm max-w-none prose-headings:text-text-primary prose-strong:text-text-primary prose-th:text-left prose-td:px-2 prose-td:py-1 prose-th:px-2 prose-th:py-1 prose-table:border-collapse prose-td:border prose-td:border-border prose-th:border prose-th:border-border">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{result}</ReactMarkdown>
+              </div>
           </div>
           <button
             onClick={() => { setResult(null); setFormData({}); }}
