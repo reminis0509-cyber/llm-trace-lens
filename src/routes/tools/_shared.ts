@@ -242,9 +242,15 @@ export interface LlmMessage {
   content: string | LlmContentPart[];
 }
 
+export interface LlmTokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+}
+
 export interface LlmCallResult {
   content: string;
   traceId: string | null;
+  usage: LlmTokenUsage | null;
 }
 
 /**
@@ -285,12 +291,21 @@ export async function callLlmViaProxy(
   const parsed = (await response.json()) as {
     choices?: Array<{ message?: { content?: string } }>;
     id?: string;
+    usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+    };
   };
 
   const content = parsed.choices?.[0]?.message?.content ?? '';
   const traceId = parsed.id ?? null;
+  const rawUsage = parsed.usage;
+  const usage: LlmTokenUsage | null =
+    rawUsage && typeof rawUsage.prompt_tokens === 'number' && typeof rawUsage.completion_tokens === 'number'
+      ? { promptTokens: rawUsage.prompt_tokens, completionTokens: rawUsage.completion_tokens }
+      : null;
 
-  return { content, traceId };
+  return { content, traceId, usage };
 }
 
 /**

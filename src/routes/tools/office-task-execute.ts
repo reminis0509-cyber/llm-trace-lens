@@ -39,6 +39,91 @@ import {
 } from './_shared.js';
 import { checkArithmetic } from '../../tools/arithmetic-checker.js';
 import type { ExtractedFinancialData } from '../../tools/arithmetic-checker.js';
+import type { SkeletonStep, SkeletonTrace } from '../../types/skeleton-trace.js';
+import type { LlmTokenUsage } from './_shared.js';
+
+// GPT-4o-mini pricing (USD per 1M tokens) — used for cost estimation
+const PRICING_INPUT_USD_PER_M = 0.15;
+const PRICING_OUTPUT_USD_PER_M = 0.60;
+const USD_TO_JPY = 150;
+
+/**
+ * Estimate cost in yen from token usage.
+ */
+function estimateCostYen(usage: LlmTokenUsage): number {
+  const inputCost = (usage.promptTokens / 1_000_000) * PRICING_INPUT_USD_PER_M * USD_TO_JPY;
+  const outputCost = (usage.completionTokens / 1_000_000) * PRICING_OUTPUT_USD_PER_M * USD_TO_JPY;
+  return Math.round((inputCost + outputCost) * 10000) / 10000; // 4 decimal places
+}
+
+/**
+ * Estimate token count from a string when API usage data is unavailable.
+ * Rough heuristic: Japanese text ~1.5 chars/token, English ~4 chars/token.
+ * Uses a blended average of ~2 chars/token for mixed content.
+ */
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 2);
+}
+
+/**
+ * Helper to record a completed step.
+ */
+function recordStep(
+  steps: SkeletonStep[],
+  name: string,
+  startMs: number,
+  details?: Record<string, unknown>,
+): void {
+  steps.push({
+    index: steps.length,
+    name,
+    status: 'completed',
+    durationMs: Math.round(performance.now() - startMs),
+    details,
+  });
+}
+
+/**
+ * Helper to record an errored step.
+ */
+function recordErrorStep(
+  steps: SkeletonStep[],
+  name: string,
+  startMs: number,
+  details?: Record<string, unknown>,
+): void {
+  steps.push({
+    index: steps.length,
+    name,
+    status: 'error',
+    durationMs: Math.round(performance.now() - startMs),
+    details,
+  });
+}
+
+/**
+ * Build LLM details for a skeleton step from a call result's usage info.
+ */
+function llmStepDetails(
+  model: string,
+  temperature: number,
+  usage: LlmTokenUsage | null,
+  inputText: string,
+  outputText: string,
+): Record<string, unknown> {
+  const actualUsage = usage ?? {
+    promptTokens: estimateTokens(inputText),
+    completionTokens: estimateTokens(outputText),
+  };
+  return {
+    model,
+    temperature,
+    inputTokens: actualUsage.promptTokens,
+    outputTokens: actualUsage.completionTokens,
+    costYen: estimateCostYen(actualUsage),
+    estimated: usage === null,
+  };
+}
 
 /**
  * Flexible request schema: task_id and instruction are always required,
@@ -209,46 +294,76 @@ export default async function officeTaskExecuteRoute(fastify: FastifyInstance): 
 
       if (isDocumentCheck) {
         // ── 4-step arithmetic pipeline for document checks ──────────
+        const traceStartMs = performance.now();
+        const skeletonSteps: SkeletonStep[] = [];
+        const llmModel = process.env.AI_TOOLS_MODEL || 'gpt-4o-mini';
+        let totalInputTokens = 0;
+        let totalOutputTokens = 0;
+
+        // Step 0: Input received
+        const step0Start = performance.now();
         const documentText = String(inputData['document_text'] ?? '');
+        recordStep(skeletonSteps, '入力データ受信', step0Start);
 
         // Step 1: Extract numbers from document text via LLM
+        const step1Start = performance.now();
         const extractPrompt = loadPromptTemplate('office-task/extract-numbers.md');
         const extractResult = await callLlmViaProxy(fastify, [
           { role: 'system', content: extractPrompt },
           { role: 'user', content: documentText },
         ], {
-          model: process.env.AI_TOOLS_MODEL || 'gpt-4o-mini',
+          model: llmModel,
           temperature: 0.0,
           maxTokens: 1024,
         });
+        const step1Details = llmStepDetails(llmModel, 0.0, extractResult.usage, extractPrompt + documentText, extractResult.content);
+        totalInputTokens += step1Details.inputTokens as number;
+        totalOutputTokens += step1Details.outputTokens as number;
+        recordStep(skeletonSteps, '数値データ抽出', step1Start, step1Details);
 
+        // Step 2: Programmatic arithmetic check (100% accurate)
+        const step2Start = performance.now();
         let arithmeticCheck = { ok: true, issues: [] as Array<{ field: string; severity: 'error'; message: string }> };
         let extractedData: ExtractedFinancialData | null = null;
         try {
           extractedData = parseLlmJson<ExtractedFinancialData>(extractResult.content);
 
-          // Step 2: Programmatic arithmetic check (100% accurate)
           if (extractedData.has_financial_data) {
             arithmeticCheck = checkArithmetic(extractedData);
           }
+          recordStep(skeletonSteps, '算術検証', step2Start, {
+            ok: arithmeticCheck.ok,
+            issueCount: arithmeticCheck.issues.length,
+            issues: arithmeticCheck.issues,
+          });
         } catch (extractErr: unknown) {
           request.log.warn(
             { err: extractErr instanceof Error ? extractErr.message : String(extractErr) },
             'Failed to parse extracted financial data, skipping arithmetic check',
           );
+          recordErrorStep(skeletonSteps, '算術検証', step2Start, {
+            ok: false,
+            error: extractErr instanceof Error ? extractErr.message : String(extractErr),
+          });
         }
 
         // Step 3: LLM form/content check (GPT-4o-mini — arithmetic is handled programmatically)
+        const step3Start = performance.now();
         const llmResult = await callLlmViaProxy(fastify, [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userContent },
         ], {
-          model: process.env.AI_TOOLS_MODEL || 'gpt-4o-mini',
+          model: llmModel,
           temperature: 0.3,
           maxTokens: 4096,
         });
+        const step3Details = llmStepDetails(llmModel, 0.3, llmResult.usage, systemPrompt + userContent, llmResult.content);
+        totalInputTokens += step3Details.inputTokens as number;
+        totalOutputTokens += step3Details.outputTokens as number;
+        recordStep(skeletonSteps, 'AI品質チェック', step3Start, step3Details);
 
         // Step 4: Merge arithmetic + LLM results
+        const step4Start = performance.now();
         let structuredResult: Record<string, unknown> | undefined;
         try {
           structuredResult = validateOutput(llmResult.content, archetype);
@@ -296,6 +411,19 @@ export default async function officeTaskExecuteRoute(fastify: FastifyInstance): 
           }
         }
 
+        recordStep(skeletonSteps, '結果統合', step4Start);
+
+        const totalUsage = { promptTokens: totalInputTokens, completionTokens: totalOutputTokens };
+        const skeletonTrace: SkeletonTrace = {
+          taskId: task.id,
+          taskName: task.name,
+          steps: skeletonSteps,
+          totalDurationMs: Math.round(performance.now() - traceStartMs),
+          totalCostYen: estimateCostYen(totalUsage),
+          model: llmModel,
+          tokenUsage: { input: totalInputTokens, output: totalOutputTokens },
+        };
+
         await recordUsage(workspaceId, task.id, 'execute', llmResult.traceId);
 
         const validationWarnings = issues.filter(i => i.severity === 'warning');
@@ -312,31 +440,63 @@ export default async function officeTaskExecuteRoute(fastify: FastifyInstance): 
             validation_warnings: validationWarnings.length > 0 ? validationWarnings : undefined,
             caution_note: task.cautionNote ?? undefined,
             trace_id: llmResult.traceId,
+            skeleton_trace: skeletonTrace,
           },
         });
       }
 
       // ── Standard single-call flow for non-check archetypes ───────
+      const traceStartMs = performance.now();
+      const skeletonSteps: SkeletonStep[] = [];
+      const llmModel = process.env.AI_TOOLS_MODEL || 'gpt-4o-mini';
+
+      // Step 0: Input received
+      const stdStep0Start = performance.now();
+      recordStep(skeletonSteps, '入力データ受信', stdStep0Start);
+
+      // Step 1: LLM generation
+      const stdStep1Start = performance.now();
       const llmResult = await callLlmViaProxy(fastify, [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userContent },
       ], {
-        model: process.env.AI_TOOLS_MODEL || 'gpt-4o-mini',
+        model: llmModel,
         temperature: 0.3,
         maxTokens: 4096,
       });
+      const stdStep1Details = llmStepDetails(llmModel, 0.3, llmResult.usage, systemPrompt + userContent, llmResult.content);
+      recordStep(skeletonSteps, 'AI生成', stdStep1Start, stdStep1Details);
 
-      // 6e. Validate and structure LLM output
+      // Step 2: Output validation
+      const stdStep2Start = performance.now();
       let structuredResult: Record<string, unknown> | undefined;
       try {
         structuredResult = validateOutput(llmResult.content, archetype);
+        recordStep(skeletonSteps, '出力検証', stdStep2Start);
       } catch (parseError: unknown) {
         // If output parsing fails, still return the raw result
         request.log.warn(
           { err: parseError instanceof Error ? parseError.message : String(parseError) },
           'Failed to parse structured LLM output, returning raw text',
         );
+        recordErrorStep(skeletonSteps, '出力検証', stdStep2Start, {
+          error: parseError instanceof Error ? parseError.message : String(parseError),
+        });
       }
+
+      const totalUsage = llmResult.usage ?? {
+        promptTokens: estimateTokens(systemPrompt + userContent),
+        completionTokens: estimateTokens(llmResult.content),
+      };
+      const skeletonTrace: SkeletonTrace = {
+        taskId: task.id,
+        taskName: task.name,
+        steps: skeletonSteps,
+        totalDurationMs: Math.round(performance.now() - traceStartMs),
+        totalCostYen: estimateCostYen(totalUsage),
+        model: llmModel,
+        tokenUsage: { input: totalUsage.promptTokens, output: totalUsage.completionTokens },
+      };
 
       // 7. Record usage
       await recordUsage(workspaceId, task.id, 'execute', llmResult.traceId);
@@ -355,6 +515,7 @@ export default async function officeTaskExecuteRoute(fastify: FastifyInstance): 
           validation_warnings: warnings.length > 0 ? warnings : undefined,
           caution_note: task.cautionNote ?? undefined,
           trace_id: llmResult.traceId,
+          skeleton_trace: skeletonTrace,
         },
       });
     } catch (error: unknown) {

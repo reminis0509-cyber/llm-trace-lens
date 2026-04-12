@@ -8,6 +8,8 @@ import { ArrowLeft, X, Paperclip, Download } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { supabase } from '../lib/supabase';
+import { SkeletonTrace as SkeletonTraceComponent } from '../components/SkeletonTrace';
+import type { SkeletonTrace } from '../components/SkeletonTrace';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -570,6 +572,7 @@ function EstimateCreateForm({ companyInfo, onBack, embedded }: { companyInfo: Co
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [skeletonTrace, setSkeletonTrace] = useState<SkeletonTrace | null>(null);
 
   const addItem = () => setItems([...items, { name: '', quantity: 1, unitPrice: '' }]);
   const removeItem = (index: number) => setItems(items.filter((_, i) => i !== index));
@@ -589,6 +592,7 @@ function EstimateCreateForm({ companyInfo, onBack, embedded }: { companyInfo: Co
 
     setIsLoading(true);
     setError(null);
+    setSkeletonTrace(null);
 
     try {
       const headers = await getAuthHeaders();
@@ -618,6 +622,9 @@ function EstimateCreateForm({ companyInfo, onBack, embedded }: { companyInfo: Co
       const body = await res.json();
       if (body.success) {
         setResult(body.data);
+        if (body.data?.skeleton_trace) {
+          setSkeletonTrace(body.data.skeleton_trace as SkeletonTrace);
+        }
       } else {
         setError(body.error || 'エラーが発生しました');
       }
@@ -631,16 +638,23 @@ function EstimateCreateForm({ companyInfo, onBack, embedded }: { companyInfo: Co
   if (isLoading) {
     return (
       <TaskViewWrapper title="見積書作成" onBack={onBack} embedded={embedded}>
-        <div className="flex flex-col items-center justify-center py-16">
-          <img src="/dashboard/mascot-run.gif" alt="" className="w-16 h-16" style={{ imageRendering: 'pixelated', animation: 'mascot-run 0.3s ease-in-out infinite alternate' }} />
-          <p className="mt-4 text-sm text-text-secondary">見積書を作成中...</p>
-        </div>
+        <SkeletonTraceComponent trace={skeletonTrace} isLoading={isLoading} />
       </TaskViewWrapper>
     );
   }
 
   if (result) {
-    return <EstimateResult result={result} onReset={() => setResult(null)} onBack={onBack} embedded={embedded} />;
+    return (
+      <>
+        <EstimateResult result={result} onReset={() => setResult(null)} onBack={onBack} embedded={embedded} />
+        {skeletonTrace && (
+          <div className="max-w-2xl mx-auto px-4 mt-6">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">FujiTrace 実行レポート</h3>
+            <SkeletonTraceComponent trace={skeletonTrace} isLoading={false} />
+          </div>
+        )}
+      </>
+    );
   }
 
   return (
@@ -855,6 +869,7 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
   const [checkResult, setCheckResult] = useState<CheckResultData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [skeletonTrace, setSkeletonTrace] = useState<SkeletonTrace | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async () => {
@@ -867,6 +882,7 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
 
     setIsLoading(true);
     setError(null);
+    setSkeletonTrace(null);
 
     try {
       const headers = await getAuthHeaders();
@@ -927,6 +943,9 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
         setError(String(body.error || `エラーが発生しました (${res.status})`));
       } else {
         const data = (body.data ?? body) as Record<string, unknown>;
+        if (data.skeleton_trace) {
+          setSkeletonTrace(data.skeleton_trace as SkeletonTrace);
+        }
         const isCheckResponse = data.archetype === 'document_check';
 
         if (isCheckResponse) {
@@ -990,10 +1009,7 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
   if (isLoading) {
     return (
       <TaskViewWrapper title={config.title} onBack={onBack} embedded={embedded}>
-        <div className="flex flex-col items-center justify-center py-16">
-          <img src="/dashboard/mascot-run.gif" alt="" className="w-16 h-16" style={{ imageRendering: 'pixelated', animation: 'mascot-run 0.3s ease-in-out infinite alternate' }} />
-          <p className="mt-4 text-sm text-text-secondary">{config.title}を処理中...</p>
-        </div>
+        <SkeletonTraceComponent trace={skeletonTrace} isLoading={isLoading} />
       </TaskViewWrapper>
     );
   }
@@ -1048,6 +1064,13 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
             )}
           </div>
 
+          {skeletonTrace && (
+            <div className="mt-6">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">FujiTrace 実行レポート</h3>
+              <SkeletonTraceComponent trace={skeletonTrace} isLoading={false} />
+            </div>
+          )}
+
           <button
             onClick={() => { setCheckResult(null); setFormData({}); }}
             className="px-4 py-2 text-sm text-accent border border-accent rounded-card hover:bg-accent/5 transition-colors"
@@ -1069,6 +1092,13 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{result}</ReactMarkdown>
               </div>
           </div>
+          {skeletonTrace && (
+            <div className="mt-6">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">FujiTrace 実行レポート</h3>
+              <SkeletonTraceComponent trace={skeletonTrace} isLoading={false} />
+            </div>
+          )}
+
           <button
             onClick={() => { setResult(null); setFormData({}); }}
             className="px-4 py-2 text-sm text-accent border border-accent rounded-card hover:bg-accent/5 transition-colors"

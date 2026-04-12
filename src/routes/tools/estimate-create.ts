@@ -54,8 +54,76 @@ import {
   parseLlmJson,
   ensureAiToolsTables,
 } from './_shared.js';
+import type { LlmTokenUsage } from './_shared.js';
 import type { CheckResult, EstimateData, BusinessInfoRecord } from '../../types/ai-tools.js';
+import type { SkeletonStep, SkeletonTrace } from '../../types/skeleton-trace.js';
 import { runEstimateVerification } from './estimate-check.js';
+
+// GPT-4o-mini pricing (USD per 1M tokens) — used for cost estimation
+const PRICING_INPUT_USD_PER_M = 0.15;
+const PRICING_OUTPUT_USD_PER_M = 0.60;
+const USD_TO_JPY = 150;
+
+function estimateCostYen(usage: LlmTokenUsage): number {
+  const inputCost = (usage.promptTokens / 1_000_000) * PRICING_INPUT_USD_PER_M * USD_TO_JPY;
+  const outputCost = (usage.completionTokens / 1_000_000) * PRICING_OUTPUT_USD_PER_M * USD_TO_JPY;
+  return Math.round((inputCost + outputCost) * 10000) / 10000;
+}
+
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 2);
+}
+
+function recordStep(
+  steps: SkeletonStep[],
+  name: string,
+  startMs: number,
+  details?: Record<string, unknown>,
+): void {
+  steps.push({
+    index: steps.length,
+    name,
+    status: 'completed',
+    durationMs: Math.round(performance.now() - startMs),
+    details,
+  });
+}
+
+function recordErrorStep(
+  steps: SkeletonStep[],
+  name: string,
+  startMs: number,
+  details?: Record<string, unknown>,
+): void {
+  steps.push({
+    index: steps.length,
+    name,
+    status: 'error',
+    durationMs: Math.round(performance.now() - startMs),
+    details,
+  });
+}
+
+function llmStepDetails(
+  model: string,
+  temperature: number,
+  usage: LlmTokenUsage | null,
+  inputText: string,
+  outputText: string,
+): Record<string, unknown> {
+  const actualUsage = usage ?? {
+    promptTokens: estimateTokens(inputText),
+    completionTokens: estimateTokens(outputText),
+  };
+  return {
+    model,
+    temperature,
+    inputTokens: actualUsage.promptTokens,
+    outputTokens: actualUsage.completionTokens,
+    costYen: estimateCostYen(actualUsage),
+    estimated: usage === null,
+  };
+}
 
 export const messageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -139,6 +207,13 @@ export default async function estimateCreateRoute(fastify: FastifyInstance): Pro
     },
   }, async (request, reply) => {
     try {
+      const traceStartMs = performance.now();
+      const skeletonSteps: SkeletonStep[] = [];
+      const llmModel = process.env.AI_TOOLS_MODEL || 'gpt-4o-mini';
+
+      // ── Step 1: 入力データ受信 (auth + validation + business info lookup) ──
+      const step1Start = performance.now();
+
       // 1. Auth / workspace
       const workspaceId = await resolveWorkspaceId(request);
       if (!workspaceId) {
@@ -187,12 +262,24 @@ export default async function estimateCreateRoute(fastify: FastifyInstance): Pro
         ...conversation_history.map((m) => ({ role: m.role, content: m.content })),
       ];
 
+      recordStep(skeletonSteps, '入力データ受信', step1Start, {
+        businessInfoFound: !!businessInfo,
+        conversationTurns: conversation_history.length,
+      });
+
+      // ── Step 2: AI見積書生成 (main LLM call) ──
+      const step2Start = performance.now();
+
       // 6. Call LLM via FujiTrace proxy (auto-traced)
       const llm = await callLlmViaProxy(fastify, messages, {
-        model: process.env.AI_TOOLS_MODEL || 'gpt-4o-mini',
+        model: llmModel,
         temperature: 0.2,
         maxTokens: 2048,
       });
+
+      const fullInputText = messages.map(m => m.content).join('\n');
+      const step2Details = llmStepDetails(llmModel, 0.2, llm.usage, fullInputText, llm.content);
+      recordStep(skeletonSteps, 'AI見積書生成', step2Start, step2Details);
 
       // 7. Parse LLM JSON
       let output: CreateLlmOutput;
@@ -207,20 +294,35 @@ export default async function estimateCreateRoute(fastify: FastifyInstance): Pro
       }
 
       if (!output.estimate) {
-        // Model decided more information is needed
+        // Model decided more information is needed — only steps 1-2 exist
+        const partialUsage = llm.usage ?? {
+          promptTokens: estimateTokens(fullInputText),
+          completionTokens: estimateTokens(llm.content),
+        };
+        const partialTrace: SkeletonTrace = {
+          taskId: 'estimate.create',
+          taskName: '見積書作成',
+          steps: skeletonSteps,
+          totalDurationMs: Math.round(performance.now() - traceStartMs),
+          totalCostYen: estimateCostYen(partialUsage),
+          model: llmModel,
+          tokenUsage: { input: partialUsage.promptTokens, output: partialUsage.completionTokens },
+        };
         return reply.code(200).send({
           success: true,
           data: {
             estimate: null,
             next_question: output.next_question ?? '追加情報が必要です。続けて教えてください。',
             trace_id: llm.traceId,
+            skeleton_trace: partialTrace,
           },
         });
       }
 
-      // 8. 自動検証（インライン実行）
+      // ── Step 3: 自動検証 (inline verification) ──
       // 戦略要件: 検証は必ず自動で走る必要がある（docs/戦略_2026.md 7.8.1）。
       // LLM タイムアウト等で検証が失敗しても、見積書生成自体は成功として返す。
+      const step3Start = performance.now();
       let verification: VerificationPayload;
       try {
         const outcome = await runEstimateVerification(fastify, {
@@ -240,6 +342,14 @@ export default async function estimateCreateRoute(fastify: FastifyInstance): Pro
           arithmetic_check: outcome.arithmetic_check,
           trace_id: outcome.trace_id,
         };
+        const issueCount =
+          outcome.check_result.critical_issues.length +
+          outcome.check_result.warnings.length;
+        recordStep(skeletonSteps, '自動検証', step3Start, {
+          status: outcome.check_result.status,
+          issueCount,
+          arithmeticOk: outcome.arithmetic_check.ok,
+        });
       } catch (verifyErr) {
         const reason = verifyErr instanceof Error ? verifyErr.message : String(verifyErr);
         request.log.error(
@@ -247,7 +357,27 @@ export default async function estimateCreateRoute(fastify: FastifyInstance): Pro
           'inline verification failed; returning estimate without verification',
         );
         verification = emptyVerificationError(reason);
+        recordErrorStep(skeletonSteps, '自動検証', step3Start, { reason });
       }
+
+      // ── Step 4: 完了 (final response assembly) ──
+      const step4Start = performance.now();
+      recordStep(skeletonSteps, '完了', step4Start);
+
+      // Build the final skeleton trace
+      const llmUsage = llm.usage ?? {
+        promptTokens: estimateTokens(fullInputText),
+        completionTokens: estimateTokens(llm.content),
+      };
+      const skeletonTrace: SkeletonTrace = {
+        taskId: 'estimate.create',
+        taskName: '見積書作成',
+        steps: skeletonSteps,
+        totalDurationMs: Math.round(performance.now() - traceStartMs),
+        totalCostYen: estimateCostYen(llmUsage),
+        model: llmModel,
+        tokenUsage: { input: llmUsage.promptTokens, output: llmUsage.completionTokens },
+      };
 
       // 9. Record usage — create + inline verification は 1 カウント合算
       await recordUsage(workspaceId, 'estimate', 'create', llm.traceId);
@@ -260,6 +390,7 @@ export default async function estimateCreateRoute(fastify: FastifyInstance): Pro
           next_question: output.next_question ?? null,
           trace_id: llm.traceId,
           verification,
+          skeleton_trace: skeletonTrace,
         },
       });
     } catch (err) {
