@@ -701,11 +701,20 @@ function TaskWithTabs({ taskConfig, isEstimate, companyInfo, onBack }: {
 /*  GenericDocumentForm                                                 */
 /* ------------------------------------------------------------------ */
 
+interface CheckResultData {
+  status?: string;
+  critical_issues?: Array<{ field?: string; severity?: string; message: string }>;
+  warnings?: Array<{ field?: string; severity?: string; message: string }>;
+  suggestions?: string[];
+  arithmetic_check?: { ok: boolean; issues: Array<{ field: string; severity: string; message: string }> };
+}
+
 function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config: GenericFormConfig; companyInfo: CompanyInfo; onBack: () => void; embedded?: boolean }) {
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [items, setItems] = useState([{ name: '', quantity: 1, unitPrice: 0 }]);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [checkResult, setCheckResult] = useState<CheckResultData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -779,39 +788,59 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
       if (!res.ok || body.success === false) {
         setError(String(body.error || `エラーが発生しました (${res.status})`));
       } else {
-        // Extract the document text from the response
-        let resultText = '';
         const data = (body.data ?? body) as Record<string, unknown>;
+        const isCheckResponse = data.archetype === 'document_check';
 
-        // Try structured_result.document first (Markdown formatted)
-        const structured = data.structured_result as Record<string, unknown> | undefined;
-        if (structured?.document) {
-          resultText = String(structured.document);
-          // Append summary if available
-          if (structured.summary) resultText += '\n\n' + String(structured.summary);
-          // Append warnings
-          const warnings = structured.warnings as string[] | undefined;
-          if (warnings?.length) resultText += '\n\n注意事項:\n' + warnings.map(w => '- ' + w).join('\n');
-        } else if (data.result && typeof data.result === 'string') {
-          // Try parsing result as JSON to get document field
-          try {
-            const parsed = JSON.parse(data.result as string) as Record<string, unknown>;
-            if (parsed.document) {
-              resultText = String(parsed.document);
-              if (parsed.summary) resultText += '\n\n' + String(parsed.summary);
-            } else {
+        if (isCheckResponse) {
+          // Parse structured check result for tiered display
+          const structured = data.structured_result as CheckResultData | undefined;
+          const arithmeticCheck = data.arithmetic_check as CheckResultData['arithmetic_check'] | undefined;
+          if (structured) {
+            const cr: CheckResultData = {
+              status: structured.status as string | undefined,
+              critical_issues: (structured.critical_issues as CheckResultData['critical_issues']) ?? [],
+              warnings: (structured.warnings as CheckResultData['warnings']) ?? [],
+              suggestions: (structured.suggestions as string[]) ?? [],
+              arithmetic_check: arithmeticCheck,
+            };
+            setCheckResult(cr);
+          } else {
+            // Fallback: try parsing raw result as JSON
+            try {
+              const parsed = JSON.parse(data.result as string) as CheckResultData;
+              parsed.arithmetic_check = arithmeticCheck;
+              setCheckResult(parsed);
+            } catch {
+              setResult(data.result as string || JSON.stringify(data, null, 2));
+            }
+          }
+        } else {
+          // Extract the document text from the response
+          let resultText = '';
+          const structured = data.structured_result as Record<string, unknown> | undefined;
+          if (structured?.document) {
+            resultText = String(structured.document);
+            if (structured.summary) resultText += '\n\n' + String(structured.summary);
+            const warnings = structured.warnings as string[] | undefined;
+            if (warnings?.length) resultText += '\n\n注意事項:\n' + warnings.map(w => '- ' + w).join('\n');
+          } else if (data.result && typeof data.result === 'string') {
+            try {
+              const parsed = JSON.parse(data.result as string) as Record<string, unknown>;
+              if (parsed.document) {
+                resultText = String(parsed.document);
+                if (parsed.summary) resultText += '\n\n' + String(parsed.summary);
+              } else {
+                resultText = data.result as string;
+              }
+            } catch {
               resultText = data.result as string;
             }
-          } catch {
-            resultText = data.result as string;
+          } else if (data.reply) {
+            resultText = String(data.reply);
           }
-        } else if (data.reply) {
-          // Agent chat response format
-          resultText = String(data.reply);
+          if (!resultText) resultText = JSON.stringify(data, null, 2);
+          setResult(resultText);
         }
-
-        if (!resultText) resultText = JSON.stringify(data, null, 2);
-        setResult(resultText);
       }
     } catch {
       setError('通信エラーが発生しました');
@@ -826,6 +855,67 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
         <div className="flex flex-col items-center justify-center py-16">
           <img src="/dashboard/mascot-run.gif" alt="" className="w-16 h-16" style={{ imageRendering: 'pixelated', animation: 'mascot-run 0.3s ease-in-out infinite alternate' }} />
           <p className="mt-4 text-sm text-text-secondary">{config.title}を処理中...</p>
+        </div>
+      </TaskViewWrapper>
+    );
+  }
+
+  if (checkResult) {
+    const hasCritical = (checkResult.critical_issues?.length ?? 0) > 0;
+    const hasWarnings = (checkResult.warnings?.length ?? 0) > 0;
+    const hasSuggestions = (checkResult.suggestions?.length ?? 0) > 0;
+    const statusLabel = checkResult.status === 'ok' ? '問題なし' : checkResult.status === 'warning' ? '要確認' : 'エラーあり';
+    const statusColor = checkResult.status === 'ok' ? 'text-green-600' : checkResult.status === 'warning' ? 'text-status-warn' : 'text-status-fail';
+
+    return (
+      <TaskViewWrapper title={config.title} onBack={onBack} embedded={embedded}>
+        <div className="space-y-4">
+          <div className="surface-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium text-text-primary">FujiTrace 品質チェック</h3>
+              <span className={`text-sm font-medium ${statusColor}`}>{statusLabel}</span>
+            </div>
+
+            {hasCritical && (
+              <div className="text-sm p-3 rounded-card border-l-2 border-status-fail bg-status-fail/5 mb-3">
+                <p className="text-xs font-medium text-status-fail mb-1">重大な問題</p>
+                {checkResult.critical_issues!.map((issue, i) => (
+                  <p key={i} className="text-status-fail">{issue.message}</p>
+                ))}
+              </div>
+            )}
+
+            {hasWarnings && (
+              <div className="text-sm p-3 rounded-card border-l-2 border-status-warn bg-status-warn/5 mb-3">
+                <p className="text-xs font-medium text-status-warn mb-1">確認事項</p>
+                {checkResult.warnings!.map((issue, i) => (
+                  <p key={i} className="text-status-warn">{issue.message}</p>
+                ))}
+              </div>
+            )}
+
+            {hasSuggestions && (
+              <details className="text-sm mb-3">
+                <summary className="text-text-muted cursor-pointer hover:text-text-secondary">改善提案 ({checkResult.suggestions!.length}件)</summary>
+                <div className="mt-2 text-text-muted pl-3">
+                  {checkResult.suggestions!.map((s, i) => (
+                    <p key={i}>- {s}</p>
+                  ))}
+                </div>
+              </details>
+            )}
+
+            {!hasCritical && !hasWarnings && !hasSuggestions && (
+              <p className="text-sm text-green-600">チェック項目に問題は見つかりませんでした。</p>
+            )}
+          </div>
+
+          <button
+            onClick={() => { setCheckResult(null); setFormData({}); }}
+            className="px-4 py-2 text-sm text-accent border border-accent rounded-card hover:bg-accent/5 transition-colors"
+          >
+            もう一度チェックする
+          </button>
         </div>
       </TaskViewWrapper>
     );

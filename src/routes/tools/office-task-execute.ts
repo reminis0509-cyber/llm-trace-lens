@@ -35,7 +35,10 @@ import {
   loadPromptTemplate,
   renderTemplate,
   enforceFreeQuota,
+  parseLlmJson,
 } from './_shared.js';
+import { checkArithmetic } from '../../tools/arithmetic-checker.js';
+import type { ExtractedFinancialData } from '../../tools/arithmetic-checker.js';
 
 /**
  * Flexible request schema: task_id and instruction are always required,
@@ -200,15 +203,111 @@ export default async function officeTaskExecuteRoute(fastify: FastifyInstance): 
         userContent += `\n\n--- 参考情報 ---\n${context}`;
       }
 
-      // 6d. Call LLM
-      // Use GPT-4o for check/compliance tasks (better arithmetic reasoning)
-      // Use GPT-4o-mini for creation tasks (fast & cheap)
-      const isCheckTask = task.archetype === 'document_check' || task.archetype === 'compliance_check';
+      // 6d. For document_check, run the 4-step arithmetic pipeline.
+      // For other archetypes, use the original single-call flow.
+      const isDocumentCheck = task.archetype === 'document_check';
+
+      if (isDocumentCheck) {
+        // ── 4-step arithmetic pipeline for document checks ──────────
+        const documentText = String(inputData['document_text'] ?? '');
+
+        // Step 1: Extract numbers from document text via LLM
+        const extractPrompt = loadPromptTemplate('office-task/extract-numbers.md');
+        const extractResult = await callLlmViaProxy(fastify, [
+          { role: 'system', content: extractPrompt },
+          { role: 'user', content: documentText },
+        ], {
+          model: process.env.AI_TOOLS_MODEL || 'gpt-4o-mini',
+          temperature: 0.0,
+          maxTokens: 1024,
+        });
+
+        let arithmeticCheck = { ok: true, issues: [] as Array<{ field: string; severity: 'error'; message: string }> };
+        let extractedData: ExtractedFinancialData | null = null;
+        try {
+          extractedData = parseLlmJson<ExtractedFinancialData>(extractResult.content);
+
+          // Step 2: Programmatic arithmetic check (100% accurate)
+          if (extractedData.has_financial_data) {
+            arithmeticCheck = checkArithmetic(extractedData);
+          }
+        } catch (extractErr: unknown) {
+          request.log.warn(
+            { err: extractErr instanceof Error ? extractErr.message : String(extractErr) },
+            'Failed to parse extracted financial data, skipping arithmetic check',
+          );
+        }
+
+        // Step 3: LLM form/content check (GPT-4o-mini — arithmetic is handled programmatically)
+        const llmResult = await callLlmViaProxy(fastify, [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userContent },
+        ], {
+          model: process.env.AI_TOOLS_MODEL || 'gpt-4o-mini',
+          temperature: 0.3,
+          maxTokens: 4096,
+        });
+
+        // Step 4: Merge arithmetic + LLM results
+        let structuredResult: Record<string, unknown> | undefined;
+        try {
+          structuredResult = validateOutput(llmResult.content, archetype);
+        } catch (parseError: unknown) {
+          request.log.warn(
+            { err: parseError instanceof Error ? parseError.message : String(parseError) },
+            'Failed to parse structured LLM output, returning raw text',
+          );
+        }
+
+        // Strip LLM arithmetic claims — only trust programmatic results
+        if (structuredResult) {
+          const ARITHMETIC_FIELD_RE = /^(subtotal|tax_amount|total|items\[\d+\]\.amount)$/;
+          const flaggedByLocal = new Set(arithmeticCheck.issues.map(i => i.field));
+
+          const criticalIssues = structuredResult.critical_issues as Array<{ field?: string; severity: string; message: string }> | undefined;
+          if (Array.isArray(criticalIssues)) {
+            structuredResult.critical_issues = criticalIssues.filter(issue => {
+              const field = issue.field ?? '';
+              if (!ARITHMETIC_FIELD_RE.test(field)) return true;
+              return flaggedByLocal.has(field);
+            });
+          }
+
+          // Inject programmatic arithmetic issues into critical_issues
+          if (!arithmeticCheck.ok) {
+            const existing = (structuredResult.critical_issues as Array<Record<string, unknown>>) ?? [];
+            existing.push(...arithmeticCheck.issues);
+            structuredResult.critical_issues = existing;
+            structuredResult.status = 'error';
+          }
+        }
+
+        await recordUsage(workspaceId, task.id, 'execute', llmResult.traceId);
+
+        const validationWarnings = issues.filter(i => i.severity === 'warning');
+
+        return reply.code(200).send({
+          success: true,
+          data: {
+            task_id: task.id,
+            task_name: task.name,
+            archetype: task.archetype,
+            result: llmResult.content,
+            structured_result: structuredResult ?? null,
+            arithmetic_check: arithmeticCheck,
+            validation_warnings: validationWarnings.length > 0 ? validationWarnings : undefined,
+            caution_note: task.cautionNote ?? undefined,
+            trace_id: llmResult.traceId,
+          },
+        });
+      }
+
+      // ── Standard single-call flow for non-check archetypes ───────
       const llmResult = await callLlmViaProxy(fastify, [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userContent },
       ], {
-        model: process.env.AI_TOOLS_MODEL || (isCheckTask ? 'gpt-4o' : 'gpt-4o-mini'),
+        model: process.env.AI_TOOLS_MODEL || 'gpt-4o-mini',
         temperature: 0.3,
         maxTokens: 4096,
       });
