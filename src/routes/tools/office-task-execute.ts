@@ -259,17 +259,31 @@ export default async function officeTaskExecuteRoute(fastify: FastifyInstance): 
           );
         }
 
-        // Strip LLM arithmetic claims — only trust programmatic results
+        // Strip LLM arithmetic claims — only trust programmatic results.
+        // Filter by field name AND by message content (LLM may use Japanese field names).
         if (structuredResult) {
-          const ARITHMETIC_FIELD_RE = /^(subtotal|tax_amount|total|items\[\d+\]\.amount)$/;
-          const flaggedByLocal = new Set(arithmeticCheck.issues.map(i => i.field));
+          const ARITHMETIC_FIELD_RE = /^(subtotal|tax_amount|total|items\[\d+\]\.amount|算術|小計|消費税|合計|税額)$/;
+          const ARITHMETIC_MSG_RE = /計算|掛け算|足し算|一致しません|不一致|正しくは[\d,]+円|合計.*一致|小計.*一致|消費税.*一致|税額.*一致|金額.*一致/;
 
           const criticalIssues = structuredResult.critical_issues as Array<{ field?: string; severity: string; message: string }> | undefined;
           if (Array.isArray(criticalIssues)) {
             structuredResult.critical_issues = criticalIssues.filter(issue => {
               const field = issue.field ?? '';
-              if (!ARITHMETIC_FIELD_RE.test(field)) return true;
-              return flaggedByLocal.has(field);
+              const msg = issue.message ?? '';
+              // Drop if field matches arithmetic pattern
+              if (ARITHMETIC_FIELD_RE.test(field)) return false;
+              // Drop if message looks like an arithmetic claim
+              if (ARITHMETIC_MSG_RE.test(msg)) return false;
+              return true;
+            });
+          }
+
+          // Also filter warnings that contain arithmetic claims
+          const warnings = structuredResult.warnings as Array<{ field?: string; severity: string; message: string }> | undefined;
+          if (Array.isArray(warnings)) {
+            structuredResult.warnings = warnings.filter(issue => {
+              const msg = issue.message ?? '';
+              return !ARITHMETIC_MSG_RE.test(msg);
             });
           }
 
