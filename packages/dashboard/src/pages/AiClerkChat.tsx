@@ -4,7 +4,7 @@
 /* ------------------------------------------------------------------ */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowLeft, X, Paperclip } from 'lucide-react';
+import { ArrowLeft, X, Paperclip, Download } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { supabase } from '../lib/supabase';
@@ -380,14 +380,14 @@ function TaskViewWrapper({ title, onBack, children, embedded }: { title: string;
 function EstimateCreateForm({ companyInfo, onBack, embedded }: { companyInfo: CompanyInfo; onBack: () => void; embedded?: boolean }) {
   const [clientName, setClientName] = useState('');
   const [subject, setSubject] = useState('');
-  const [items, setItems] = useState([{ name: '', quantity: 1, unitPrice: 0 }]);
+  const [items, setItems] = useState([{ name: '', quantity: 1, unitPrice: '' as string | number }]);
   const [deliveryDate, setDeliveryDate] = useState('');
   const [paymentTerms, setPaymentTerms] = useState('月末締め翌月末払い');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const addItem = () => setItems([...items, { name: '', quantity: 1, unitPrice: 0 }]);
+  const addItem = () => setItems([...items, { name: '', quantity: 1, unitPrice: '' }]);
   const removeItem = (index: number) => setItems(items.filter((_, i) => i !== index));
   const updateItem = (index: number, field: string, value: string | number) => {
     const updated = [...items];
@@ -395,7 +395,7 @@ function EstimateCreateForm({ companyInfo, onBack, embedded }: { companyInfo: Co
     setItems(updated);
   };
 
-  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+  const subtotal = items.reduce((sum, item) => sum + item.quantity * (Number(item.unitPrice) || 0), 0);
   const tax = Math.floor(subtotal * 0.1);
   const total = subtotal + tax;
 
@@ -418,7 +418,7 @@ function EstimateCreateForm({ companyInfo, onBack, embedded }: { companyInfo: Co
       if (ci.representative) parts.push(`代表者: ${ci.representative}`);
       if (ci.invoiceNumber) parts.push(`インボイス番号: ${ci.invoiceNumber}`);
 
-      const itemLines = items.map(i => `- ${i.name}: ${i.quantity}個 × ¥${i.unitPrice.toLocaleString()}`).join('\n');
+      const itemLines = items.map(i => `- ${i.name}: ${i.quantity}個 × ¥${(Number(i.unitPrice) || 0).toLocaleString()}`).join('\n');
 
       const userMsg = `${parts.join('\n')}\n\n宛先: ${clientName}\n件名: ${subject || 'Webサイト制作'}\n\n明細:\n${itemLines}\n\n納期: ${deliveryDate || '未定'}\n支払条件: ${paymentTerms}`;
 
@@ -458,12 +458,54 @@ function EstimateCreateForm({ companyInfo, onBack, embedded }: { companyInfo: Co
   if (result) {
     const estimate = (result as Record<string, unknown>).estimate as Record<string, unknown> | undefined;
     const verification = (result as Record<string, unknown>).verification as Record<string, unknown> | undefined;
+
+    const downloadEstimate = () => {
+      if (!estimate) return;
+      const e = estimate as Record<string, unknown>;
+      const client = e.client as Record<string, unknown> | undefined;
+      const estItems = (e.items as Array<Record<string, unknown>>) ?? [];
+      const lines = [
+        `見積書`,
+        ``,
+        `見積番号: ${e.estimate_number ?? ''}`,
+        `発行日: ${e.issue_date ?? ''}`,
+        `有効期限: ${e.valid_until ?? ''}`,
+        ``,
+        `宛先: ${client?.company_name ?? ''} ${client?.honorific ?? ''}`,
+        `件名: ${e.subject ?? ''}`,
+        ``,
+        `--- 明細 ---`,
+        ...estItems.map((it, i) => `${i + 1}. ${it.name}  数量${it.quantity}  単価¥${Number(it.unit_price ?? 0).toLocaleString()}  金額¥${Number(it.subtotal ?? 0).toLocaleString()}`),
+        ``,
+        `小計: ¥${Number(e.subtotal ?? 0).toLocaleString()}`,
+        `消費税: ¥${Number(e.tax_amount ?? 0).toLocaleString()}`,
+        `合計: ¥${Number(e.total ?? 0).toLocaleString()}`,
+        ``,
+        e.payment_terms ? `支払条件: ${e.payment_terms}` : '',
+        e.delivery_date ? `納期: ${e.delivery_date}` : '',
+        e.notes ? `備考: ${e.notes}` : '',
+      ].filter(Boolean).join('\n');
+      const blob = new Blob([lines], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `見積書_${e.estimate_number ?? 'draft'}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
     return (
       <TaskViewWrapper title="見積書作成" onBack={onBack} embedded={embedded}>
         <div className="space-y-4">
           {estimate && (
             <div className="surface-card p-5">
-              <h3 className="text-sm font-medium text-text-primary mb-3">見積書ドラフト</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-text-primary">見積書ドラフト</h3>
+                <button onClick={downloadEstimate} className="inline-flex items-center gap-1 text-sm text-accent hover:text-accent/80 transition-colors">
+                  <Download className="w-4 h-4" strokeWidth={1.5} />
+                  ダウンロード
+                </button>
+              </div>
               <div className="text-sm text-text-secondary space-y-1">
                 <p>見積番号: {String((estimate as Record<string, unknown>).estimate_number ?? '')}</p>
                 <p>宛先: {String(((estimate as Record<string, unknown>).client as Record<string, unknown> | undefined)?.company_name ?? '')}</p>
@@ -565,10 +607,14 @@ function EstimateCreateForm({ companyInfo, onBack, embedded }: { companyInfo: Co
               <div className="w-32">
                 {idx === 0 && <span className="text-xs text-text-muted">単価 (円)</span>}
                 <input
-                  type="number"
-                  min="0"
+                  type="text"
+                  inputMode="numeric"
                   value={item.unitPrice}
-                  onChange={e => updateItem(idx, 'unitPrice', parseInt(e.target.value) || 0)}
+                  onChange={e => {
+                    const v = e.target.value.replace(/[^0-9]/g, '');
+                    updateItem(idx, 'unitPrice', v === '' ? '' : parseInt(v));
+                  }}
+                  placeholder="0"
                   className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                 />
               </div>
