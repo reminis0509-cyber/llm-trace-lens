@@ -1069,7 +1069,7 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
       }
 
       // Try SSE streaming endpoint first
-      const res = await fetch('/api/tools/office-task/execute-stream', {
+      const res = await fetch('/api/stream/office-task', {
         method: 'POST',
         headers,
         body: JSON.stringify({
