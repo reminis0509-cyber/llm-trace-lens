@@ -335,22 +335,34 @@ export function StreamingSkeletonTrace({
   const prevStepCountRef = useRef(0);
   const wasExecutingRef = useRef(false);
 
-  // Play step sound when a new step arrives
+  // Play step sound for EVERY new step, even if multiple arrive in one batch.
+  // When multiple steps arrive at once (e.g. steps.length jumps from 1 to 4),
+  // play a sound for each new step with a 200ms delay between them.
   useEffect(() => {
-    if (soundEnabled && steps.length > prevStepCountRef.current && prevStepCountRef.current > 0) {
-      playStepCompleteSound();
+    if (!soundEnabled) {
+      prevStepCountRef.current = steps.length;
+      return;
     }
-    // Also play for first step (index 0)
-    if (soundEnabled && steps.length === 1 && prevStepCountRef.current === 0) {
-      playStepCompleteSound();
+    const newCount = steps.length;
+    const prevCount = prevStepCountRef.current;
+    if (newCount > prevCount) {
+      const stepsToPlay = newCount - prevCount;
+      for (let i = 0; i < stepsToPlay; i++) {
+        setTimeout(() => {
+          playStepCompleteSound();
+        }, i * 200);
+      }
     }
-    prevStepCountRef.current = steps.length;
+    prevStepCountRef.current = newCount;
   }, [steps.length, soundEnabled]);
 
   // Play completion sound when execution finishes
   useEffect(() => {
     if (soundEnabled && wasExecutingRef.current && !isExecuting && steps.length > 0) {
-      playCompletionSound();
+      // Delay completion sound so it plays after the last step sound
+      const pendingStepSounds = steps.length - (prevStepCountRef.current || 0);
+      const delay = Math.max(0, pendingStepSounds) * 200 + 100;
+      setTimeout(() => playCompletionSound(), delay);
     }
     wasExecutingRef.current = isExecuting;
   }, [isExecuting, soundEnabled, steps.length]);
