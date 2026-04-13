@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import { playStepCompleteSound, playCompletionSound } from '../utils/stepSound';
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
@@ -165,6 +165,29 @@ function ErrorIcon() {
   );
 }
 
+/* ─── Elapsed time hook ───────────────────────────────────────────────── */
+
+function useElapsedSeconds(active: boolean): number {
+  const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef(Date.now());
+
+  useEffect(() => {
+    if (!active) {
+      setElapsed(0);
+      startRef.current = Date.now();
+      return;
+    }
+    startRef.current = Date.now();
+    setElapsed(0);
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [active]);
+
+  return elapsed;
+}
+
 /* ─── Pending circle icon ──────────────────────────────────────────────── */
 
 function PendingIcon() {
@@ -249,6 +272,7 @@ function CompletedStepRow({ step }: { step: SkeletonStep }) {
 /* ─── In-progress step row ─────────────────────────────────────────────── */
 
 function InProgressStepRow({ name }: { name: string }) {
+  const elapsed = useElapsedSeconds(true);
   return (
     <div className="relative pl-8 pb-3">
       <div className="absolute left-[5px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-blue-500 bg-blue-50" />
@@ -258,7 +282,9 @@ function InProgressStepRow({ name }: { name: string }) {
             <Spinner />
             <span className="text-sm font-medium text-gray-800">{name}</span>
           </div>
-          <span className="text-xs text-blue-500 font-medium">処理中...</span>
+          <span className="text-xs text-blue-500 font-medium font-mono tabular-nums">
+            {elapsed}s
+          </span>
         </div>
       </div>
     </div>
@@ -394,6 +420,7 @@ export function StreamingSkeletonTrace({
 
   // Streaming view: show all expected steps in different states
   const completedCount = steps.length;
+  const totalElapsed = useElapsedSeconds(isExecuting);
 
   return (
     <div className="w-full rounded-xl border border-gray-100 bg-white p-5">
@@ -407,12 +434,17 @@ export function StreamingSkeletonTrace({
           className="flex-shrink-0"
           style={{ imageRendering: 'pixelated' }}
         />
-        <div>
+        <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-gray-800">{taskName}</span>
           {isExecuting && (
-            <span className="ml-2 text-xs text-gray-400">
-              {completedCount} / {expectedSteps.length}
-            </span>
+            <>
+              <span className="text-xs text-gray-400">
+                {completedCount} / {expectedSteps.length}
+              </span>
+              <span className="text-xs text-gray-400 font-mono tabular-nums">
+                {totalElapsed}s
+              </span>
+            </>
           )}
         </div>
       </div>
@@ -483,6 +515,11 @@ function SkeletonStepPlaceholder({ index }: { index: number }) {
   );
 }
 
+function StaticLoadingTimer() {
+  const elapsed = useElapsedSeconds(true);
+  return <span className="text-xs text-gray-400 font-mono tabular-nums">{elapsed}s</span>;
+}
+
 export function SkeletonTrace({ trace, isLoading }: StaticSkeletonTraceProps) {
   /* Loading state */
   if (isLoading || !trace) {
@@ -497,6 +534,7 @@ export function SkeletonTrace({ trace, isLoading }: StaticSkeletonTraceProps) {
             className="flex-shrink-0"
           />
           <span className="text-sm text-gray-500">FujiTrace が処理しています...</span>
+          <StaticLoadingTimer />
         </div>
         <div className="relative">
           <div className="absolute left-[13px] top-0 bottom-0 w-px bg-gray-200" />

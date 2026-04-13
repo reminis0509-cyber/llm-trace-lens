@@ -46,7 +46,7 @@ function getInitialTab(): Tab {
   const hash = window.location.hash.replace('#', '');
   const validTabs: Tab[] = ['traces', 'stats', 'ai-clerk', 'apikeys', 'settings', 'admin'];
   if (validTabs.includes(hash as Tab)) return hash as Tab;
-  return 'traces';
+  return 'ai-clerk';
 }
 
 // --- Watch Room helpers (from WatchRoom.tsx) ---

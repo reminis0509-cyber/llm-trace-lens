@@ -1,4 +1,11 @@
+import { trackDashboardConversion } from '../utils/gtag';
+
 export default function Hero() {
+  const scrollToDemo = (e: React.MouseEvent) => {
+    e.preventDefault();
+    document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <section className="min-h-screen flex items-center justify-center pt-20 pb-20 px-4 sm:px-6">
       <div className="section-container w-full">
@@ -9,28 +16,28 @@ export default function Hero() {
             <span className="text-text-muted">すべての日本企業にAIを届ける</span>
           </div>
 
-          {/* Main headline - AIを普及させる企業 */}
+          {/* Main headline */}
           <h1 className="text-[2rem] sm:text-display-sm lg:text-display font-semibold text-text-primary mb-6 leading-[1.2]">
-            AIを、安心して使える
+            見積書・請求書・納品書を
             <br className="hidden sm:block" />
-            日本にする。
+            AIが作成・チェック。
           </h1>
 
-          {/* Subheadline - AI導入の障壁を取り除く */}
+          {/* Subheadline */}
           <p className="text-lg text-text-secondary max-w-2xl mx-auto mb-8 leading-relaxed">
-            ハルシネーション監視、コスト可視化、情報漏洩防止。
+            AI事務員が業務書類を自動生成し、
             <br className="hidden md:block" />
-            AI導入の障壁をすべて取り除き、
+            金額ミスも記載漏れもリアルタイムで検出。
             <br className="hidden md:block" />
-            あなたの会社のAI活用を加速します。
+            あなたの書類業務を、3秒に変えます。
           </p>
 
           {/* Trust badges */}
           <div className="flex flex-wrap justify-center gap-4 mb-10">
             {[
-              '30日間無料トライアル',
+              '初期費用・月額 0円',
               'クレジットカード不要',
-              '最短当日で導入完了',
+              'ログインなしで試せる',
             ].map((badge) => (
               <div key={badge} className="flex items-center gap-1.5 text-sm text-text-secondary">
                 <svg className="w-4 h-4 text-status-pass flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -44,25 +51,27 @@ export default function Hero() {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
             <a
-              href="/dashboard"
+              href="#demo"
+              onClick={scrollToDemo}
               className="w-full sm:w-auto px-8 py-4 bg-accent text-white rounded-card text-base font-semibold hover:bg-accent-hover transition-colors duration-120 text-center"
             >
-              30日間無料で試す
+              今すぐ試す（無料）
             </a>
             <a
-              href="#contact"
+              href="/dashboard"
+              onClick={trackDashboardConversion}
               className="w-full sm:w-auto px-6 py-4 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-base-elevated transition-colors duration-120 text-center"
             >
-              導入のご相談
+              ログインして全機能を使う
             </a>
           </div>
 
           {/* Stats */}
           <div className="flex flex-wrap justify-center gap-12 mb-12">
             {[
-              { value: '15+', label: '日本語機密情報の自動保護' },
-              { value: '即日', label: '導入完了までの最短期間' },
-              { value: '24/7', label: 'AI通信の自動監視' },
+              { value: '5種', label: '対応書類' },
+              { value: '0円', label: '月額料金' },
+              { value: '3秒', label: 'AI生成時間' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-3xl font-mono tabular-nums text-accent mb-1">{stat.value}</div>

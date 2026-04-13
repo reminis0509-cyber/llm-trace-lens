@@ -16,6 +16,9 @@ import SalesPage from './components/SalesPage';
 import ForEngineersPage from './components/ForEngineersPage';
 import ToolsIndexPage from './components/ToolsIndexPage';
 import ClerkPage from './components/ClerkPage';
+import BlogPage from './components/BlogPage';
+import BlogPostPage from './components/BlogPostPage';
+import EstimateDemo from './components/EstimateDemo';
 import PiiDetection from './components/PiiDetection';
 import LiveTraceFeed from './components/LiveTraceFeed';
 import MidPageCTA from './components/MidPageCTA';
@@ -56,11 +59,19 @@ export default function App() {
     pageContent = <ClerkPage />;
   } else if (currentPath === '/tools') {
     pageContent = <ToolsIndexPage />;
+  } else if (currentPath === '/blog') {
+    pageContent = <BlogPage />;
+  } else if (currentPath.startsWith('/blog/')) {
+    pageContent = <BlogPostPage slug={currentPath.replace('/blog/', '')} />;
   } else {
     pageContent = (
       <>
         {/* 1. Hero */}
         <Hero />
+        <div className="section-divider" />
+
+        {/* 1.5 デモ見積書フォーム */}
+        <EstimateDemo />
         <div className="section-divider" />
 
         {/* 2. 課題 */}

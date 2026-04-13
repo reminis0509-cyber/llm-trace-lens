@@ -2,6 +2,8 @@
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
+import { useSeo } from '../hooks/useSeo';
+
 interface ToolCard {
   id: string;
   title: string;
@@ -28,6 +30,13 @@ const TOOLS: ToolCard[] = [
 /* ------------------------------------------------------------------ */
 
 export default function ToolsIndexPage() {
+  useSeo({
+    title: 'AI搭載ツール一覧 | FujiTrace - 業務AIツールプラットフォーム',
+    description:
+      'FujiTraceのAI搭載ツール一覧。見積書・請求書・納品書の作成やチェックなど、AIが下書き・AIが自己チェック・人間が最終責任の三段階で安心して使える業務AIツール群。',
+    url: 'https://fujitrace.jp/tools',
+  });
+
   const navigate = (href: string): void => {
     window.history.pushState({}, '', href);
     window.dispatchEvent(new PopStateEvent('popstate'));
