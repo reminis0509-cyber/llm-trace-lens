@@ -34,9 +34,9 @@ export default function BlogPage() {
   const [error, setError] = useState<string | null>(null);
 
   useSeo({
-    title: 'ブログ | FujiTrace - AI事務員・業務効率化の情報メディア',
+    title: 'フジトレニュース | AI × バックオフィスの最前線',
     description:
-      'AI事務員、見積書・請求書の作成、バックオフィス業務の効率化に関する最新情報をお届けします。',
+      'フジトレニュースは、AI事務員・見積書・請求書の作成、バックオフィス業務の効率化に関する最新情報をお届けするFujiTrace公式メディアです。',
     url: 'https://fujitrace.jp/blog',
   });
 
@@ -59,16 +59,16 @@ export default function BlogPage() {
   return (
     <div className="pt-16">
       {/* Header */}
-      <section className="py-16 px-6 bg-gradient-to-b from-blue-50/40 to-white">
+      <section className="py-16 px-6 bg-gradient-to-b from-base-surface to-white border-b border-border">
         <div className="max-w-4xl mx-auto text-center">
-          <p className="text-sm font-medium text-blue-600 mb-3 tracking-wide">
-            FUJITRACE BLOG
+          <p className="text-xs font-semibold text-accent mb-4 tracking-widest uppercase">
+            FUJITRACE NEWS
           </p>
-          <h1 className="text-3xl md:text-5xl font-bold text-slate-900 leading-tight mb-4">
-            FujiTrace ブログ
+          <h1 className="text-3xl md:text-5xl font-bold text-text-primary leading-tight mb-4">
+            フジトレニュース
           </h1>
-          <p className="text-lg text-slate-600">
-            AI x バックオフィスの最新情報
+          <p className="text-lg text-text-secondary">
+            AI x バックオフィスの最前線
           </p>
         </div>
       </section>
@@ -81,13 +81,13 @@ export default function BlogPage() {
               {[0, 1].map((i) => (
                 <div
                   key={i}
-                  className="bg-white rounded-xl border border-slate-200 p-6 animate-pulse"
+                  className="feature-card animate-pulse"
                 >
-                  <div className="h-4 w-16 bg-slate-200 rounded mb-4" />
-                  <div className="h-6 w-3/4 bg-slate-200 rounded mb-3" />
-                  <div className="h-4 w-full bg-slate-200 rounded mb-2" />
-                  <div className="h-4 w-2/3 bg-slate-200 rounded mb-4" />
-                  <div className="h-3 w-24 bg-slate-200 rounded" />
+                  <div className="h-4 w-16 bg-base-elevated rounded mb-4" />
+                  <div className="h-6 w-3/4 bg-base-elevated rounded mb-3" />
+                  <div className="h-4 w-full bg-base-elevated rounded mb-2" />
+                  <div className="h-4 w-2/3 bg-base-elevated rounded mb-4" />
+                  <div className="h-3 w-24 bg-base-elevated rounded" />
                 </div>
               ))}
             </div>
@@ -95,13 +95,13 @@ export default function BlogPage() {
 
           {error && (
             <div className="text-center py-12">
-              <p className="text-slate-600">{error}</p>
+              <p className="text-text-secondary">{error}</p>
             </div>
           )}
 
           {!loading && !error && posts.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-slate-600">記事はまだありません。</p>
+              <p className="text-text-secondary">記事はまだありません。</p>
             </div>
           )}
 
@@ -115,20 +115,20 @@ export default function BlogPage() {
                     e.preventDefault();
                     navigate(`/blog/${post.slug}`);
                   }}
-                  className="group bg-white rounded-xl border border-slate-200 p-6 hover:border-blue-300 hover:shadow-md transition-all duration-200"
+                  className="group feature-card hover:border-accent/30 hover:shadow-md transition-all duration-200"
                 >
-                  <span className="inline-block text-xs font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full mb-3">
+                  <span className="inline-block text-xs font-medium text-accent bg-accent-dim px-2.5 py-1 rounded-full mb-3">
                     {post.category}
                   </span>
-                  <h2 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
+                  <h2 className="text-lg font-bold text-text-primary mb-2 group-hover:text-accent transition-colors duration-120">
                     {post.title}
                   </h2>
-                  <p className="text-sm text-slate-600 leading-relaxed mb-4">
+                  <p className="text-sm text-text-secondary leading-relaxed mb-4">
                     {post.description}
                   </p>
                   <time
                     dateTime={post.date}
-                    className="text-xs text-slate-400"
+                    className="text-xs text-text-muted"
                   >
                     {formatDate(post.date)}
                   </time>

@@ -199,6 +199,13 @@ export default function Header() {
                   {item.label}
                 </a>
               ))}
+
+              <a
+                href="/blog"
+                className="relative h-full px-3 xl:px-4 text-sm text-text-secondary hover:text-text-primary transition-colors duration-120 flex items-center"
+              >
+                フジトレニュース
+              </a>
             </nav>
 
             {/* Auth Buttons (Desktop) */}
@@ -295,6 +302,13 @@ export default function Header() {
                   {item.label}
                 </a>
               ))}
+              <a
+                href="/blog"
+                className="block px-3 py-3 text-base text-text-secondary hover:text-text-primary hover:bg-base-elevated rounded-card transition-colors duration-120"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                フジトレニュース
+              </a>
             </div>
 
             <div className="mt-4 pt-4 border-t border-border flex flex-col gap-3">

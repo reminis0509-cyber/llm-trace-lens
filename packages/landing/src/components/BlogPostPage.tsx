@@ -7,6 +7,87 @@ import ReactMarkdown from 'react-markdown';
 import { useSeo } from '../hooks/useSeo';
 import { trackDashboardConversion } from '../utils/gtag';
 
+/* ------------------------------------------------------------------ */
+/*  Share buttons                                                      */
+/* ------------------------------------------------------------------ */
+function ShareButtons({ title, url }: { title: string; url: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const shareX = () => {
+    const text = encodeURIComponent(`${title}\n`);
+    const u = encodeURIComponent(url);
+    window.open(`https://x.com/intent/tweet?text=${text}&url=${u}`, '_blank', 'noopener');
+  };
+
+  const shareLine = () => {
+    const u = encodeURIComponent(url);
+    const text = encodeURIComponent(title);
+    window.open(`https://social-plugins.line.me/lineit/share?url=${u}&text=${text}`, '_blank', 'noopener');
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* fallback for older browsers */
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div className="mt-12 pt-8 border-t border-border">
+      <p className="text-sm font-semibold text-text-primary mb-4">この記事をシェアする</p>
+      <div className="flex items-center gap-3">
+        {/* X (Twitter) */}
+        <button
+          type="button"
+          onClick={shareX}
+          className="inline-flex items-center gap-2 px-4 py-2.5 border border-border rounded-card text-sm text-text-secondary hover:bg-base-elevated hover:text-text-primary transition-colors duration-120"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          X
+        </button>
+
+        {/* LINE */}
+        <button
+          type="button"
+          onClick={shareLine}
+          className="inline-flex items-center gap-2 px-4 py-2.5 border border-border rounded-card text-sm text-text-secondary hover:bg-base-elevated hover:text-text-primary transition-colors duration-120"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314" />
+          </svg>
+          LINE
+        </button>
+
+        {/* Copy link */}
+        <button
+          type="button"
+          onClick={copyLink}
+          className="inline-flex items-center gap-2 px-4 py-2.5 border border-border rounded-card text-sm text-text-secondary hover:bg-base-elevated hover:text-text-primary transition-colors duration-120"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+          </svg>
+          {copied ? 'コピーしました' : 'リンクをコピー'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 interface BlogPost {
   slug: string;
   title: string;
@@ -52,8 +133,8 @@ export default function BlogPostPage({ slug }: BlogPostPageProps) {
 
   useSeo({
     title: post
-      ? `${post.title} | FujiTrace ブログ`
-      : 'FujiTrace ブログ',
+      ? `${post.title} | フジトレニュース`
+      : 'フジトレニュース',
     description: post?.description ?? '',
     url: `https://fujitrace.jp/blog/${slug}`,
   });
@@ -151,9 +232,9 @@ export default function BlogPostPage({ slug }: BlogPostPageProps) {
               e.preventDefault();
               navigate('/blog');
             }}
-            className="inline-block text-blue-600 hover:underline font-medium"
+            className="inline-block text-accent hover:underline font-medium"
           >
-            ブログ一覧に戻る
+            フジトレニュースに戻る
           </a>
         </div>
       </div>
@@ -170,7 +251,7 @@ export default function BlogPostPage({ slug }: BlogPostPageProps) {
             e.preventDefault();
             navigate('/blog');
           }}
-          className="inline-flex items-center text-sm text-slate-500 hover:text-blue-600 transition-colors mb-8"
+          className="inline-flex items-center text-sm text-text-muted hover:text-accent transition-colors duration-120 mb-8"
         >
           <svg
             width="16"
@@ -188,19 +269,19 @@ export default function BlogPostPage({ slug }: BlogPostPageProps) {
               strokeLinejoin="round"
             />
           </svg>
-          ブログ一覧に戻る
+          フジトレニュース
         </a>
 
         {/* Post header */}
         {post && (
           <header className="mb-10">
-            <span className="inline-block text-xs font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full mb-4">
+            <span className="inline-block text-xs font-medium text-accent bg-accent-dim px-2.5 py-1 rounded-full mb-4">
               {post.category}
             </span>
-            <h1 className="text-2xl md:text-4xl font-bold text-slate-900 leading-tight mb-4">
+            <h1 className="text-2xl md:text-4xl font-bold text-text-primary leading-tight mb-4">
               {post.title}
             </h1>
-            <time dateTime={post.date} className="text-sm text-slate-400">
+            <time dateTime={post.date} className="text-sm text-text-muted">
               {formatDate(post.date)}
             </time>
           </header>
@@ -212,32 +293,32 @@ export default function BlogPostPage({ slug }: BlogPostPageProps) {
             <ReactMarkdown
               components={{
                 h1: ({ children }) => (
-                  <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mt-10 mb-5">
+                  <h1 className="text-2xl md:text-3xl font-bold text-text-primary mt-10 mb-5">
                     {children}
                   </h1>
                 ),
                 h2: ({ children }) => (
-                  <h2 className="text-2xl font-bold text-slate-900 mt-8 mb-4">
+                  <h2 className="text-2xl font-bold text-text-primary mt-8 mb-4">
                     {children}
                   </h2>
                 ),
                 h3: ({ children }) => (
-                  <h3 className="text-xl font-semibold text-slate-800 mt-6 mb-3">
+                  <h3 className="text-xl font-semibold text-text-primary mt-6 mb-3">
                     {children}
                   </h3>
                 ),
                 p: ({ children }) => (
-                  <p className="text-base text-slate-700 leading-relaxed mb-4">
+                  <p className="text-base text-text-secondary leading-relaxed mb-4">
                     {children}
                   </p>
                 ),
                 ul: ({ children }) => (
-                  <ul className="list-disc pl-6 mb-4 space-y-2 text-slate-700">
+                  <ul className="list-disc pl-6 mb-4 space-y-2 text-text-secondary">
                     {children}
                   </ul>
                 ),
                 ol: ({ children }) => (
-                  <ol className="list-decimal pl-6 mb-4 space-y-2 text-slate-700">
+                  <ol className="list-decimal pl-6 mb-4 space-y-2 text-text-secondary">
                     {children}
                   </ol>
                 ),
@@ -247,7 +328,7 @@ export default function BlogPostPage({ slug }: BlogPostPageProps) {
                 a: ({ href, children }) => (
                   <a
                     href={href}
-                    className="text-blue-600 hover:underline"
+                    className="text-accent hover:underline"
                     target={
                       href?.startsWith('http') ? '_blank' : undefined
                     }
@@ -261,13 +342,13 @@ export default function BlogPostPage({ slug }: BlogPostPageProps) {
                   </a>
                 ),
                 strong: ({ children }) => (
-                  <strong className="font-semibold text-slate-900">
+                  <strong className="font-semibold text-text-primary">
                     {children}
                   </strong>
                 ),
-                hr: () => <hr className="my-8 border-slate-200" />,
+                hr: () => <hr className="my-8 border-border" />,
                 blockquote: ({ children }) => (
-                  <blockquote className="border-l-4 border-blue-200 pl-4 my-4 text-slate-600 italic">
+                  <blockquote className="border-l-4 border-accent/20 pl-4 my-4 text-text-secondary italic">
                     {children}
                   </blockquote>
                 ),
@@ -278,27 +359,52 @@ export default function BlogPostPage({ slug }: BlogPostPageProps) {
           </div>
         )}
 
+        {/* Share buttons */}
+        {post && (
+          <ShareButtons
+            title={post.title}
+            url={`https://fujitrace.jp/blog/${slug}`}
+          />
+        )}
+
         {/* CTA */}
-        <div className="mt-12 pt-8 border-t border-slate-200 text-center">
-          <p className="text-lg font-bold text-slate-900 mb-3">
-            FujiTrace AI事務員を無料で試す
-          </p>
-          <p className="text-sm text-slate-600 mb-6">
-            見積書・請求書の作成からチェックまで、AIが自動で行います。
-          </p>
-          <a
-            href="/dashboard/"
-            onClick={handleCtaClick}
-            className="inline-block bg-blue-600 text-white font-medium px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            FujiTraceを無料で試す
-          </a>
+        <div className="mt-12 pt-8 border-t border-border">
+          <div className="bg-base-surface border border-border rounded-card p-8">
+            <div className="flex flex-col md:flex-row md:items-center gap-6">
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-accent mb-2 tracking-wide uppercase">
+                  FujiTrace AI事務員
+                </p>
+                <p className="text-lg font-bold text-text-primary mb-2">
+                  書類業務、AIに任せませんか。
+                </p>
+                <p className="text-sm text-text-secondary leading-relaxed">
+                  見積書・請求書・納品書・発注書・送付状の作成からAIチェックまで、無料でお使いいただけます。登録番号の記載漏れ、計算ミス、記載不備をAIが自動検出します。
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 md:flex-shrink-0">
+                <a
+                  href="/dashboard/"
+                  onClick={handleCtaClick}
+                  className="inline-block bg-accent text-white font-semibold px-8 py-3 rounded-card text-center hover:bg-accent-hover transition-colors duration-120 text-sm"
+                >
+                  無料で試す
+                </a>
+                <a
+                  href="/"
+                  className="inline-block text-center text-sm text-text-muted hover:text-accent transition-colors duration-120"
+                >
+                  サービス詳細を見る
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Related posts */}
         {relatedPosts.length > 0 && (
-          <div className="mt-16 pt-8 border-t border-slate-200">
-            <h2 className="text-xl font-bold text-slate-900 mb-6">
+          <div className="mt-16 pt-8 border-t border-border">
+            <h2 className="text-xl font-bold text-text-primary mb-6">
               関連記事
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -311,17 +417,17 @@ export default function BlogPostPage({ slug }: BlogPostPageProps) {
                     navigate(`/blog/${rp.slug}`);
                     window.scrollTo(0, 0);
                   }}
-                  className="group bg-white rounded-xl border border-slate-200 p-5 hover:border-blue-300 hover:shadow-md transition-all duration-200"
+                  className="group feature-card hover:border-accent/30 hover:shadow-md transition-all duration-200"
                 >
-                  <span className="inline-block text-xs font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full mb-2">
+                  <span className="inline-block text-xs font-medium text-accent bg-accent-dim px-2.5 py-1 rounded-full mb-2">
                     {rp.category}
                   </span>
-                  <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors mb-1">
+                  <h3 className="text-base font-bold text-text-primary group-hover:text-accent transition-colors duration-120 mb-1">
                     {rp.title}
                   </h3>
                   <time
                     dateTime={rp.date}
-                    className="text-xs text-slate-400"
+                    className="text-xs text-text-muted"
                   >
                     {formatDate(rp.date)}
                   </time>
