@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Key, List, BarChart3, Settings as SettingsIcon, LogOut, Menu, X, Shield, Bot, Radio, Volume2, VolumeX } from 'lucide-react';
+import { Key, List, BarChart3, Settings as SettingsIcon, LogOut, Menu, X, Shield, Bot, Radio, Volume2, VolumeX, HelpCircle } from 'lucide-react';
 import { TraceDetail } from '../components/TraceDetail';
 import { StatsPanel } from '../components/StatsPanel';
 import { StorageUsage } from '../components/StorageUsage';
@@ -8,6 +8,8 @@ import { ApiKeys } from './ApiKeys';
 import { AdminDashboard } from './AdminDashboard';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import AiClerkChat from './AiClerkChat';
+import { OnboardingTutorial } from '../components/onboarding/OnboardingTutorial';
+import { shouldShowOnboarding, requestOnboardingReplay } from '../components/onboarding/onboardingState';
 import { useAuth } from '../contexts/AuthContext';
 import { useRole } from '../contexts/RoleContext';
 import { TraceStream, type StreamTrace } from '../components/watch/TraceStream';
@@ -106,8 +108,28 @@ export function Dashboard() {
   const [selectedTrace, setSelectedTrace] = useState<Trace | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [statsRefreshTrigger, setStatsRefreshTrigger] = useState(0);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const { user, signOut } = useAuth();
   const { workspaceId, isSystemAdmin } = useRole();
+
+  // First-login onboarding: auto-show for new users (account created < 7 days,
+  // no completion/skip flag). See docs/戦略_2026.md Section 13.2.
+  useEffect(() => {
+    if (!user) return;
+    if (shouldShowOnboarding({ userCreatedAt: user.created_at })) {
+      setShowOnboarding(true);
+    }
+  }, [user]);
+
+  const handleReplayOnboarding = useCallback(() => {
+    requestOnboardingReplay();
+    setShowOnboarding(true);
+    setMobileMenuOpen(false);
+  }, []);
+
+  const handleOnboardingFinish = useCallback(() => {
+    setActiveTab('ai-clerk');
+  }, []);
 
   // --- Watch Room inline state ---
   const demoMode = useMemo(() => isDemoMode(), []);
@@ -328,6 +350,15 @@ export function Dashboard() {
 
           {/* Desktop User Menu */}
           <div className="hidden md:flex items-center gap-4">
+            <button
+              type="button"
+              onClick={handleReplayOnboarding}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary border border-border hover:border-accent/40 rounded-card transition-colors duration-120"
+              title="チュートリアルをもう一度見る"
+            >
+              <HelpCircle className="w-3.5 h-3.5" strokeWidth={1.5} />
+              <span className="hidden xl:inline">チュートリアル</span>
+            </button>
             <a
               href="/dashboard/watch"
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary border border-border hover:border-accent/40 rounded-card transition-colors duration-120"
@@ -404,6 +435,16 @@ export function Dashboard() {
                 </button>
               ))}
             </nav>
+            <div className="px-4 py-2 border-t border-border">
+              <button
+                type="button"
+                onClick={handleReplayOnboarding}
+                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-base-elevated rounded-card transition-colors duration-120"
+              >
+                <HelpCircle className="w-4 h-4" strokeWidth={1.5} />
+                <span>チュートリアルをもう一度見る</span>
+              </button>
+            </div>
             <div className="px-4 py-3 border-t border-border">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-text-muted truncate">{user?.email}</span>
@@ -559,6 +600,13 @@ export function Dashboard() {
           {activeTab === 'admin' && isSystemAdmin && <AdminDashboard />}
         </ErrorBoundary>
       </main>
+      )}
+
+      {showOnboarding && (
+        <OnboardingTutorial
+          onClose={() => setShowOnboarding(false)}
+          onFinish={handleOnboardingFinish}
+        />
       )}
     </div>
   );

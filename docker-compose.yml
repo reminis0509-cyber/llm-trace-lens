@@ -1,0 +1,77 @@
+# ==========================================
+# FujiTrace - Docker Compose
+# Usage: docker compose up -d
+# ==========================================
+name: fujitrace
+
+services:
+  # ------------------------------------------
+  # Proxy Server (Fastify API Backend)
+  # ------------------------------------------
+  proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fujitrace-proxy
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - fujitrace-network
+
+  # ------------------------------------------
+  # Redis (Cache / KV Store)
+  # ------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: fujitrace-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - fujitrace-network
+
+  # ------------------------------------------
+  # Dashboard (React SPA + Nginx)
+  # ------------------------------------------
+  dashboard:
+    build:
+      context: .
+      dockerfile: docker/dashboard.Dockerfile
+      args:
+        - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+        - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+    container_name: fujitrace-dashboard
+    ports:
+      - "8080:80"
+    depends_on:
+      proxy:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - fujitrace-network
+
+volumes:
+  redis-data:
+    driver: local
+
+networks:
+  fujitrace-network:
+    driver: bridge

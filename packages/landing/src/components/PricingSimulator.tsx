@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { trackDashboardConversion } from '../utils/gtag';
 
 interface PlanInfo {
   name: string;
@@ -387,6 +388,7 @@ export default function PricingSimulator() {
             {/* CTA */}
             <a
               href={plan.ctaHref}
+              onClick={plan.ctaHref === '/dashboard' ? trackDashboardConversion : undefined}
               className="block w-full py-2.5 px-4 rounded-card text-sm font-medium text-center transition-colors duration-120 bg-accent text-white hover:bg-accent/90"
             >
               {plan.cta}

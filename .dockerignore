@@ -1,0 +1,60 @@
+# Dependencies
+node_modules/
+packages/*/node_modules/
+
+# Build output
+dist/
+packages/*/dist/
+
+# Environment files (loaded at runtime via env_file)
+.env
+.env.*
+!.env.example
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+data/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test & Coverage
+coverage/
+__tests__/
+*.test.ts
+*.spec.ts
+
+# Documentation
+docs/
+*.md
+LICENSE
+
+# Vercel
+.vercel/
+vercel.json
+
+# Claude
+.claude/
+
+# Supabase local config
+supabase/
+
+# Docker (avoid recursive copy)
+docker-compose.yml

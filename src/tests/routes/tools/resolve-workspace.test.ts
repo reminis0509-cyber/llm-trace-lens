@@ -11,7 +11,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import type { FastifyRequest } from 'fastify';
-import { resolveWorkspaceId } from '../../../routes/tools/_shared.js';
+import { resolveWorkspaceId, INTERNAL_SECRET } from '../../../routes/tools/_shared.js';
 
 function makeRequest(overrides: Partial<{
   workspace: { workspaceId: string } | undefined;
@@ -31,9 +31,28 @@ describe('resolveWorkspaceId — QA H-1 strict policy', () => {
     expect(await resolveWorkspaceId(req)).toBe('ws_real_123');
   });
 
-  it('returns x-workspace-id header when no user/workspace context exists', async () => {
-    const req = makeRequest({ headers: { 'x-workspace-id': 'ws_header' } });
-    expect(await resolveWorkspaceId(req)).toBe('ws_header');
+  it('returns x-workspace-id header only when internal secret is provided', async () => {
+    // Without internal secret, x-workspace-id is NOT trusted (security fix)
+    const reqNoSecret = makeRequest({ headers: { 'x-workspace-id': 'ws_header' } });
+    expect(await resolveWorkspaceId(reqNoSecret)).toBeNull();
+
+    // With correct internal secret, x-workspace-id IS trusted
+    const reqWithSecret = makeRequest({
+      headers: {
+        'x-workspace-id': 'ws_header',
+        'x-internal-secret': INTERNAL_SECRET,
+      },
+    });
+    expect(await resolveWorkspaceId(reqWithSecret)).toBe('ws_header');
+
+    // With wrong internal secret, x-workspace-id is NOT trusted
+    const reqWrongSecret = makeRequest({
+      headers: {
+        'x-workspace-id': 'ws_header',
+        'x-internal-secret': 'wrong-secret',
+      },
+    });
+    expect(await resolveWorkspaceId(reqWrongSecret)).toBeNull();
   });
 
   it('returns null for a fully anonymous request (no headers, no user)', async () => {

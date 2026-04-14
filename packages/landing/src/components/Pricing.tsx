@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { trackDashboardConversion } from '../utils/gtag';
 
 const challenges = [
   {
@@ -212,6 +213,7 @@ export default function Pricing() {
 
               <a
                 href={plan.ctaHref}
+                onClick={plan.ctaHref === '/dashboard' ? trackDashboardConversion : undefined}
                 className={`block w-full py-2.5 px-4 rounded-card text-sm font-medium text-center transition-colors duration-120 ${
                   plan.highlighted
                     ? 'bg-accent text-white hover:bg-accent/90'
