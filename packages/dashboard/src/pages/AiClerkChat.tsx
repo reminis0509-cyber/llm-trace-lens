@@ -10,6 +10,9 @@ import remarkGfm from 'remark-gfm';
 import { supabase } from '../lib/supabase';
 import { SkeletonTrace as SkeletonTraceComponent, StreamingSkeletonTrace } from '../components/SkeletonTrace';
 import type { SkeletonTrace, SkeletonStep } from '../components/SkeletonTrace';
+import AgentChatInput from '../components/agent/AgentChatInput';
+import AgentRunPanel from '../components/agent/AgentRunPanel';
+import type { AgentSseEvent, AgentAttachment } from '../types/agent';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -1367,6 +1370,90 @@ export default function AiClerkChat() {
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>(loadCompanyInfo);
   const [hasSeenCompanySetup, setHasSeenCompanySetup] = useState(false);
 
+  // Autonomous mode (β) — Contract-Based AI Clerk Runtime
+  const [mode, setMode] = useState<'cards' | 'agent'>('cards');
+  const [agentEvents, setAgentEvents] = useState<AgentSseEvent[]>([]);
+  const [isAgentRunning, setIsAgentRunning] = useState(false);
+  const agentAbortRef = useRef<AbortController | null>(null);
+
+  const handleOpenAttachment = useCallback((att: AgentAttachment) => {
+    if (att.url) {
+      window.open(att.url, '_blank', 'noopener,noreferrer');
+    }
+  }, []);
+
+  const handleAgentSend = useCallback(
+    async (message: string) => {
+      if (isAgentRunning) return;
+      setAgentEvents([]);
+      setIsAgentRunning(true);
+      const controller = new AbortController();
+      agentAbortRef.current = controller;
+
+      const pushError = (code: string, msg: string) => {
+        setAgentEvents((prev) => [...prev, { type: 'error', code, message: msg }]);
+      };
+
+      try {
+        const headers = await getAuthHeaders();
+        const res = await fetch('/api/agent/contract-chat', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ message }),
+          signal: controller.signal,
+        });
+
+        if (!res.ok || !res.body) {
+          pushError('HTTP_ERROR', `サーバーエラー (${res.status})`);
+          setIsAgentRunning(false);
+          return;
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        // Parse SSE: events separated by blank lines, each line "data: <json>"
+        // [DONE] sentinel signals end of stream.
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          let idx: number;
+          while ((idx = buffer.indexOf('\n\n')) !== -1) {
+            const raw = buffer.slice(0, idx);
+            buffer = buffer.slice(idx + 2);
+            const lines = raw.split('\n');
+            for (const line of lines) {
+              if (!line.startsWith('data:')) continue;
+              const payload = line.slice(5).trim();
+              if (!payload) continue;
+              if (payload === '[DONE]') {
+                setIsAgentRunning(false);
+                return;
+              }
+              try {
+                const ev = JSON.parse(payload) as AgentSseEvent;
+                setAgentEvents((prev) => [...prev, ev]);
+              } catch {
+                pushError('PARSE_ERROR', 'SSE イベントの解析に失敗しました');
+              }
+            }
+          }
+        }
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          pushError('NETWORK_ERROR', (err as Error).message || 'ネットワークエラー');
+        }
+      } finally {
+        setIsAgentRunning(false);
+        agentAbortRef.current = null;
+      }
+    },
+    [isAgentRunning],
+  );
+
   // Auto-open company info modal on mount if company info is empty
   useEffect(() => {
     if (!hasCompanyInfo(companyInfo) && !hasSeenCompanySetup) {
@@ -1518,17 +1605,85 @@ export default function AiClerkChat() {
           )}
         </div>
 
-        {/* Task Cards Grid */}
-        <div className="w-full max-w-2xl px-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {TASK_CARDS.map(card => (
-            <TaskCard key={card.id} card={card} onAction={handleTaskAction} />
-          ))}
+        {/* Mode toggle: cards (default) / autonomous agent (β) */}
+        <div className="w-full max-w-2xl px-4 mb-4 flex justify-center">
+          <div className="inline-flex rounded-full border border-border bg-white p-0.5">
+            <button
+              type="button"
+              onClick={() => setMode('cards')}
+              className={`px-4 py-1.5 text-sm rounded-full transition-colors ${
+                mode === 'cards'
+                  ? 'bg-accent text-white'
+                  : 'text-text-secondary hover:text-text-primary'
+              }`}
+              aria-pressed={mode === 'cards'}
+            >
+              カード
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('agent')}
+              className={`px-4 py-1.5 text-sm rounded-full transition-colors flex items-center gap-1.5 ${
+                mode === 'agent'
+                  ? 'bg-accent text-white'
+                  : 'text-text-secondary hover:text-text-primary'
+              }`}
+              aria-pressed={mode === 'agent'}
+            >
+              自律
+              <span className="px-1 py-0.5 text-[10px] leading-none font-semibold rounded bg-amber-500 text-white">
+                β
+              </span>
+            </button>
+          </div>
         </div>
 
-        {/* Company Info Settings Button */}
-        <button onClick={() => setShowCompanyModal(true)} className="mt-6 text-xs text-text-muted hover:text-accent transition-colors">
-          会社情報を設定
-        </button>
+        {mode === 'cards' ? (
+          <>
+            {/* Task Cards Grid */}
+            <div className="w-full max-w-2xl px-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {TASK_CARDS.map(card => (
+                <TaskCard key={card.id} card={card} onAction={handleTaskAction} />
+              ))}
+            </div>
+
+            {/* Company Info Settings Button */}
+            <button onClick={() => setShowCompanyModal(true)} className="mt-6 text-xs text-text-muted hover:text-accent transition-colors">
+              会社情報を設定
+            </button>
+          </>
+        ) : (
+          <div className="w-full max-w-2xl px-4 space-y-4 pb-8 overflow-y-auto">
+            <div className="rounded-xl border border-gray-100 bg-white p-4">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-sm font-medium text-text-primary flex items-center gap-2">
+                  自律型 AI 事務員
+                  <span className="px-1.5 py-0.5 text-[10px] leading-none font-semibold rounded bg-amber-500 text-white">
+                    β
+                  </span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowCompanyModal(true)}
+                  className="text-xs text-text-muted hover:text-accent transition-colors"
+                >
+                  会社名: {companyInfo.companyName || '未設定'} (編集)
+                </button>
+              </div>
+              <p className="text-xs text-text-secondary mb-3">
+                自由記述で指示を出すと、AI が複数のツールを組み合わせて実行します。
+              </p>
+              <AgentChatInput onSend={handleAgentSend} disabled={isAgentRunning} />
+            </div>
+
+            <AgentRunPanel
+              events={agentEvents}
+              isRunning={isAgentRunning}
+              companyInfo={{ company_name: companyInfo.companyName }}
+              onOpenAttachment={handleOpenAttachment}
+            />
+          </div>
+        )}
       </div>
     );
   }
