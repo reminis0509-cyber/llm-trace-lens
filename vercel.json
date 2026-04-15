@@ -5,8 +5,7 @@
   "outputDirectory": "build",
   "functions": {
     "api/index.ts": {
-      "maxDuration": 60,
-      "includeFiles": "assets/fonts/**"
+      "maxDuration": 60
     }
   },
   "rewrites": [

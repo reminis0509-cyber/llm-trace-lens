@@ -45,7 +45,22 @@ export const officeTaskCatalog: OfficeTaskEntry[] = [
   // ─────────────────────────────────────────────────────────
 
   // 1.1 見積業務
-  // NOTE: estimate.create and estimate.check are registered separately in src/tools/estimate/
+  // NOTE: estimate.create is registered separately in src/tools/estimate/
+  // (dedicated route /api/tools/estimate/create).
+  // accounting.estimate_check is registered below, routed through the
+  // document_check archetype. The specialized /api/tools/estimate/check
+  // route with market-rate logic is still used by in-form verification
+  // (src/routes/tools/estimate-create.ts).
+  {
+    id: 'accounting.estimate_check',
+    name: '見積書検証（受領・社内レビュー）',
+    description: '受領または提出前の見積書を算術・税率・記載事項・書類成立性の観点で自動検証する',
+    category: '経理・財務',
+    responsibilityLevel: 'high',
+    forbidden: false,
+    archetype: 'document_check',
+    domainKnowledge: '見積書を検証する。チェック項目: (1) 算術チェック（明細小計=数量×単価×(1+税率)、合計=小計+税）、(2) 記載事項の網羅性（発行者/宛先/件名/見積番号/発行日/有効期限/品目/金額/税率/合計/支払条件/納期）、(3) 書類成立性（誤字脱字・テスト入力「aaa」等の検出、押印欄/署名欄の空白）、(4) 税率の整合（軽減税率対象品の混在時の税率別小計）、(5) 有効期限・支払条件・納期の整合。相場乖離の警告は抑制的に扱い、critical/warning には入れない',
+  },
   {
     id: 'accounting.estimate_template_unify',
     name: '見積書テンプレート統一',

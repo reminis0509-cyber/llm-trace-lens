@@ -946,7 +946,7 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
   const [isExecuting, setIsExecuting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const isCheckTask = config.taskId.includes('check');
+  const isCheckTask = config.taskId.endsWith('_check') || config.taskId === 'estimate.check';
   const expectedStepNames = isCheckTask
     ? ['入力データ受信', '数値データ抽出', '算術検証', 'AI品質チェック', '結果統合']
     : ['入力データ受信', 'AI生成', '出力検証'];
