@@ -90,7 +90,17 @@ async function extractUserInfo(request: FastifyRequest): Promise<UserInfo | null
     }
   }
 
-  // No valid authentication found
+  // No valid authentication found. If the client nevertheless sent an
+  // `x-user-email` header, that is a potential spoofing attempt (legacy
+  // clients should no longer send it, and fresh clients never did). Log at
+  // error level as an attack signal, but continue returning null so the
+  // downstream 401 path behaves identically.
+  if (request.headers['x-user-email']) {
+    request.log.error(
+      { header: 'x-user-email', path: request.url },
+      'Client sent x-user-email header without valid auth — potential spoof attempt',
+    );
+  }
   return null;
 }
 

@@ -82,7 +82,8 @@ export type AgentSseEvent =
         | 'PLAN_PARSE_FAILED'
         | 'TIMEOUT'
         | 'INTERNAL'
-        | 'TOOL_FAILED';
+        | 'TOOL_FAILED'
+        | 'BUDGET_EXCEEDED';
       message: string;
       stepIndex?: number;
     };

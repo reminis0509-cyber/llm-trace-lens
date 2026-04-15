@@ -43,11 +43,7 @@ function toFunctionName(schemaName: string): string {
  * - `_adapt_tool` — meta-function for the agent to signal an adapted match
  * - `_log_feature_request` — meta-function for logging unmatched requests
  */
-let cachedFunctionCallingTools: FunctionCallingTool[] | null = null;
-
 export function buildFunctionCallingTools(schemas: ToolSchema[]): FunctionCallingTool[] {
-  if (cachedFunctionCallingTools) return cachedFunctionCallingTools;
-
   // Phase 0: Only send dedicated tools (estimate.*) as individual functions.
   // All other office tasks use a single generic dispatcher to stay well under
   // OpenAI's 128-tool limit and avoid massive token overhead from 147 schemas.
@@ -70,7 +66,7 @@ export function buildFunctionCallingTools(schemas: ToolSchema[]): FunctionCallin
     function: {
       name: 'office_task_execute',
       description:
-        '汎用事務タスクを実行します。見積書以外の全事務作業（請求書チェック、契約書確認、経費精算、チェックリスト作成、コンプライアンス確認、議事録作成、稟議書作成、送付状作成など）はこの関数を使ってください。task_id にはシステムプロンプトのタスク一覧から適切なIDを指定してください。',
+        '汎用事務タスクを実行します。見積書以外の全事務作業（請求書チェック、契約書確認、経費精算、チェックリスト作成、コンプライアンス確認、議事録作成、稟議書作成、送付状作成など）はこの関数を使ってください。task_id にはシステムプロンプトのタスク一覧から適切なIDを指定してください。[responsibility: medium]',
       parameters: {
         type: 'object',
         properties: {
@@ -149,8 +145,7 @@ export function buildFunctionCallingTools(schemas: ToolSchema[]): FunctionCallin
     },
   };
 
-  cachedFunctionCallingTools = [...toolFunctions, adaptTool, logFeatureRequest];
-  return cachedFunctionCallingTools;
+  return [...toolFunctions, adaptTool, logFeatureRequest];
 }
 
 /**

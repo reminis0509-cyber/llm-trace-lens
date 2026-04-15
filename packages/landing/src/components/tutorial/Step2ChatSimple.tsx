@@ -31,7 +31,7 @@ export default function Step2ChatSimple({ onComplete, onMascot }: Step2ChatSimpl
       announced.current = true;
       onMascot(
         'talk',
-        '次はチャット。「見積書作って」って入れてみて！',
+        '次はチャット。\n\n「見積書作って」って…\n入れてみて！',
         '下のチップをタップするだけでOK',
       );
     }
@@ -60,7 +60,7 @@ export default function Step2ChatSimple({ onComplete, onMascot }: Step2ChatSimpl
         setRevealedKind(match.kind);
         onMascot(
           'happy',
-          `「${match.keyword}」って読み取ったよ！プレビューを確認してみてね。`,
+          `やったね！\n\n「${match.keyword}」って\n言ってくれたから\nボクが作ったよ。`,
         );
       } else {
         setMessages((prev) => [

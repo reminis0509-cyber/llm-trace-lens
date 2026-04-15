@@ -48,12 +48,8 @@ function formatToolsList(schemas: ToolSchema[]): string {
  * @param schemas - All registered ToolSchema entries from `allToolSchemas`
  * @returns The complete system prompt string with available tools injected
  */
-let cachedSystemPrompt: string | null = null;
-
 export function buildSystemPrompt(schemas: ToolSchema[]): string {
-  if (cachedSystemPrompt) return cachedSystemPrompt;
   const template = loadAgentPromptTemplate('system.md');
   const toolsList = formatToolsList(schemas);
-  cachedSystemPrompt = template.split('{available_tools}').join(toolsList);
-  return cachedSystemPrompt;
+  return template.split('{available_tools}').join(toolsList);
 }

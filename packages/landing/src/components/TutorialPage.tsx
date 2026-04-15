@@ -17,8 +17,8 @@ interface MascotMessage {
 const INITIAL_MASCOT: MascotMessage = {
   state: 'idle',
   message:
-    'やあ、ボクはフジ。日本企業の AI 事務員だよ。\nまずは見積書を作るところを見せるね。',
-  hint: '下のフォームの「AI で見積書を生成する」ボタンを押してみてください。',
+    'やあ。\nボクはフジ。\n日本企業のAI事務員だよ。\n\nまずは…\n見積書を作るところを\n見せるね。',
+  hint: '下のフォームを見てから、\n「AIで見積書を生成する」を\n押してみてね。',
 };
 
 const SHARE_TEXT = 'FujiTrace の AI 事務員を無料で試したよ';
@@ -128,7 +128,7 @@ export default function TutorialPage() {
   const goToStep3 = () => setStep(3);
   const goToDone = () => {
     setStep('done');
-    updateMascot('happy', 'ぜんぶクリア！ここから先は本物の AI を試してみよう。');
+    updateMascot('happy', 'ぜんぶクリア！\n\nここから先は…\n本物のAIを試してみよう。');
   };
   const restart = () => {
     setStep(1);

@@ -46,6 +46,13 @@ import {
 import type { LlmMessage } from '../routes/tools/_shared.js';
 import { checkArithmetic } from '../tools/arithmetic-checker.js';
 import type { ExtractedFinancialData } from '../tools/arithmetic-checker.js';
+import {
+  checkBudget,
+  CostBudgetExceededError,
+  estimateUsdCost,
+  recordSpend,
+} from './cost-guard.js';
+import type { LlmTokenUsage } from '../routes/tools/_shared.js';
 
 /** Hard limit on Plan length — extra steps are yielded as `skipped`. */
 const MAX_ITER = 5;
@@ -58,6 +65,39 @@ const PER_STEP_RETRIES = 1;
 
 /** LLM model used for all three stages (cost-optimised). */
 const AGENT_MODEL = 'gpt-4o-mini';
+
+/**
+ * Mutable per-run cost tracker. Increments as LLM calls return usage data.
+ * Exposed as an object so helper functions can update it by reference.
+ */
+interface RunSpendTracker {
+  workspaceId: string;
+  runId: string;
+  totalUsd: number;
+}
+
+/**
+ * Wrap a callLlmViaProxy invocation with budget accounting:
+ *   1. Estimate cost from the usage field.
+ *   2. Call checkBudget() — throws CostBudgetExceededError if any cap exceeded.
+ *   3. Add to the per-run running total.
+ *
+ * The caller is responsible for catching CostBudgetExceededError and yielding
+ * a `BUDGET_EXCEEDED` error SSE event.
+ */
+function accountUsage(
+  tracker: RunSpendTracker,
+  model: string,
+  usage: LlmTokenUsage | null,
+): Promise<number> {
+  const added = usage
+    ? estimateUsdCost(model, usage.promptTokens, usage.completionTokens)
+    : 0;
+  return checkBudget(tracker.workspaceId, tracker.totalUsd, added).then(() => {
+    tracker.totalUsd += added;
+    return added;
+  });
+}
 
 interface ReviewerOutput {
   status: 'ok' | 'warning' | 'failed';
@@ -89,6 +129,7 @@ function fallbackPlan(message: string): AgentPlan {
 async function runPlanner(
   fastify: FastifyInstance,
   input: AgentRunInput,
+  tracker: RunSpendTracker,
 ): Promise<AgentPlan> {
   const template = loadPromptTemplate('../agent/planner.md');
   const systemPrompt = renderTemplate(template, {
@@ -102,17 +143,19 @@ async function runPlanner(
   ];
 
   try {
-    const { content } = await callLlmViaProxy(fastify, messages, {
+    const { content, usage } = await callLlmViaProxy(fastify, messages, {
       model: AGENT_MODEL,
       temperature: 0.3,
       maxTokens: 512,
     });
+    await accountUsage(tracker, AGENT_MODEL, usage);
     const parsed = parseLlmJson<AgentPlan>(content);
     if (!parsed || !Array.isArray(parsed.steps) || parsed.steps.length === 0) {
       return fallbackPlan(input.message);
     }
     return parsed;
-  } catch {
+  } catch (err) {
+    if (err instanceof CostBudgetExceededError) throw err;
     return fallbackPlan(input.message);
   }
 }
@@ -127,6 +170,7 @@ async function buildToolInput(
   step: AgentPlanStep,
   input: AgentRunInput,
   planSummary: string,
+  tracker: RunSpendTracker,
 ): Promise<Record<string, unknown>> {
   const template = loadPromptTemplate('../agent/tool-input-builder.md');
   const systemPrompt = renderTemplate(template, {
@@ -145,14 +189,16 @@ async function buildToolInput(
   ];
 
   try {
-    const { content } = await callLlmViaProxy(fastify, messages, {
+    const { content, usage } = await callLlmViaProxy(fastify, messages, {
       model: AGENT_MODEL,
       temperature: 0.2,
       maxTokens: 768,
     });
+    await accountUsage(tracker, AGENT_MODEL, usage);
     const parsed = parseLlmJson<Record<string, unknown>>(content);
     return parsed && typeof parsed === 'object' ? parsed : defaultPayload(toolId, input);
-  } catch {
+  } catch (err) {
+    if (err instanceof CostBudgetExceededError) throw err;
     return defaultPayload(toolId, input);
   }
 }
@@ -250,6 +296,7 @@ async function runReviewer(
     arithmeticStatus: 'ok' | 'skipped' | 'failed';
     arithmeticNotes: string;
   },
+  tracker: RunSpendTracker,
 ): Promise<ReviewerOutput> {
   const template = loadPromptTemplate('../agent/reviewer.md');
   const systemPrompt = renderTemplate(template, {
@@ -267,11 +314,12 @@ async function runReviewer(
   ];
 
   try {
-    const { content } = await callLlmViaProxy(fastify, messages, {
+    const { content, usage } = await callLlmViaProxy(fastify, messages, {
       model: AGENT_MODEL,
       temperature: 0.3,
       maxTokens: 1024,
     });
+    await accountUsage(tracker, AGENT_MODEL, usage);
     const parsed = parseLlmJson<ReviewerOutput>(content);
     return {
       status: parsed.status ?? (args.arithmeticStatus === 'failed' ? 'failed' : 'ok'),
@@ -281,7 +329,8 @@ async function runReviewer(
           ? parsed.reply
           : '書類の下書きを作成しました。承認・送信は必ずご自身で確認してください。',
     };
-  } catch {
+  } catch (err) {
+    if (err instanceof CostBudgetExceededError) throw err;
     return {
       status: args.arithmeticStatus === 'failed' ? 'failed' : 'warning',
       notes: 'Reviewer LLM 呼び出しに失敗したため既定メッセージを返しました。',
@@ -317,14 +366,28 @@ export async function* executeContractAgent(
 ): AsyncGenerator<AgentSseEvent, void, void> {
   const runId = crypto.randomUUID();
   const deadline = Date.now() + RUN_TIMEOUT_MS;
+  const tracker: RunSpendTracker = {
+    workspaceId: input.workspaceId,
+    runId,
+    totalUsd: 0,
+  };
 
   yield { type: 'run_started', runId };
 
   // ── Plan stage ─────────────────────────────────────────────────────────
   let plan: AgentPlan;
   try {
-    plan = await runPlanner(fastify, input);
+    plan = await runPlanner(fastify, input, tracker);
   } catch (err) {
+    if (err instanceof CostBudgetExceededError) {
+      yield {
+        type: 'error',
+        code: 'BUDGET_EXCEEDED',
+        message: `${err.scope} cap reached ($${err.spentUsd.toFixed(4)} / $${err.capUsd.toFixed(4)})`,
+      };
+      await recordSpend(tracker.workspaceId, runId, tracker.totalUsd).catch(() => {});
+      return;
+    }
     yield {
       type: 'error',
       code: 'PLAN_PARSE_FAILED',
@@ -413,6 +476,7 @@ export async function* executeContractAgent(
     let lastError: string | undefined;
     let lastBody: unknown;
 
+    let budgetError: CostBudgetExceededError | null = null;
     while (attempt <= PER_STEP_RETRIES && !ok) {
       attempt++;
       try {
@@ -422,6 +486,7 @@ export async function* executeContractAgent(
           step,
           input,
           plan.summary,
+          tracker,
         );
         const { statusCode, body } = await executeToolViaInject(
           fastify,
@@ -437,8 +502,23 @@ export async function* executeContractAgent(
         }
         lastError = `HTTP ${statusCode}`;
       } catch (err) {
+        if (err instanceof CostBudgetExceededError) {
+          budgetError = err;
+          break;
+        }
         lastError = err instanceof Error ? err.message : 'unknown tool error';
       }
+    }
+
+    if (budgetError) {
+      yield {
+        type: 'error',
+        code: 'BUDGET_EXCEEDED',
+        message: `${budgetError.scope} cap reached ($${budgetError.spentUsd.toFixed(4)} / $${budgetError.capUsd.toFixed(4)})`,
+        stepIndex: i,
+      };
+      await recordSpend(tracker.workspaceId, runId, tracker.totalUsd).catch(() => {});
+      return;
     }
 
     if (!ok) {
@@ -492,14 +572,28 @@ export async function* executeContractAgent(
   };
 
   // ── Final stage ───────────────────────────────────────────────────────
-  const reviewer = await runReviewer(fastify, {
-    userMessage: input.message,
-    planSummary: plan.summary,
-    finalTool: lastOkTool,
-    finalResult: lastOkResult,
-    arithmeticStatus,
-    arithmeticNotes,
-  });
+  let reviewer: ReviewerOutput;
+  try {
+    reviewer = await runReviewer(fastify, {
+      userMessage: input.message,
+      planSummary: plan.summary,
+      finalTool: lastOkTool,
+      finalResult: lastOkResult,
+      arithmeticStatus,
+      arithmeticNotes,
+    }, tracker);
+  } catch (err) {
+    if (err instanceof CostBudgetExceededError) {
+      yield {
+        type: 'error',
+        code: 'BUDGET_EXCEEDED',
+        message: `${err.scope} cap reached ($${err.spentUsd.toFixed(4)} / $${err.capUsd.toFixed(4)})`,
+      };
+      await recordSpend(tracker.workspaceId, runId, tracker.totalUsd).catch(() => {});
+      return;
+    }
+    throw err;
+  }
 
   yield {
     type: 'final',
@@ -510,6 +604,13 @@ export async function* executeContractAgent(
   // Best-effort usage bookkeeping (Free-plan quota bucket).
   try {
     await recordUsage(input.workspaceId, 'agent', 'agent_run', runId);
+  } catch {
+    // Non-fatal.
+  }
+
+  // Best-effort cost bookkeeping for the daily-cap aggregator.
+  try {
+    await recordSpend(tracker.workspaceId, runId, tracker.totalUsd);
   } catch {
     // Non-fatal.
   }

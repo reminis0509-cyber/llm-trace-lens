@@ -57,15 +57,20 @@ function makeSchema(overrides: Partial<ToolSchema> = {}): ToolSchema {
 // ---------------------------------------------------------------------------
 
 describe('buildFunctionCallingTools', () => {
-  it('should generate one function definition per registered tool plus two meta-functions', () => {
+  it('should generate dedicated estimate functions + dispatcher + two meta-functions', () => {
+    // Phase 0 behaviour: only `estimate.*` schemas get dedicated functions,
+    // all other office tasks route through a single `office_task_execute`
+    // dispatcher to keep well under OpenAI's 128-tool limit.
     const schemas = [
-      makeSchema({ name: 'a.b' }),
-      makeSchema({ name: 'c.d' }),
+      makeSchema({ name: 'estimate.create' }),
+      makeSchema({ name: 'estimate.check' }),
+      makeSchema({ name: 'accounting.invoice_check' }), // filtered (routes via dispatcher)
     ];
     const tools = buildFunctionCallingTools(schemas);
-    // 2 registered + _adapt_tool + _log_feature_request = 4
-    expect(tools).toHaveLength(4);
+    // 2 dedicated estimate.* + office_task_execute + _adapt_tool + _log_feature_request = 5
+    expect(tools).toHaveLength(5);
     expect(tools.every((t) => t.type === 'function')).toBe(true);
+    expect(tools.find((t) => t.function.name === 'office_task_execute')).toBeDefined();
   });
 
   it('should include _adapt_tool meta-function', () => {
@@ -95,18 +100,21 @@ describe('buildFunctionCallingTools', () => {
   });
 
   it('should include responsibilityLevel in the function description', () => {
+    // Only estimate.* schemas get dedicated functions, so use estimate.create
+    // to verify the responsibility-level injection behaviour.
     const schemas = [
-      makeSchema({ name: 'x.y', description: 'テスト', responsibilityLevel: 'high' }),
+      makeSchema({ name: 'estimate.create', description: 'テスト', responsibilityLevel: 'high' }),
     ];
     const tools = buildFunctionCallingTools(schemas);
-    const fn = tools.find((t) => t.function.name === 'x_y');
+    const fn = tools.find((t) => t.function.name === 'estimate_create');
     expect(fn).toBeDefined();
     expect(fn!.function.description).toContain('[responsibility: high]');
   });
 
   it('should sanitize zodToJsonSchema wrapper format with $ref/definitions', () => {
+    // estimate.* prefix required for dedicated function generation.
     const wrappedSchema: ToolSchema = makeSchema({
-      name: 'wrap.test',
+      name: 'estimate.wraptest',
       inputSchema: {
         definitions: {
           WrapTest: { type: 'object', properties: { foo: { type: 'string' } } },
@@ -115,7 +123,7 @@ describe('buildFunctionCallingTools', () => {
       },
     });
     const tools = buildFunctionCallingTools([wrappedSchema]);
-    const fn = tools.find((t) => t.function.name === 'wrap_test');
+    const fn = tools.find((t) => t.function.name === 'estimate_wraptest');
     expect(fn).toBeDefined();
     // Should have resolved $ref to the definition content directly
     expect(fn!.function.parameters).toHaveProperty('type', 'object');
@@ -127,11 +135,11 @@ describe('buildFunctionCallingTools', () => {
 
   it('should pass through a direct object schema without $ref unchanged', () => {
     const directSchema: ToolSchema = makeSchema({
-      name: 'direct.test',
+      name: 'estimate.directtest',
       inputSchema: { type: 'object', properties: { bar: { type: 'number' } } },
     });
     const tools = buildFunctionCallingTools([directSchema]);
-    const fn = tools.find((t) => t.function.name === 'direct_test');
+    const fn = tools.find((t) => t.function.name === 'estimate_directtest');
     expect(fn).toBeDefined();
     expect(fn!.function.parameters).toEqual({
       type: 'object',
@@ -190,18 +198,23 @@ describe('buildSystemPrompt', () => {
     expect(prompt.length).toBeGreaterThan(100);
   });
 
-  it('should inject tool descriptions for all registered tools', () => {
+  it('should inject tool names for all non-forbidden registered tools', () => {
+    // Phase 0 behaviour: system-prompt lists `estimate.*` with full description
+    // and all other non-対応不可 tasks in a compact form. Descriptions are
+    // truncated to 60 characters for the compact list. 対応不可 (士業独占業務)
+    // schemas are deliberately excluded from the agent-visible tools list.
     const prompt = buildSystemPrompt(allToolSchemas);
     for (const schema of allToolSchemas) {
+      if (schema.description.startsWith('[対応不可')) continue;
       expect(prompt).toContain(schema.name);
-      expect(prompt).toContain(schema.description);
     }
   });
 
-  it('should contain responsibility levels for each tool', () => {
+  it('dedicated estimate.* tools have full descriptions in the prompt', () => {
     const prompt = buildSystemPrompt(allToolSchemas);
-    for (const schema of allToolSchemas) {
-      expect(prompt).toContain(`責任レベル: ${schema.responsibilityLevel}`);
+    const dedicated = allToolSchemas.filter((s) => s.name.startsWith('estimate.'));
+    for (const schema of dedicated) {
+      expect(prompt).toContain(schema.description);
     }
   });
 
@@ -229,11 +242,12 @@ describe('buildSystemPrompt', () => {
     expect(prompt).not.toContain('{available_tools}');
   });
 
-  it('should contain HTTP method and path for each tool', () => {
+  it('should contain routing guidance referencing the dispatcher and function calling', () => {
+    // Phase 0 behaviour: individual HTTP method/path is NOT injected per tool.
+    // All non-dedicated tools route via `office_task_execute` dispatcher, so
+    // the prompt only references the routing mechanism, not each endpoint.
     const prompt = buildSystemPrompt(allToolSchemas);
-    for (const schema of allToolSchemas) {
-      expect(prompt).toContain(`${schema.method} ${schema.path}`);
-    }
+    expect(prompt).toContain('office_task_execute');
   });
 
   it('should contain adaptation guidelines (OK and NOT OK cases)', () => {
@@ -303,9 +317,12 @@ describe('事務作業カタログ coverage', () => {
     '英語に翻訳して',
   ];
 
-  it('system prompt mentions all registered tools by name', () => {
+  it('system prompt mentions all non-forbidden registered tools by name', () => {
+    // 対応不可 (士業独占業務) schemas are deliberately excluded from the
+    // agent-visible tools list so the LLM does not try to execute them.
     const prompt = buildSystemPrompt(allToolSchemas);
     for (const schema of allToolSchemas) {
+      if (schema.description.startsWith('[対応不可')) continue;
       expect(prompt).toContain(schema.name);
     }
   });

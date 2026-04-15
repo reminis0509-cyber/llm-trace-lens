@@ -22,6 +22,7 @@ import { enforceFreeQuota, resolveWorkspaceId } from '../tools/_shared.js';
 import { getKnex } from '../../storage/knex-client.js';
 import { executeContractAgent } from '../../agent/contract-agent.js';
 import type { AgentSseEvent } from '../../agent/contract-agent.types.js';
+import { getActiveBudget, getTodaySpend } from '../../agent/cost-guard.js';
 
 const requestSchema = z.object({
   message: z
@@ -76,6 +77,26 @@ export default async function contractChatRoute(fastify: FastifyInstance): Promi
         current: quota.current,
         limit: quota.limit,
       });
+    }
+
+    // ── Daily cost cap pre-check (reject before opening SSE) ────────────
+    try {
+      const budget = getActiveBudget();
+      const spend = await getTodaySpend(workspaceId);
+      if (spend.global >= budget.globalDailyCapUsd) {
+        return reply.code(429).send({
+          success: false,
+          error: 'グローバルの本日のAPI予算上限に達しました。しばらくお待ちください。',
+        });
+      }
+      if (spend.workspace >= budget.perWorkspaceDailyCapUsd) {
+        return reply.code(429).send({
+          success: false,
+          error: 'このワークスペースの本日の利用上限に達しました。明日以降に再度お試しください。',
+        });
+      }
+    } catch (err) {
+      request.log.warn({ err }, 'cost-guard pre-check failed; proceeding');
     }
 
     const companyInfo = await loadCompanyInfo(workspaceId);

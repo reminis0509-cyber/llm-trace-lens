@@ -44,38 +44,32 @@ export async function resolveWorkspaceId(request: FastifyRequest): Promise<strin
     return request.workspace.workspaceId;
   }
 
-  const userEmail = request.user?.email ||
-    (request.headers['x-user-email'] as string | undefined);
-  if (userEmail) {
-    try {
-      const db = getKnex();
-      const membership = await db('workspace_users')
-        .where({ email: userEmail.toLowerCase() })
-        .orderBy('created_at', 'asc')
-        .first();
-      if (membership?.workspace_id) {
-        return membership.workspace_id as string;
-      }
-    } catch {
-      // DB lookup failed, fall through to null
-    }
-  }
-
-  // Only trust x-workspace-id when accompanied by the per-process internal
-  // secret. This prevents external callers from impersonating workspaces by
-  // setting the header directly. Only fastify.inject() calls from within the
-  // same process (e.g. agent tool dispatch) can supply the correct secret.
+  // INTERNAL_SECRET bypass for fastify.inject() calls from within the same
+  // process (agent / clerk tool dispatch). External callers cannot know the
+  // per-process UUID, so this cannot be spoofed over HTTP.
   const internalSecret = request.headers['x-internal-secret'] as string | undefined;
   const workspaceHeader = request.headers['x-workspace-id'] as string | undefined;
-  if (
-    workspaceHeader &&
-    internalSecret &&
-    internalSecret === INTERNAL_SECRET
-  ) {
+  if (workspaceHeader && internalSecret && internalSecret === INTERNAL_SECRET) {
     return workspaceHeader;
   }
 
-  return null;
+  // Only trust emails that have been authenticated server-side by the rbac
+  // plugin (session cookie or verified Supabase JWT). Client-supplied
+  // `x-user-email` headers are NEVER trusted — spoofing them previously
+  // allowed cross-workspace IDOR (QA Issue #1).
+  const userEmail = request.user?.email;
+  if (!userEmail) return null;
+
+  try {
+    const db = getKnex();
+    const membership = await db('workspace_users')
+      .where({ email: userEmail.toLowerCase() })
+      .orderBy('created_at', 'asc')
+      .first();
+    return (membership?.workspace_id as string | undefined) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -188,9 +182,12 @@ export async function enforceFreeQuota(
     if (internalSecret && internalSecret === INTERNAL_SECRET) {
       return { allowed: true };
     }
-    // Admin users bypass quota
+    // Admin users bypass quota — use server-verified email from rbac plugin.
+    // Client-supplied x-user-email headers are NEVER trusted (QA Issue #1:
+    // previously any caller could spoof an admin email to bypass Free quota,
+    // causing direct financial impact).
     const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
-    const userEmail = ((request.headers['x-user-email'] as string) || '').toLowerCase();
+    const userEmail = (request.user?.email || '').toLowerCase();
     if (userEmail && adminEmails.includes(userEmail)) {
       return { allowed: true };
     }

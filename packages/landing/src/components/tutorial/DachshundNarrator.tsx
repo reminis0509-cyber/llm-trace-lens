@@ -9,55 +9,81 @@ interface DachshundNarratorProps {
 }
 
 /**
- * Placeholder mascot + speech bubble. All three states currently render the
- * same GIF from the dashboard bundle (/dashboard/mascot-idle.gif); swap in
- * dedicated talk/happy frames once Founder delivers the final art.
- *
- * The message is revealed with a tiny typewriter effect. Users can press the
- * "すぐ表示" button to skip the animation.
+ * Per-character delay table — ドラクエ風の「間」を句読点で演出する。
+ * 通常文字は 38ms、句読点・三点リーダー・感嘆符・改行は長めに取る。
+ */
+function getCharDelay(ch: string): number {
+  if (ch === '、') return 200;
+  if (ch === '。') return 400;
+  if (ch === '…') return 600;
+  if (ch === '！' || ch === '？' || ch === '!' || ch === '?') return 300;
+  if (ch === '\n') return 250;
+  return 38;
+}
+
+/**
+ * ダックスフンドのフジ + ドラクエ風メッセージウィンドウ。
+ * - 文字ごとに動的 delay を適用（句読点で溜め、「…」で長めの間）
+ * - 「全部表示 ▶▶」ボタンで即時完了にスキップ
+ * - message prop が切り替わると途中でも即クリーンアップして新シーケンスを開始
  */
 export default function DachshundNarrator({ state, message, actionHint }: DachshundNarratorProps) {
   const [shown, setShown] = useState('');
   const [done, setDone] = useState(false);
   const timerRef = useRef<number | null>(null);
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
+    cancelledRef.current = false;
     setShown('');
     setDone(false);
+
     let i = 0;
-    const tick = () => {
-      i += 1;
-      setShown(message.slice(0, i));
+    const step = () => {
+      if (cancelledRef.current) return;
       if (i >= message.length) {
         setDone(true);
-        if (timerRef.current !== null) {
-          window.clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
+        timerRef.current = null;
+        return;
       }
+      const ch = message.charAt(i);
+      i += 1;
+      setShown(message.slice(0, i));
+      const delay = getCharDelay(ch);
+      timerRef.current = window.setTimeout(step, delay);
     };
-    timerRef.current = window.setInterval(tick, 24);
+
+    // Kick off the sequence on the next tick so React has time to reset state.
+    timerRef.current = window.setTimeout(step, getCharDelay(message.charAt(0) || ''));
+
     return () => {
+      cancelledRef.current = true;
       if (timerRef.current !== null) {
-        window.clearInterval(timerRef.current);
+        window.clearTimeout(timerRef.current);
         timerRef.current = null;
       }
     };
   }, [message]);
 
   const skip = () => {
+    cancelledRef.current = true;
     if (timerRef.current !== null) {
-      window.clearInterval(timerRef.current);
+      window.clearTimeout(timerRef.current);
       timerRef.current = null;
     }
     setShown(message);
     setDone(true);
   };
 
-  // Placeholder: all three states point to the same asset for now.
-  // Dachshund-themed art is pending from Founder; asset is colocated in LP public
-  // so dev+prod both serve correctly (LP dev server cannot see dashboard/public).
-  const mascotSrc = '/tutorial/dachshund-placeholder.gif';
+  // Founder-supplied dachshund pixel art (2026-04-15).
+  // - idle / talk: standing pose
+  // - happy: running/excited pose
+  const mascotSrc =
+    state === 'happy'
+      ? '/tutorial/dachshund-happy.gif'
+      : state === 'talk'
+        ? '/tutorial/dachshund-talk.gif'
+        : '/tutorial/dachshund-idle.gif';
 
   return (
     <div
@@ -76,21 +102,22 @@ export default function DachshundNarrator({ state, message, actionHint }: Dachsh
           aria-hidden="true"
           className="absolute -left-2 top-5 w-3 h-3 rotate-45 bg-white border-l border-b border-slate-200"
         />
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <div className="relative rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
           <p className="text-sm sm:text-base text-slate-800 leading-relaxed whitespace-pre-wrap">
             {shown}
             {!done && <span className="inline-block w-1.5 h-4 ml-0.5 bg-slate-400 animate-pulse align-middle" />}
           </p>
           {actionHint && done && (
-            <p className="mt-2 text-xs text-slate-500">{actionHint}</p>
+            <p className="mt-2 text-xs text-slate-500 whitespace-pre-wrap">{actionHint}</p>
           )}
           {!done && (
             <button
               type="button"
               onClick={skip}
-              className="mt-2 text-xs text-slate-400 hover:text-slate-600 underline underline-offset-2"
+              aria-label="メッセージを全部表示する"
+              className="absolute bottom-2 right-3 inline-flex items-center gap-1 rounded-md border border-slate-300 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-800"
             >
-              すぐ表示
+              全部表示 <span aria-hidden="true">▶▶</span>
             </button>
           )}
         </div>

@@ -78,8 +78,11 @@ function extractUserInfo(request: FastifyRequest): {
   ipAddress: string | undefined;
   userAgent: string | undefined;
 } {
+  // Audit log identity MUST be derived from server-verified session, never
+  // from client-supplied `x-user-id` / `x-user-email` headers (QA Issue #1 —
+  // previously audit logs could be forged).
   return {
-    userId: (request.headers['x-user-id'] as string) || 'admin',
+    userId: request.user?.email || request.user?.id || 'admin',
     ipAddress: request.ip || undefined,
     userAgent: request.headers['user-agent'] || undefined,
   };

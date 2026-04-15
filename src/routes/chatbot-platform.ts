@@ -72,51 +72,14 @@ const widgetChatSchema = z.object({
 
 // ─── Helper ──────────────────────────────────────────────────────────
 
-import { getKnex } from '../storage/knex-client.js';
-
-/**
- * Resolve workspaceId from request context.
- * Priority: API key auth > dashboard auth (user email) > null
- */
-async function resolveWorkspaceId(request: FastifyRequest): Promise<string | null> {
-  // 1. API key auth (resolved by auth middleware)
-  if (request.workspace?.workspaceId) {
-    return request.workspace.workspaceId;
-  }
-
-  // 2. Dashboard auth (RBAC plugin sets request.user from X-User-ID/X-User-Email headers)
-  const userEmail = request.user?.email ||
-    (request.headers['x-user-email'] as string | undefined);
-  if (userEmail) {
-    try {
-      const db = getKnex();
-      const membership = await db('workspace_users')
-        .where({ email: userEmail.toLowerCase() })
-        .orderBy('created_at', 'asc')
-        .first();
-      if (membership?.workspace_id) {
-        return membership.workspace_id as string;
-      }
-    } catch {
-      // DB lookup failed
-    }
-  }
-
-  // 3. Fallback: check X-Workspace-ID header (legacy support)
-  const workspaceHeader = request.headers['x-workspace-id'] as string | undefined;
-  if (workspaceHeader) {
-    return workspaceHeader;
-  }
-
-  // 4. If user is authenticated (has any user header) but workspace not found,
-  // fall back to 'default' workspace
-  const userId = request.headers['x-user-id'] as string | undefined;
-  if (userId || userEmail) {
-    return 'default';
-  }
-
-  return null;
-}
+// Workspace resolution is delegated to the hardened shared helper.
+// Previously this file had its own resolver that (a) trusted client-supplied
+// `x-user-email` / `x-user-id` / `x-workspace-id` headers and (b) fell back to
+// a shared `'default'` workspace, which allowed any authenticated user (or
+// anyone who could set a header) to read/write other workspaces' chatbots,
+// documents, and sessions. This was QA Issue #1 — CRITICAL cross-workspace
+// IDOR.
+import { resolveWorkspaceId } from './tools/_shared.js';
 
 // ─── Routes ──────────────────────────────────────────────────────────
 

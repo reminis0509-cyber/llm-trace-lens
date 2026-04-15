@@ -125,7 +125,10 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Admin-API-Key', 'X-User-ID', 'X-User-Email', 'X-Workspace-ID'],
+    // Note: X-User-ID / X-User-Email intentionally removed — user identity
+    // is established only via Authorization (Supabase JWT) or session cookie.
+    // Advertising those headers as allowed was a defence-in-depth smell.
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Admin-API-Key', 'X-Workspace-ID'],
   });
 
   // Multipart support (file uploads for chatbot documents)

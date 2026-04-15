@@ -72,7 +72,7 @@ export default function Step1ButtonExperience({ onComplete, onMascot }: Step1But
     timers.push(
       window.setTimeout(() => {
         setPhase('done');
-        onMascot('happy', 'できた！ 本物のサービスでは、君の会社情報で自動生成されるんだ。');
+        onMascot('happy', 'できた！\n\n本物のサービスでは…\n君の会社情報で\n自動生成されるんだ。');
       }, 1500),
     );
     return () => {
@@ -84,7 +84,7 @@ export default function Step1ButtonExperience({ onComplete, onMascot }: Step1But
     if (phase !== 'waiting') return;
     setPhase('working');
     setProgressIdx(0);
-    onMascot('talk', '見積書を作っているよ。ちょっとだけ待っててね。');
+    onMascot('talk', '見積書を作っているよ。\nちょっとだけ…\n待っててね。');
   };
 
   return (

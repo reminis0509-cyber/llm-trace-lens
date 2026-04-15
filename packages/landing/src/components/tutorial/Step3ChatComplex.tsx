@@ -44,7 +44,7 @@ export default function Step3ChatComplex({ onComplete, onMascot }: Step3ChatComp
       announced.current = true;
       onMascot(
         'talk',
-        'じゃあ難しいやつ。\n「A社向けに月次保守料10万円で請求書作って」って書いてみて。',
+        'じゃあ…\n難しいやつ。\n\n「A社向けに月次保守料10万円で\n請求書作って」\nって書いてみて！',
         '複雑な指示もAIは読み取れるんだ',
       );
     }
@@ -91,7 +91,7 @@ export default function Step3ChatComplex({ onComplete, onMascot }: Step3ChatComp
           setPdf({ src: result.pdfPath, filename: result.filename });
           onMascot(
             'happy',
-            '金額と会社名をきちんと読み取ったよ！本物のAI事務員はもっと複雑な指示もしっかり聞き分けるんだ。',
+            '読めた！\n\n金額と会社名を…\nちゃんと読み取って\n作ったよ。\n\n本物のAI事務員はね…\nもっと複雑な指示も\n聞き分けるんだ。',
           );
         }
         setIsTyping(false);
