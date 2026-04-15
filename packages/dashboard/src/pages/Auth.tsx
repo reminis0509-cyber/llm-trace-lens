@@ -73,6 +73,32 @@ export function Auth() {
           </div>
         )}
 
+        {/* Tutorial CTA — lets visitors experience the AI clerk before signing up */}
+        <div className="mb-6">
+          <p className="text-xs text-text-muted text-center mb-2">
+            登録前に AI 事務員を 30 秒で試せます
+          </p>
+          <a
+            href="/tutorial"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-accent text-accent rounded-lg font-semibold hover:bg-accent/5 transition"
+          >
+            <span>チュートリアルを試す（登録不要）</span>
+            <svg
+              className="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </a>
+        </div>
+
         {/* Google Sign In */}
         <button
           onClick={handleGoogleSignIn}

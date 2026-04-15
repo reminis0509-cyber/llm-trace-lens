@@ -14,6 +14,15 @@ const iconSvgProps = {
   'aria-hidden': true as const,
 };
 
+function CheckCircleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} {...iconSvgProps}>
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  );
+}
+
 function DownloadIcon({ className }: { className?: string }) {
   return (
     <svg className={className} {...iconSvgProps}>
@@ -35,42 +44,42 @@ function ExternalIcon({ className }: { className?: string }) {
 }
 
 /**
- * iframe PDF preview with a dedicated download button.
- * On mobile widths (<640px) the iframe is hidden and replaced with an
- * "open in new tab" button because embedded PDFs are unreliable on iOS Safari.
+ * Success card that surfaces a clear download CTA.
+ * No iframe preview — embedded PDF viewers render as a dark UI on Chromium,
+ * which Founder mistook for "the PDF did not appear". A generated-PDF
+ * confirmation + large download button is the most reliable UX across devices.
  */
-export default function PdfPreview({ src, filename, title = 'PDFプレビュー' }: PdfPreviewProps) {
+export default function PdfPreview({ src, filename, title = '見積書ができました！' }: PdfPreviewProps) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
-      <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-slate-200 bg-slate-50">
-        <span className="text-sm font-medium text-slate-700">{title}</span>
-        <div className="flex items-center gap-2">
+    <div className="rounded-xl border border-green-200 bg-green-50 p-6 sm:p-8 shadow-sm">
+      <div className="flex flex-col items-center text-center">
+        <CheckCircleIcon className="w-12 h-12 text-green-600" />
+        <h3 className="mt-3 text-xl sm:text-2xl font-bold text-slate-900">{title}</h3>
+        <p className="mt-2 text-sm text-slate-600">
+          下のボタンから PDF をダウンロードできます。
+        </p>
+
+        <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+          <a
+            href={src}
+            download={filename}
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-6 py-3 text-base font-semibold text-white hover:bg-blue-700 shadow-sm"
+          >
+            <DownloadIcon className="w-5 h-5" />
+            PDF をダウンロード
+          </a>
           <a
             href={src}
             target="_blank"
             rel="noopener noreferrer"
-            className="sm:hidden inline-flex items-center gap-1 text-xs font-medium text-slate-700 hover:text-blue-700"
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             <ExternalIcon className="w-4 h-4" />
-            PDFを開く
-          </a>
-          <a
-            href={src}
-            download={filename}
-            className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
-          >
-            <DownloadIcon className="w-4 h-4" />
-            ダウンロード
+            別タブで開く
           </a>
         </div>
-      </div>
-      <iframe
-        src={src}
-        title={title}
-        className="hidden sm:block w-full aspect-[1/1.414] border-0 bg-slate-100"
-      />
-      <div className="sm:hidden p-6 text-center text-sm text-slate-600">
-        モバイルではPDFを別タブで開いてご確認ください。
+
+        <p className="mt-4 text-xs text-slate-500">ファイル名: {filename}</p>
       </div>
     </div>
   );

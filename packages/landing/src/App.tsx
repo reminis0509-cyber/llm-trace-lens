@@ -123,6 +123,18 @@ export default function App() {
     );
   }
 
+  // Tutorial is a full-screen modal experience — it paints its own chrome
+  // and must not be framed by the LP Header/Footer.
+  const isTutorial = currentPath === '/tutorial';
+
+  if (isTutorial) {
+    return (
+      <div className="min-h-screen bg-white overflow-x-hidden">
+        <main>{pageContent}</main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
       <Header />
