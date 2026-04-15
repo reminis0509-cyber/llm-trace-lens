@@ -34,6 +34,24 @@ const KEYWORD_TABLE: KeywordEntry[] = [
   { kind: 'estimate', keywords: ['見積書', '見積もり', '見積り', '見積', '御見積'] },
 ];
 
+export const PRACTICE_SUGGESTIONS: Record<
+  'purchase_order' | 'cover_letter' | 'delivery_note',
+  string[]
+> = {
+  purchase_order: ['発注書作って', '発注書出して', 'サーバー機材の発注書'],
+  cover_letter: ['送付状作って', '書類の送付状', '送り状お願い'],
+  delivery_note: ['納品書作って', '納品書お願い', '納品書出して'],
+};
+
+export function matchIntentForKind(
+  input: string,
+  expectedKind: DocumentKind,
+): IntentMatch | null {
+  const intent = matchIntent(input);
+  if (!intent) return null;
+  return intent.kind === expectedKind ? intent : null;
+}
+
 export function matchIntent(input: string): IntentMatch | null {
   const trimmed = input.trim();
   if (!trimmed) return null;

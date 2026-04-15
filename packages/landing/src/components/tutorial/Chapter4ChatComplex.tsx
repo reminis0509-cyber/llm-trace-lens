@@ -7,7 +7,7 @@ import {
   TUTORIAL_FOOTNOTE,
 } from '../../lib/tutorial-scripts';
 
-interface Step3ChatComplexProps {
+interface Chapter4ChatComplexProps {
   onComplete: () => void;
   onMascot: (state: 'idle' | 'talk' | 'happy', message: string, hint?: string) => void;
 }
@@ -32,7 +32,7 @@ function DetectedSummary({ summary }: { summary: string }) {
   );
 }
 
-export default function Step3ChatComplex({ onComplete, onMascot }: Step3ChatComplexProps) {
+export default function Chapter4ChatComplex({ onComplete, onMascot }: Chapter4ChatComplexProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [pdf, setPdf] = useState<PdfState | null>(null);
@@ -44,26 +44,25 @@ export default function Step3ChatComplex({ onComplete, onMascot }: Step3ChatComp
       announced.current = true;
       onMascot(
         'talk',
-        'じゃあ…\n難しいやつ。\n\n「A社向けに月次保守料10万円で\n請求書作って」\nって書いてみて！',
-        '複雑な指示もAIは読み取れるんだ',
+        '最後は…\n難しいやつ。\n\nAIのすごさを\n見せるね。',
+        '会社名・金額・書類の種類を 1 文で',
       );
     }
   }, [onMascot]);
 
   const nextId = () => {
     idCounter.current += 1;
-    return `c${idCounter.current}`;
+    return `ch4-${idCounter.current}`;
   };
 
   const handleSend = (text: string) => {
+    if (pdf) return;
     setMessages((prev) => [...prev, { id: nextId(), role: 'user', content: text }]);
     setIsTyping(true);
 
     const extracted = extractComplexPrompt(text);
     const result = getComplexResponse(extracted);
 
-    // If we detected a summary, show it first as a quick "reading" beat,
-    // then follow up with the main response + PDF.
     if (result.detectedSummary) {
       window.setTimeout(() => {
         setMessages((prev) => [
@@ -91,7 +90,7 @@ export default function Step3ChatComplex({ onComplete, onMascot }: Step3ChatComp
           setPdf({ src: result.pdfPath, filename: result.filename });
           onMascot(
             'happy',
-            '読めた！\n\n金額と会社名を…\nちゃんと読み取って\n作ったよ。\n\n本物のAI事務員はね…\nもっと複雑な指示も\n聞き分けるんだ。',
+            '読めた！\n\n金額と会社名を…\nちゃんと読み取って\n作ったよ。',
           );
         }
         setIsTyping(false);
@@ -111,21 +110,21 @@ export default function Step3ChatComplex({ onComplete, onMascot }: Step3ChatComp
       ]);
       if (result.pdfPath && result.filename) {
         setPdf({ src: result.pdfPath, filename: result.filename });
-        onMascot('happy', '書類だけ用意したよ。金額や会社名を足すと、もっと詳しく反映できるよ。');
+        onMascot('happy', '書類だけ用意したよ。\n金額や会社名を足すと…\nもっと詳しく反映できるよ。');
       }
       setIsTyping(false);
     }, 900);
   };
 
   return (
-    <section aria-labelledby="step3-title" className="space-y-6">
+    <section aria-labelledby="ch4-title" className="space-y-6">
       <header>
-        <p className="text-xs font-semibold tracking-wide text-blue-700 uppercase">Step 3 / 3</p>
-        <h2 id="step3-title" className="mt-1 text-2xl font-bold text-slate-900">
-          少し複雑な業務指示
+        <p className="text-xs font-semibold tracking-wide text-blue-700 uppercase">第 4 章 / 4</p>
+        <h2 id="ch4-title" className="mt-1 text-2xl font-bold text-slate-900">
+          複雑な指示で AI の可能性を体感
         </h2>
         <p className="mt-2 text-sm text-slate-600">
-          「誰に」「いくらで」「何を」を1つの文で送ってみてください。会社名と金額を抽出して表示します。
+          「誰に」「いくらで」「何を」を 1 つの文で送ってみてください。会社名と金額を抽出して表示します。
         </p>
       </header>
 
@@ -135,6 +134,7 @@ export default function Step3ChatComplex({ onComplete, onMascot }: Step3ChatComp
         suggestions={SUGGESTIONS}
         isTyping={isTyping}
         placeholder="例: A社向けに月次保守料10万円で請求書作って"
+        disabled={pdf !== null}
       />
 
       {pdf && (
@@ -146,7 +146,7 @@ export default function Step3ChatComplex({ onComplete, onMascot }: Step3ChatComp
               onClick={onComplete}
               className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
             >
-              仕上げへ
+              修了証へ
               <span aria-hidden="true">→</span>
             </button>
           </div>

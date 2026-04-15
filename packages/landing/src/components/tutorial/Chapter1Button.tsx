@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import PdfPreview from './PdfPreview';
 
-interface Step1ButtonExperienceProps {
+interface Chapter1ButtonProps {
   onComplete: () => void;
   onMascot: (state: 'idle' | 'talk' | 'happy', message: string, hint?: string) => void;
 }
@@ -30,7 +30,6 @@ const PREFILL = {
   paymentTerms: '月末締翌月末払い',
 };
 
-/** Small read-only form field that looks like a filled-in freee input. */
 function ReadOnlyField({
   label,
   value,
@@ -60,7 +59,7 @@ function ReadOnlyField({
   );
 }
 
-export default function Step1ButtonExperience({ onComplete, onMascot }: Step1ButtonExperienceProps) {
+export default function Chapter1Button({ onComplete, onMascot }: Chapter1ButtonProps) {
   const [phase, setPhase] = useState<Phase>('waiting');
   const [progressIdx, setProgressIdx] = useState(0);
 
@@ -72,7 +71,7 @@ export default function Step1ButtonExperience({ onComplete, onMascot }: Step1But
     timers.push(
       window.setTimeout(() => {
         setPhase('done');
-        onMascot('happy', 'できた！\n\n本物のサービスでは…\n君の会社情報で\n自動生成されるんだ。');
+        onMascot('happy', 'できた！');
       }, 1500),
     );
     return () => {
@@ -88,10 +87,10 @@ export default function Step1ButtonExperience({ onComplete, onMascot }: Step1But
   };
 
   return (
-    <section aria-labelledby="step1-title" className="space-y-6">
+    <section aria-labelledby="ch1-title" className="space-y-6">
       <header>
-        <p className="text-xs font-semibold tracking-wide text-blue-700 uppercase">Step 1 / 3</p>
-        <h2 id="step1-title" className="mt-1 text-2xl font-bold text-slate-900">
+        <p className="text-xs font-semibold tracking-wide text-blue-700 uppercase">第 1 章 / 4</p>
+        <h2 id="ch1-title" className="mt-1 text-2xl font-bold text-slate-900">
           ボタン一つで見積書を作る
         </h2>
         <p className="mt-2 text-sm text-slate-600">
@@ -101,9 +100,8 @@ export default function Step1ButtonExperience({ onComplete, onMascot }: Step1But
 
       {phase !== 'done' && (
         <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-6">
-          {/* 取引先情報 */}
-          <section aria-labelledby="client-section" className="space-y-3">
-            <h3 id="client-section" className="text-sm font-semibold text-slate-900">
+          <section aria-labelledby="ch1-client" className="space-y-3">
+            <h3 id="ch1-client" className="text-sm font-semibold text-slate-900">
               取引先情報
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -112,9 +110,8 @@ export default function Step1ButtonExperience({ onComplete, onMascot }: Step1But
             </div>
           </section>
 
-          {/* 見積内容 */}
-          <section aria-labelledby="content-section" className="space-y-3">
-            <h3 id="content-section" className="text-sm font-semibold text-slate-900">
+          <section aria-labelledby="ch1-content" className="space-y-3">
+            <h3 id="ch1-content" className="text-sm font-semibold text-slate-900">
               見積内容
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -126,9 +123,8 @@ export default function Step1ButtonExperience({ onComplete, onMascot }: Step1But
             </div>
           </section>
 
-          {/* 明細 */}
-          <section aria-labelledby="items-section" className="space-y-3">
-            <h3 id="items-section" className="text-sm font-semibold text-slate-900">
+          <section aria-labelledby="ch1-items" className="space-y-3">
+            <h3 id="ch1-items" className="text-sm font-semibold text-slate-900">
               明細
             </h3>
             <div className="overflow-x-auto">
@@ -154,9 +150,8 @@ export default function Step1ButtonExperience({ onComplete, onMascot }: Step1But
             <p className="text-[11px] text-slate-400">自動入力</p>
           </section>
 
-          {/* 合計 */}
-          <section aria-labelledby="total-section" className="space-y-3">
-            <h3 id="total-section" className="text-sm font-semibold text-slate-900">
+          <section aria-labelledby="ch1-total" className="space-y-3">
+            <h3 id="ch1-total" className="text-sm font-semibold text-slate-900">
               合計
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -166,15 +161,13 @@ export default function Step1ButtonExperience({ onComplete, onMascot }: Step1But
             </div>
           </section>
 
-          {/* 支払条件 */}
-          <section aria-labelledby="payment-section" className="space-y-3">
-            <h3 id="payment-section" className="text-sm font-semibold text-slate-900">
+          <section aria-labelledby="ch1-payment" className="space-y-3">
+            <h3 id="ch1-payment" className="text-sm font-semibold text-slate-900">
               支払条件
             </h3>
             <ReadOnlyField label="支払条件" value={PREFILL.paymentTerms} />
           </section>
 
-          {/* CTA */}
           <div className="pt-4 border-t border-slate-100 flex flex-col items-center gap-3">
             <button
               type="button"
@@ -232,7 +225,7 @@ export default function Step1ButtonExperience({ onComplete, onMascot }: Step1But
               onClick={onComplete}
               className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
             >
-              次のステップへ
+              第 1 章を終える
               <span aria-hidden="true">→</span>
             </button>
           </div>

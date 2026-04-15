@@ -12,14 +12,14 @@ import {
   type DocumentKind,
 } from '../../lib/tutorial-scripts';
 
-interface Step2ChatSimpleProps {
+interface Chapter2ChatIntroProps {
   onComplete: () => void;
   onMascot: (state: 'idle' | 'talk' | 'happy', message: string, hint?: string) => void;
 }
 
-const SUGGESTIONS = ['見積書作って', '請求書作って', '納品書お願い'];
+const SUGGESTIONS = ['請求書作って', '見積書作って', '納品書お願い'];
 
-export default function Step2ChatSimple({ onComplete, onMascot }: Step2ChatSimpleProps) {
+export default function Chapter2ChatIntro({ onComplete, onMascot }: Chapter2ChatIntroProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [revealedKind, setRevealedKind] = useState<DocumentKind | null>(null);
@@ -31,7 +31,7 @@ export default function Step2ChatSimple({ onComplete, onMascot }: Step2ChatSimpl
       announced.current = true;
       onMascot(
         'talk',
-        '次はチャット。\n\n「見積書作って」って…\n入れてみて！',
+        '次はチャット。\n\n「請求書作って」って…\n入れてみて！',
         '下のチップをタップするだけでOK',
       );
     }
@@ -39,10 +39,11 @@ export default function Step2ChatSimple({ onComplete, onMascot }: Step2ChatSimpl
 
   const nextId = () => {
     idCounter.current += 1;
-    return `m${idCounter.current}`;
+    return `ch2-${idCounter.current}`;
   };
 
   const handleSend = (text: string) => {
+    if (revealedKind) return;
     setMessages((prev) => [...prev, { id: nextId(), role: 'user', content: text }]);
     setIsTyping(true);
     window.setTimeout(() => {
@@ -78,10 +79,10 @@ export default function Step2ChatSimple({ onComplete, onMascot }: Step2ChatSimpl
   };
 
   return (
-    <section aria-labelledby="step2-title" className="space-y-6">
+    <section aria-labelledby="ch2-title" className="space-y-6">
       <header>
-        <p className="text-xs font-semibold tracking-wide text-blue-700 uppercase">Step 2 / 3</p>
-        <h2 id="step2-title" className="mt-1 text-2xl font-bold text-slate-900">
+        <p className="text-xs font-semibold tracking-wide text-blue-700 uppercase">第 2 章 / 4</p>
+        <h2 id="ch2-title" className="mt-1 text-2xl font-bold text-slate-900">
           チャットで指示してみる
         </h2>
         <p className="mt-2 text-sm text-slate-600">
@@ -94,7 +95,8 @@ export default function Step2ChatSimple({ onComplete, onMascot }: Step2ChatSimpl
         onSend={handleSend}
         suggestions={SUGGESTIONS}
         isTyping={isTyping}
-        placeholder="例: 見積書作って"
+        placeholder="例: 請求書作って"
+        disabled={revealedKind !== null}
       />
 
       {revealedKind && (
@@ -110,7 +112,7 @@ export default function Step2ChatSimple({ onComplete, onMascot }: Step2ChatSimpl
               onClick={onComplete}
               className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
             >
-              次のステップへ
+              第 2 章を終える
               <span aria-hidden="true">→</span>
             </button>
           </div>

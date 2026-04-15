@@ -1,12 +1,23 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSeo } from '../hooks/useSeo';
 import TutorialModeBadge from './tutorial/TutorialModeBadge';
 import DachshundNarrator, { type DachshundState } from './tutorial/DachshundNarrator';
-import Step1ButtonExperience from './tutorial/Step1ButtonExperience';
-import Step2ChatSimple from './tutorial/Step2ChatSimple';
-import Step3ChatComplex from './tutorial/Step3ChatComplex';
-
-type StepState = 1 | 2 | 3 | 'done';
+import TutorialProgress from './tutorial/TutorialProgress';
+import ChapterCompleteSplash from './tutorial/ChapterCompleteSplash';
+import Chapter1Button from './tutorial/Chapter1Button';
+import Chapter2ChatIntro from './tutorial/Chapter2ChatIntro';
+import Chapter3ChatPractice from './tutorial/Chapter3ChatPractice';
+import Chapter4ChatComplex from './tutorial/Chapter4ChatComplex';
+import CompletionCertificate from './tutorial/CompletionCertificate';
+import {
+  buildInitialProgress,
+  loadProgress,
+  resetProgress,
+  saveProgress,
+  type ChapterId,
+  type PracticeTaskId,
+  type TutorialProgress as TProgress,
+} from '../lib/tutorial-progress';
 
 interface MascotMessage {
   state: DachshundState;
@@ -21,9 +32,12 @@ const INITIAL_MASCOT: MascotMessage = {
   hint: '下のフォームを見てから、\n「AIで見積書を生成する」を\n押してみてね。',
 };
 
-const SHARE_TEXT = 'FujiTrace の AI 事務員を無料で試したよ';
-const SHARE_URL = 'https://fujitrace.jp/tutorial';
-const X_INTENT_URL = `https://twitter.com/intent/tweet?text=${encodeURIComponent(SHARE_TEXT)}&url=${encodeURIComponent(SHARE_URL)}`;
+const CHAPTER_TITLES: Record<ChapterId, string> = {
+  1: 'ボタン一つで見積書を作る',
+  2: 'チャットで指示してみる',
+  3: '反復で経験値を積む',
+  4: '複雑な指示で AI の可能性を体感',
+};
 
 function CloseIcon({ className }: { className?: string }) {
   return (
@@ -43,79 +57,79 @@ function CloseIcon({ className }: { className?: string }) {
   );
 }
 
-function DoneScreen({ onRestart }: { onRestart: () => void }) {
-  const [copied, setCopied] = useState(false);
+interface ResumePromptProps {
+  progress: TProgress;
+  onResume: () => void;
+  onRestart: () => void;
+}
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(SHARE_URL);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      window.prompt('この URL をコピーしてください', SHARE_URL);
-    }
-  };
-
+function ResumePrompt({ progress, onResume, onRestart }: ResumePromptProps) {
+  const chLabel =
+    progress.currentChapter === 'done'
+      ? '修了証'
+      : `第 ${progress.currentChapter} 章`;
   return (
-    <section aria-labelledby="done-title" className="space-y-6">
-      <header>
-        <p className="text-xs font-semibold tracking-wide text-blue-700 uppercase">完了</p>
-        <h2 id="done-title" className="mt-1 text-2xl font-bold text-slate-900">
-          お疲れさま！これで基本は完璧だよ
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="resume-title"
+      className="fixed inset-0 z-[70] bg-slate-900/50 flex items-center justify-center p-4"
+    >
+      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-xl space-y-4">
+        <h2 id="resume-title" className="text-lg font-bold text-slate-900">
+          前回の続きから再開しますか？
         </h2>
-        <p className="mt-2 text-sm text-slate-600">
-          本物のサービスはもっと賢い AI があなたの指示を理解します。30 日間、無料で全機能を試せます。
+        <p className="text-sm text-slate-600">
+          前回は <span className="font-semibold">{chLabel}</span> まで進んでいました。
         </p>
-      </header>
-
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-        <a
-          href="/dashboard"
-          className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-6 py-3 text-base font-semibold text-white hover:bg-blue-700"
-        >
-          30 日無料でフル機能を試す
-        </a>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <a
-            href={X_INTENT_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            体験を X でシェア
-          </a>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
           <button
             type="button"
-            onClick={handleCopy}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            onClick={onResume}
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
           >
-            {copied ? 'コピーしました' : 'URL をコピー（稟議書用）'}
+            続きから再開
           </button>
-        </div>
-        <div className="flex justify-center pt-2">
           <button
             type="button"
             onClick={onRestart}
-            className="text-xs text-slate-500 hover:text-slate-700 underline underline-offset-2"
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
-            最初からもう一度
+            最初からやり直す
           </button>
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 
 export default function TutorialPage() {
   useSeo({
-    title: 'AI 事務員をタダで試す | FujiTrace',
+    title: 'AI 事務員 基礎チュートリアル | FujiTrace',
     description:
-      '見積書・請求書・複雑な業務指示まで、登録不要で AI 事務員を体験できます。ダックスフンドのフジがご案内します。',
+      '4 章構成の学習プログラムで、見積書・請求書・発注書・送付状・納品書を AI 事務員と一緒に体験。修了証 PNG を発行できます。',
     url: 'https://fujitrace.jp/tutorial',
   });
 
-  const [step, setStep] = useState<StepState>(1);
+  const [progress, setProgress] = useState<TProgress | null>(null);
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
   const [mascot, setMascot] = useState<MascotMessage>(INITIAL_MASCOT);
+  const [splashChapter, setSplashChapter] = useState<ChapterId | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    const existing = loadProgress();
+    if (
+      existing &&
+      (existing.currentChapter !== 1 || existing.completedChapters.length > 0)
+    ) {
+      setProgress(existing);
+      setShowResumePrompt(true);
+    } else {
+      setProgress(existing ?? buildInitialProgress());
+    }
+    setHydrated(true);
+  }, []);
 
   const updateMascot = useCallback(
     (state: DachshundState, message: string, hint?: string) => {
@@ -124,33 +138,122 @@ export default function TutorialPage() {
     [],
   );
 
-  const goToStep2 = () => setStep(2);
-  const goToStep3 = () => setStep(3);
-  const goToDone = () => {
-    setStep('done');
-    updateMascot('happy', 'ぜんぶクリア！\n\nここから先は…\n本物のAIを試してみよう。');
+  const persist = useCallback((next: TProgress) => {
+    saveProgress(next);
+    setProgress(next);
+  }, []);
+
+  const handleResume = () => {
+    setShowResumePrompt(false);
   };
-  const restart = () => {
-    setStep(1);
+
+  const handleHardRestart = () => {
+    resetProgress();
+    const fresh = buildInitialProgress();
+    saveProgress(fresh);
+    setProgress(fresh);
+    setShowResumePrompt(false);
+    setSplashChapter(null);
     setMascot(INITIAL_MASCOT);
+  };
+
+  const handleChapterComplete = (ch: ChapterId) => {
+    if (!progress) return;
+    const nextCh = ch === 4 ? 'done' : ((ch + 1) as ChapterId);
+    const completed = progress.completedChapters.includes(ch)
+      ? progress.completedChapters
+      : [...progress.completedChapters, ch];
+    const updated: TProgress = {
+      ...progress,
+      currentChapter: nextCh,
+      completedChapters: completed,
+      completedAt: ch === 4 ? new Date().toISOString() : progress.completedAt,
+    };
+    persist(updated);
+    setSplashChapter(ch);
+  };
+
+  const handleTaskComplete = (task: PracticeTaskId) => {
+    if (!progress) return;
+    if (progress.chapter3Tasks.includes(task)) return;
+    const updated: TProgress = {
+      ...progress,
+      chapter3Tasks: [...progress.chapter3Tasks, task],
+    };
+    persist(updated);
+  };
+
+  const handleUserNameChange = (userName: string) => {
+    if (!progress) return;
+    const updated: TProgress = { ...progress, userName };
+    persist(updated);
+  };
+
+  const handleSplashNext = () => {
+    setSplashChapter(null);
   };
 
   const handleClose = () => {
     window.location.href = '/';
   };
 
-  const renderStep = () => {
-    if (step === 1) {
-      return <Step1ButtonExperience onComplete={goToStep2} onMascot={updateMascot} />;
+  const renderChapter = () => {
+    if (!progress) return null;
+    if (splashChapter !== null) {
+      return (
+        <ChapterCompleteSplash
+          chapterNumber={splashChapter}
+          chapterTitle={CHAPTER_TITLES[splashChapter]}
+          onNext={handleSplashNext}
+        />
+      );
     }
-    if (step === 2) {
-      return <Step2ChatSimple onComplete={goToStep3} onMascot={updateMascot} />;
+    const ch = progress.currentChapter;
+    if (ch === 1) {
+      return (
+        <Chapter1Button
+          onComplete={() => handleChapterComplete(1)}
+          onMascot={updateMascot}
+        />
+      );
     }
-    if (step === 3) {
-      return <Step3ChatComplex onComplete={goToDone} onMascot={updateMascot} />;
+    if (ch === 2) {
+      return (
+        <Chapter2ChatIntro
+          onComplete={() => handleChapterComplete(2)}
+          onMascot={updateMascot}
+        />
+      );
     }
-    return <DoneScreen onRestart={restart} />;
+    if (ch === 3) {
+      return (
+        <Chapter3ChatPractice
+          onComplete={() => handleChapterComplete(3)}
+          onMascot={updateMascot}
+          initialCompletedTasks={progress.chapter3Tasks}
+          onTaskComplete={handleTaskComplete}
+        />
+      );
+    }
+    if (ch === 4) {
+      return (
+        <Chapter4ChatComplex
+          onComplete={() => handleChapterComplete(4)}
+          onMascot={updateMascot}
+        />
+      );
+    }
+    // 'done'
+    return (
+      <CompletionCertificate
+        initialUserName={progress.userName ?? ''}
+        onUserNameChange={handleUserNameChange}
+        onRestart={handleHardRestart}
+      />
+    );
   };
+
+  const showMascot = splashChapter === null && progress?.currentChapter !== 'done';
 
   return (
     <div
@@ -159,7 +262,6 @@ export default function TutorialPage() {
       aria-label="FujiTrace チュートリアル"
       className="fixed inset-0 z-50 bg-white overflow-y-auto"
     >
-      {/* Close button — fixed top-right, thumb-reachable on mobile */}
       <button
         type="button"
         onClick={handleClose}
@@ -172,31 +274,48 @@ export default function TutorialPage() {
 
       <TutorialModeBadge />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-16 space-y-10">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-16 space-y-8">
         <header className="space-y-2 text-center sm:text-left">
           <p className="text-xs font-semibold tracking-wide text-blue-700 uppercase">
-            無料チュートリアル
+            無料チュートリアル — 4 章構成
           </p>
           <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">
-            AI 事務員をタダで試す
+            AI 事務員 基礎チュートリアル
           </h1>
           <p className="text-sm text-slate-600 max-w-2xl mx-auto sm:mx-0">
-            登録不要・3 ステップで、見積書・請求書の自動作成からやや複雑な業務指示までを体験できます。
+            4 章を通して、ボタン操作・チャット・反復練習・複雑指示までを学びます。修了後は修了証 PNG を発行できます。
           </p>
         </header>
 
-        <DachshundNarrator
-          state={mascot.state}
-          message={mascot.message}
-          actionHint={mascot.hint}
-        />
+        {progress && (
+          <TutorialProgress
+            currentChapter={progress.currentChapter}
+            completedChapters={progress.completedChapters}
+          />
+        )}
 
-        {renderStep()}
+        {showMascot && (
+          <DachshundNarrator
+            state={mascot.state}
+            message={mascot.message}
+            actionHint={mascot.hint}
+          />
+        )}
+
+        {hydrated && renderChapter()}
 
         <div className="pt-8 pb-4 text-center text-xs text-slate-400">
           FujiTrace チュートリアル · スクリプト駆動
         </div>
       </div>
+
+      {showResumePrompt && progress && (
+        <ResumePrompt
+          progress={progress}
+          onResume={handleResume}
+          onRestart={handleHardRestart}
+        />
+      )}
     </div>
   );
 }
