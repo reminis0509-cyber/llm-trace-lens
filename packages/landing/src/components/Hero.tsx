@@ -49,20 +49,28 @@ export default function Hero() {
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
+            <a
+              href="/tutorial"
+              className="w-full sm:w-auto px-8 py-4 bg-accent text-white rounded-card text-base font-semibold hover:bg-accent-hover transition-colors duration-120 text-center"
+            >
+              登録不要で試す（30秒）
+            </a>
             <a
               href="#demo"
               onClick={scrollToDemo}
-              className="w-full sm:w-auto px-8 py-4 bg-accent text-white rounded-card text-base font-semibold hover:bg-accent-hover transition-colors duration-120 text-center"
+              className="w-full sm:w-auto px-6 py-4 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-base-elevated transition-colors duration-120 text-center"
             >
-              今すぐ試す（無料）
+              このページでデモを見る
             </a>
+          </div>
+          <div className="flex justify-center mb-12">
             <a
               href="/dashboard"
               onClick={trackDashboardConversion}
-              className="w-full sm:w-auto px-6 py-4 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-base-elevated transition-colors duration-120 text-center"
+              className="text-sm text-text-muted hover:text-text-primary underline underline-offset-4"
             >
-              ログインして全機能を使う
+              ログインして全機能を使う →
             </a>
           </div>
 

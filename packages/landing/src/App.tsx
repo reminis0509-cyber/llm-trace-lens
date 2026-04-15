@@ -18,6 +18,7 @@ import ToolsIndexPage from './components/ToolsIndexPage';
 import ClerkPage from './components/ClerkPage';
 import BlogPage from './components/BlogPage';
 import BlogPostPage from './components/BlogPostPage';
+import TutorialPage from './components/TutorialPage';
 import EstimateDemo from './components/EstimateDemo';
 import PiiDetection from './components/PiiDetection';
 import LiveTraceFeed from './components/LiveTraceFeed';
@@ -63,6 +64,8 @@ export default function App() {
     pageContent = <BlogPage />;
   } else if (currentPath.startsWith('/blog/')) {
     pageContent = <BlogPostPage slug={currentPath.replace('/blog/', '')} />;
+  } else if (currentPath === '/tutorial') {
+    pageContent = <TutorialPage />;
   } else {
     pageContent = (
       <>

@@ -26,6 +26,25 @@ export function registerJapaneseFonts(): void {
   fontsRegistered = true;
 }
 
+/**
+ * Node-side font registration. Used by scripts that render PDFs with
+ * @react-pdf/renderer outside a browser, where import.meta.env.BASE_URL
+ * does not point to a real HTTP asset. The absolute filesystem path
+ * of NotoSansJP-Regular.ttf must be passed in.
+ *
+ * Callers MUST invoke this before the first call to registerJapaneseFonts()
+ * (or instead of it) when running under Node. Once any registerJapaneseFonts*
+ * variant has run, subsequent calls are idempotent no-ops.
+ */
+export function registerJapaneseFontsNode(absoluteFontPath: string): void {
+  if (fontsRegistered) return;
+  Font.register({
+    family: FONT_FAMILY,
+    src: absoluteFontPath,
+  });
+  fontsRegistered = true;
+}
+
 export const sharedStyles = StyleSheet.create({
   page: {
     fontFamily: FONT_FAMILY,
