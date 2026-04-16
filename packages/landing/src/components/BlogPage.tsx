@@ -83,11 +83,11 @@ export default function BlogPage() {
                   key={i}
                   className="feature-card animate-pulse"
                 >
-                  <div className="h-4 w-16 bg-base-elevated rounded mb-4" />
-                  <div className="h-6 w-3/4 bg-base-elevated rounded mb-3" />
-                  <div className="h-4 w-full bg-base-elevated rounded mb-2" />
-                  <div className="h-4 w-2/3 bg-base-elevated rounded mb-4" />
-                  <div className="h-3 w-24 bg-base-elevated rounded" />
+                  <div className="h-4 w-16 bg-app-bg-elevated rounded mb-4" />
+                  <div className="h-6 w-3/4 bg-app-bg-elevated rounded mb-3" />
+                  <div className="h-4 w-full bg-app-bg-elevated rounded mb-2" />
+                  <div className="h-4 w-2/3 bg-app-bg-elevated rounded mb-4" />
+                  <div className="h-3 w-24 bg-app-bg-elevated rounded" />
                 </div>
               ))}
             </div>

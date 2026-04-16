@@ -241,7 +241,7 @@ export default function PricingSimulator() {
                   value={formatNumber(traces)}
                   onChange={(e) => handleTraceInput(e.target.value)}
                   aria-label="月間トレース数を入力"
-                  className="w-32 text-right text-sm font-mono tabular-nums text-text-primary bg-base-elevated border border-border rounded px-2 py-1 outline-none focus:border-accent"
+                  className="w-32 text-right text-sm font-mono tabular-nums text-text-primary bg-app-bg-elevated border border-border rounded px-2 py-1 outline-none focus:border-accent"
                 />
               </div>
               <input
@@ -279,7 +279,7 @@ export default function PricingSimulator() {
                   value={formatNumber(evals)}
                   onChange={(e) => handleEvalInput(e.target.value)}
                   aria-label="月間評価数を入力"
-                  className="w-32 text-right text-sm font-mono tabular-nums text-text-primary bg-base-elevated border border-border rounded px-2 py-1 outline-none focus:border-accent"
+                  className="w-32 text-right text-sm font-mono tabular-nums text-text-primary bg-app-bg-elevated border border-border rounded px-2 py-1 outline-none focus:border-accent"
                 />
               </div>
               <input

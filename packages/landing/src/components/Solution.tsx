@@ -42,7 +42,7 @@ export default function Solution() {
         {/* Solution steps */}
         <div className="grid lg:grid-cols-3 gap-4 mb-16">
           {solutions.map((solution, index) => (
-            <div key={index} className="surface-card p-6 hover:bg-base-elevated transition-colors duration-120">
+            <div key={index} className="surface-card p-6 hover:bg-app-bg-elevated transition-colors duration-120">
               <div className="w-10 h-10 rounded-card bg-accent-dim text-accent flex items-center justify-center font-mono text-sm mb-4">
                 {solution.step}
               </div>
@@ -68,7 +68,7 @@ export default function Solution() {
               <div className="w-6 h-6 rounded bg-accent-dim text-accent flex items-center justify-center text-xs font-mono flex-shrink-0 mt-0.5">
                 T
               </div>
-              <div className="flex-1 p-3 rounded-card bg-base-elevated border-l-2 border-l-border">
+              <div className="flex-1 p-3 rounded-card bg-app-bg-elevated border-l-2 border-l-border">
                 <div className="text-xs text-text-muted mb-1 label-spacing uppercase">思考</div>
                 <p className="text-sm text-text-secondary">"最新のAIニュースを検索する必要がある"</p>
               </div>
@@ -79,7 +79,7 @@ export default function Solution() {
               <div className="w-6 h-6 rounded bg-accent-dim text-accent flex items-center justify-center text-xs font-mono flex-shrink-0 mt-0.5">
                 A
               </div>
-              <div className="flex-1 p-3 rounded-card bg-base-elevated border-l-2 border-l-border">
+              <div className="flex-1 p-3 rounded-card bg-app-bg-elevated border-l-2 border-l-border">
                 <div className="text-xs text-text-muted mb-1 label-spacing uppercase">行動</div>
                 <p className="text-sm text-text-secondary font-mono">
                   web_search({"{"}"query": "latest AI news 2024"{"}"})
@@ -93,7 +93,7 @@ export default function Solution() {
               <div className="w-6 h-6 rounded bg-accent-dim text-accent flex items-center justify-center text-xs font-mono flex-shrink-0 mt-0.5">
                 O
               </div>
-              <div className="flex-1 p-3 rounded-card bg-base-elevated border-l-2 border-l-border">
+              <div className="flex-1 p-3 rounded-card bg-app-bg-elevated border-l-2 border-l-border">
                 <div className="text-xs text-text-muted mb-1 label-spacing uppercase">観察結果</div>
                 <p className="text-sm text-text-secondary">"5件の関連記事を発見。トップ記事: GPT-5の噂..."</p>
               </div>

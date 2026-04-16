@@ -9,7 +9,10 @@ export default {
       },
       colors: {
         // ベース：ライトテーマ（日本BtoB SaaS標準）
-        base: {
+        // NOTE: "base" as a color name is SAFE — it generates bg-base, text-base-surface etc.
+        // "text-base" collision is handled by Tailwind: font-size utility wins over color utility
+        // when both exist. But to be extra safe we avoid DEFAULT so "text-base" stays font-size only.
+        'app-bg': {
           DEFAULT: '#ffffff',
           surface: '#f8fafc',
           elevated: '#f1f5f9',

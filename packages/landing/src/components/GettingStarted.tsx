@@ -16,7 +16,7 @@ interface StepData {
 
 function ApiKeyBlock() {
   return (
-    <pre className="bg-base-surface border border-border rounded-card p-4 text-sm font-mono overflow-x-auto">
+    <pre className="bg-app-bg-surface border border-border rounded-card p-4 text-sm font-mono overflow-x-auto">
       <code>
         <span className="text-text-muted">FUJITRACE_API_KEY</span>
         <span className="text-text-secondary">=</span>
@@ -61,7 +61,7 @@ function CloudCodeBlock() {
       <div
         id={`panel-${provider}`}
         role="tabpanel"
-        className="bg-base-surface border border-border rounded-card p-4 text-sm font-mono overflow-x-auto"
+        className="bg-app-bg-surface border border-border rounded-card p-4 text-sm font-mono overflow-x-auto"
       >
         {provider === 'openai' && <OpenAICode />}
         {provider === 'anthropic' && <AnthropicCode />}
@@ -224,7 +224,7 @@ function StatusBadges() {
 
 function DockerCloneBlock() {
   return (
-    <pre className="bg-base-surface border border-border rounded-card p-4 text-sm font-mono overflow-x-auto">
+    <pre className="bg-app-bg-surface border border-border rounded-card p-4 text-sm font-mono overflow-x-auto">
       <code className="text-text-secondary">
         <span className="text-accent">git clone</span>{' '}
         https://github.com/reminis0509-cyber/llm-trace-lens.git{'\n'}
@@ -237,7 +237,7 @@ function DockerCloneBlock() {
 
 function DockerEnvBlock() {
   return (
-    <pre className="bg-base-surface border border-border rounded-card p-4 text-sm font-mono overflow-x-auto">
+    <pre className="bg-app-bg-surface border border-border rounded-card p-4 text-sm font-mono overflow-x-auto">
       <code className="text-text-secondary">
         <span className="text-accent">cp</span>{' '}
         .env.example .env{'\n'}
@@ -255,7 +255,7 @@ function DockerEnvBlock() {
 
 function DockerUpBlock() {
   return (
-    <pre className="bg-base-surface border border-border rounded-card p-4 text-sm font-mono overflow-x-auto">
+    <pre className="bg-app-bg-surface border border-border rounded-card p-4 text-sm font-mono overflow-x-auto">
       <code className="text-text-secondary">
         <span className="text-accent">docker compose up -d</span>{'\n'}
         {'\n'}

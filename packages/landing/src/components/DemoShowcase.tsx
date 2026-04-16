@@ -41,7 +41,7 @@ const statsItems: StatItem[] = [
 
 function BadgePill({ label }: FeatureBadge) {
   return (
-    <span className="inline-block px-2.5 py-1 text-xs text-text-secondary bg-base-elevated border border-border rounded-full">
+    <span className="inline-block px-2.5 py-1 text-xs text-text-secondary bg-app-bg-elevated border border-border rounded-full">
       {label}
     </span>
   );
@@ -50,7 +50,7 @@ function BadgePill({ label }: FeatureBadge) {
 function ConfidenceBar({ value }: { value: number }) {
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 bg-base-elevated rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-app-bg-elevated rounded-full overflow-hidden">
         <div
           className="h-full bg-status-pass rounded-full"
           style={{ width: `${value}%` }}
@@ -64,7 +64,7 @@ function ConfidenceBar({ value }: { value: number }) {
 /* ──────────────────── Mockup: Trace List ──────────────────── */
 function TraceListMockup() {
   return (
-    <div className="bg-base-surface border border-border rounded-card overflow-hidden" role="img" aria-label="トレース一覧のダッシュボード画面">
+    <div className="bg-app-bg-surface border border-border rounded-card overflow-hidden" role="img" aria-label="トレース一覧のダッシュボード画面">
       {/* Header tabs */}
       <div className="px-4 py-3 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div className="flex gap-1">
@@ -118,7 +118,7 @@ function TraceListMockup() {
 /* ──────────────────── Mockup: Trace Detail ──────────────────── */
 function TraceDetailMockup() {
   return (
-    <div className="bg-base-surface border border-border rounded-card overflow-hidden" role="img" aria-label="トレース詳細のダッシュボード画面">
+    <div className="bg-app-bg-surface border border-border rounded-card overflow-hidden" role="img" aria-label="トレース詳細のダッシュボード画面">
       {/* Header */}
       <div className="px-4 py-3 border-b border-border flex items-center justify-between">
         <span className="text-sm font-medium text-text-primary">トレース詳細</span>
@@ -159,7 +159,7 @@ function TraceDetailMockup() {
             { label: 'レイテンシ', value: '1968ms' },
             { label: 'トークン', value: '162' },
           ].map((meta) => (
-            <div key={meta.label} className="p-2 rounded-card bg-base-elevated">
+            <div key={meta.label} className="p-2 rounded-card bg-app-bg-elevated">
               <p className="text-[10px] text-text-muted mb-0.5">{meta.label}</p>
               <p className="text-xs font-mono text-text-primary">{meta.value}</p>
             </div>
@@ -173,7 +173,7 @@ function TraceDetailMockup() {
 /* ──────────────────── Mockup: Stats Dashboard ──────────────────── */
 function StatsDashboardMockup() {
   return (
-    <div className="bg-base-surface border border-border rounded-card overflow-hidden" role="img" aria-label="統計ダッシュボードの画面">
+    <div className="bg-app-bg-surface border border-border rounded-card overflow-hidden" role="img" aria-label="統計ダッシュボードの画面">
       {/* Header */}
       <div className="px-4 py-3 border-b border-border">
         <span className="text-sm font-medium text-text-primary">統計概要</span>
@@ -183,7 +183,7 @@ function StatsDashboardMockup() {
         {/* 4-stat grid */}
         <div className="grid grid-cols-2 gap-3">
           {statsItems.map((stat) => (
-            <div key={stat.label} className="p-3 rounded-card bg-base-elevated border border-border-subtle">
+            <div key={stat.label} className="p-3 rounded-card bg-app-bg-elevated border border-border-subtle">
               <p className="text-[10px] text-text-muted mb-1">{stat.label}</p>
               <p className="text-lg font-mono tabular-nums text-text-primary">
                 {stat.value}
@@ -207,7 +207,7 @@ function StatsDashboardMockup() {
         </div>
 
         {/* Provider stats */}
-        <div className="rounded-card bg-base-elevated border border-border-subtle overflow-hidden">
+        <div className="rounded-card bg-app-bg-elevated border border-border-subtle overflow-hidden">
           <div className="px-3 py-2 border-b border-border-subtle">
             <p className="text-[10px] text-text-muted label-spacing uppercase">プロバイダー別</p>
           </div>

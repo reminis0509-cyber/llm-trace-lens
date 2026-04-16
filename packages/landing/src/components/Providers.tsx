@@ -48,9 +48,9 @@ export default function Providers() {
           {providers.map((provider, index) => (
             <div
               key={index}
-              className="surface-card p-6 hover:bg-base-elevated transition-colors duration-120"
+              className="surface-card p-6 hover:bg-app-bg-elevated transition-colors duration-120"
             >
-              <div className="w-12 h-12 rounded-card bg-base-elevated flex items-center justify-center mb-4 text-text-muted">
+              <div className="w-12 h-12 rounded-card bg-app-bg-elevated flex items-center justify-center mb-4 text-text-muted">
                 {provider.logo}
               </div>
               <h3 className="text-sm font-medium text-text-primary mb-3">{provider.name}</h3>
@@ -58,7 +58,7 @@ export default function Providers() {
                 {provider.models.map((model, i) => (
                   <span
                     key={i}
-                    className="px-2 py-0.5 bg-base-elevated text-text-muted text-xs rounded border border-border-subtle"
+                    className="px-2 py-0.5 bg-app-bg-elevated text-text-muted text-xs rounded border border-border-subtle"
                   >
                     {model}
                   </span>

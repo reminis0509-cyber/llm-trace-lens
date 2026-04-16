@@ -53,7 +53,7 @@ export default function CompanyPage() {
           <table className="w-full">
             <tbody className="divide-y divide-border">
               <tr>
-                <th className="px-4 sm:px-6 py-4 text-sm text-text-muted font-medium text-left whitespace-nowrap w-1/4 sm:w-1/5 align-top bg-base-elevated/50">
+                <th className="px-4 sm:px-6 py-4 text-sm text-text-muted font-medium text-left whitespace-nowrap w-1/4 sm:w-1/5 align-top bg-app-bg-elevated/50">
                   会社名
                 </th>
                 <td className="px-4 sm:px-6 py-4 text-sm text-text-primary">
@@ -61,7 +61,7 @@ export default function CompanyPage() {
                 </td>
               </tr>
               <tr>
-                <th className="px-4 sm:px-6 py-4 text-sm text-text-muted font-medium text-left whitespace-nowrap w-1/4 sm:w-1/5 align-top bg-base-elevated/50">
+                <th className="px-4 sm:px-6 py-4 text-sm text-text-muted font-medium text-left whitespace-nowrap w-1/4 sm:w-1/5 align-top bg-app-bg-elevated/50">
                   所在地
                 </th>
                 <td className="px-4 sm:px-6 py-4 text-sm text-text-primary">
@@ -70,7 +70,7 @@ export default function CompanyPage() {
                 </td>
               </tr>
               <tr>
-                <th className="px-4 sm:px-6 py-4 text-sm text-text-muted font-medium text-left whitespace-nowrap w-1/4 sm:w-1/5 align-top bg-base-elevated/50">
+                <th className="px-4 sm:px-6 py-4 text-sm text-text-muted font-medium text-left whitespace-nowrap w-1/4 sm:w-1/5 align-top bg-app-bg-elevated/50">
                   代表社員
                 </th>
                 <td className="px-4 sm:px-6 py-4 text-sm text-text-primary">
@@ -78,7 +78,7 @@ export default function CompanyPage() {
                 </td>
               </tr>
               <tr>
-                <th className="px-4 sm:px-6 py-4 text-sm text-text-muted font-medium text-left whitespace-nowrap w-1/4 sm:w-1/5 align-top bg-base-elevated/50">
+                <th className="px-4 sm:px-6 py-4 text-sm text-text-muted font-medium text-left whitespace-nowrap w-1/4 sm:w-1/5 align-top bg-app-bg-elevated/50">
                   事業内容
                 </th>
                 <td className="px-4 sm:px-6 py-4 text-sm text-text-primary">
@@ -86,7 +86,7 @@ export default function CompanyPage() {
                 </td>
               </tr>
               <tr>
-                <th className="px-4 sm:px-6 py-4 text-sm text-text-muted font-medium text-left whitespace-nowrap w-1/4 sm:w-1/5 align-top bg-base-elevated/50">
+                <th className="px-4 sm:px-6 py-4 text-sm text-text-muted font-medium text-left whitespace-nowrap w-1/4 sm:w-1/5 align-top bg-app-bg-elevated/50">
                   お問い合わせ
                 </th>
                 <td className="px-4 sm:px-6 py-4 text-sm text-text-primary">

@@ -50,7 +50,7 @@ export default function DemoVideo() {
 
         {/* Video area */}
         <div className="max-w-3xl mx-auto mb-12">
-          <div className="relative w-full overflow-hidden rounded-card border border-border bg-base-elevated"
+          <div className="relative w-full overflow-hidden rounded-card border border-border bg-app-bg-elevated"
                style={{ aspectRatio: '16 / 9' }}>
             {DEMO_VIDEO_URL ? (
               <>

@@ -171,7 +171,7 @@ export default function Header() {
                           key={tool.href}
                           href={tool.href}
                           role="menuitem"
-                          className="block px-4 py-2.5 hover:bg-base-elevated transition-colors duration-120"
+                          className="block px-4 py-2.5 hover:bg-app-bg-elevated transition-colors duration-120"
                           onClick={() => setIsAiMenuOpen(false)}
                         >
                           <div className="flex items-center gap-2">
@@ -212,7 +212,7 @@ export default function Header() {
             <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
               <a
                 href="/dashboard"
-                className="px-4 py-2 border border-border text-text-secondary rounded-card text-sm font-medium hover:text-text-primary hover:bg-base-elevated transition-colors duration-120"
+                className="px-4 py-2 border border-border text-text-secondary rounded-card text-sm font-medium hover:text-text-primary hover:bg-app-bg-elevated transition-colors duration-120"
               >
                 ログイン
               </a>
@@ -226,7 +226,7 @@ export default function Header() {
 
             {/* Mobile menu button */}
             <button
-              className="lg:hidden p-2 text-text-secondary hover:text-text-primary hover:bg-base-elevated rounded-card transition-colors duration-120"
+              className="lg:hidden p-2 text-text-secondary hover:text-text-primary hover:bg-app-bg-elevated rounded-card transition-colors duration-120"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               aria-label={isMenuOpen ? 'メニューを閉じる' : 'メニューを開く'}
               aria-expanded={isMenuOpen}
@@ -253,7 +253,7 @@ export default function Header() {
               <a
                 key={item.label}
                 href={item.href}
-                className="px-3 py-3 text-base text-text-secondary hover:text-text-primary hover:bg-base-elevated rounded-card transition-colors duration-120"
+                className="px-3 py-3 text-base text-text-secondary hover:text-text-primary hover:bg-app-bg-elevated rounded-card transition-colors duration-120"
                 onClick={() => setIsMenuOpen(false)}
               >
                 {item.label}
@@ -274,7 +274,7 @@ export default function Header() {
                   <a
                     key={tool.href}
                     href={tool.href}
-                    className="block px-3 py-3 hover:bg-base-elevated rounded-card transition-colors duration-120"
+                    className="block px-3 py-3 hover:bg-app-bg-elevated rounded-card transition-colors duration-120"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     <div className="flex items-center gap-2">
@@ -296,7 +296,7 @@ export default function Header() {
                 <a
                   key={item.label}
                   href={item.href}
-                  className="block px-3 py-3 text-base text-text-secondary hover:text-text-primary hover:bg-base-elevated rounded-card transition-colors duration-120"
+                  className="block px-3 py-3 text-base text-text-secondary hover:text-text-primary hover:bg-app-bg-elevated rounded-card transition-colors duration-120"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {item.label}
@@ -304,7 +304,7 @@ export default function Header() {
               ))}
               <a
                 href="/blog"
-                className="block px-3 py-3 text-base text-text-secondary hover:text-text-primary hover:bg-base-elevated rounded-card transition-colors duration-120"
+                className="block px-3 py-3 text-base text-text-secondary hover:text-text-primary hover:bg-app-bg-elevated rounded-card transition-colors duration-120"
                 onClick={() => setIsMenuOpen(false)}
               >
                 フジトレニュース
@@ -314,7 +314,7 @@ export default function Header() {
             <div className="mt-4 pt-4 border-t border-border flex flex-col gap-3">
               <a
                 href="/dashboard"
-                className="px-4 py-3 border border-border text-text-secondary rounded-card text-sm font-medium text-center hover:text-text-primary hover:bg-base-elevated transition-colors duration-120"
+                className="px-4 py-3 border border-border text-text-secondary rounded-card text-sm font-medium text-center hover:text-text-primary hover:bg-app-bg-elevated transition-colors duration-120"
                 onClick={() => setIsMenuOpen(false)}
               >
                 ログイン

@@ -286,16 +286,16 @@ export default function SalesPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="px-4 sm:px-6 py-3 text-xs text-text-muted font-medium text-left uppercase label-spacing bg-base-elevated/50">
+                    <th className="px-4 sm:px-6 py-3 text-xs text-text-muted font-medium text-left uppercase label-spacing bg-app-bg-elevated/50">
                       プラン
                     </th>
-                    <th className="px-4 sm:px-6 py-3 text-xs text-text-muted font-medium text-left uppercase label-spacing bg-base-elevated/50">
+                    <th className="px-4 sm:px-6 py-3 text-xs text-text-muted font-medium text-left uppercase label-spacing bg-app-bg-elevated/50">
                       月額
                     </th>
-                    <th className="px-4 sm:px-6 py-3 text-xs text-text-muted font-medium text-left uppercase label-spacing bg-base-elevated/50">
+                    <th className="px-4 sm:px-6 py-3 text-xs text-text-muted font-medium text-left uppercase label-spacing bg-app-bg-elevated/50">
                       トレース
                     </th>
-                    <th className="px-4 sm:px-6 py-3 text-xs text-text-muted font-medium text-left uppercase label-spacing bg-base-elevated/50">
+                    <th className="px-4 sm:px-6 py-3 text-xs text-text-muted font-medium text-left uppercase label-spacing bg-app-bg-elevated/50">
                       主な機能
                     </th>
                   </tr>
@@ -339,7 +339,7 @@ export default function SalesPage() {
             {partnershipSteps.map((item) => (
               <div key={item.step} className="feature-card">
                 <div className="flex items-start gap-4">
-                  <span className="inline-flex items-center justify-center w-7 h-7 rounded bg-base-elevated text-xs font-medium text-text-primary shrink-0">
+                  <span className="inline-flex items-center justify-center w-7 h-7 rounded bg-app-bg-elevated text-xs font-medium text-text-primary shrink-0">
                     {item.step}
                   </span>
                   <div>

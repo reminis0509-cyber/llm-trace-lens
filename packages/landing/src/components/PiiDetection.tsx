@@ -129,7 +129,7 @@ export default function PiiDetection() {
             {piiPatterns.map((pattern) => (
               <div
                 key={pattern.name}
-                className="flex items-center justify-between gap-3 bg-base-surface border border-border rounded-card px-4 py-3 hover:bg-base-elevated transition-colors duration-120"
+                className="flex items-center justify-between gap-3 bg-app-bg-surface border border-border rounded-card px-4 py-3 hover:bg-app-bg-elevated transition-colors duration-120"
               >
                 <span className="text-sm text-text-primary">{pattern.name}</span>
                 <span className="text-xs text-text-muted font-mono flex-shrink-0">{pattern.example}</span>

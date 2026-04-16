@@ -244,7 +244,7 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon }: StatCardProps) {
   return (
-    <div className="flex items-center gap-2.5 bg-base-surface border border-border rounded px-3 py-2.5 min-w-0">
+    <div className="flex items-center gap-2.5 bg-app-bg-surface border border-border rounded px-3 py-2.5 min-w-0">
       <span className="text-status-pass shrink-0" aria-hidden="true">
         {icon}
       </span>
@@ -307,7 +307,7 @@ function TraceRow({ trace, index }: TraceRowProps) {
 
   return (
     <div
-      className="border rounded bg-base-surface overflow-hidden"
+      className="border rounded bg-app-bg-surface overflow-hidden"
       style={{
         borderColor: '#e2e8f0',
         borderLeftWidth: '3px',
@@ -414,7 +414,7 @@ function DashboardPanel({ steps, isRunning }: DashboardPanelProps) {
   return (
     <div className="bg-white border border-border rounded-lg overflow-hidden">
       {/* Dashboard header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-base-surface">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-app-bg-surface">
         <div className="flex items-center gap-2.5">
           <span className="text-sm font-semibold text-text-primary tracking-tight">
             FujiTrace
@@ -511,7 +511,7 @@ function ReportPanel({ report, isRunning, isExpanded, onToggle }: ReportPanelPro
       {/* Report header */}
       <button
         onClick={onToggle}
-        className="flex items-center justify-between w-full px-4 py-3 border-b border-border bg-base-surface cursor-pointer text-left"
+        className="flex items-center justify-between w-full px-4 py-3 border-b border-border bg-app-bg-surface cursor-pointer text-left"
         aria-expanded={isExpanded}
         aria-controls="report-content"
       >

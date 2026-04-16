@@ -45,7 +45,7 @@ export default function CTA() {
             </a>
             <a
               href="mailto:contact@fujitrace.com"
-              className="w-full sm:w-auto px-6 py-4 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-base-elevated transition-colors duration-120 text-center"
+              className="w-full sm:w-auto px-6 py-4 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-app-bg-elevated transition-colors duration-120 text-center"
             >
               導入のご相談
             </a>

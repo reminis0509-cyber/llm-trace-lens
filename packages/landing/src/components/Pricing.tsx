@@ -211,7 +211,7 @@ export default function Pricing() {
                 className={`block w-full py-2.5 px-4 rounded-card text-sm font-medium text-center transition-colors duration-120 ${
                   plan.highlighted
                     ? 'bg-accent text-white hover:bg-accent/90'
-                    : 'bg-base-elevated text-text-secondary border border-border hover:text-text-primary'
+                    : 'bg-app-bg-elevated text-text-secondary border border-border hover:text-text-primary'
                 }`}
               >
                 {plan.cta}
@@ -269,7 +269,7 @@ export default function Pricing() {
                   </li>
                 ))}
               </ul>
-              <a href="#contact" className="block w-full py-2.5 px-4 rounded-card text-sm font-medium text-center bg-base-elevated text-text-secondary border border-border hover:text-text-primary transition-colors duration-120">
+              <a href="#contact" className="block w-full py-2.5 px-4 rounded-card text-sm font-medium text-center bg-app-bg-elevated text-text-secondary border border-border hover:text-text-primary transition-colors duration-120">
                 お問い合わせ
               </a>
             </div>
@@ -294,7 +294,7 @@ export default function Pricing() {
                   </li>
                 ))}
               </ul>
-              <a href="#contact" className="block w-full py-2.5 px-4 rounded-card text-sm font-medium text-center bg-base-elevated text-text-secondary border border-border hover:text-text-primary transition-colors duration-120">
+              <a href="#contact" className="block w-full py-2.5 px-4 rounded-card text-sm font-medium text-center bg-app-bg-elevated text-text-secondary border border-border hover:text-text-primary transition-colors duration-120">
                 お問い合わせ
               </a>
             </div>

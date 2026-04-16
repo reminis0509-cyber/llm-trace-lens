@@ -59,7 +59,7 @@ export default function Features() {
           {features.map((feature, index) => (
             <div
               key={index}
-              className="feature-card hover:border-accent/50 hover:bg-base-elevated transition-colors duration-120"
+              className="feature-card hover:border-accent/50 hover:bg-app-bg-elevated transition-colors duration-120"
             >
               <h3 className="text-sm font-medium text-text-primary mb-2">{feature.title}</h3>
               <p className="text-sm text-text-secondary">{feature.description}</p>

@@ -27,12 +27,12 @@ body {
 @layer components {
   /* Surface card - シンプルな平坦なカード */
   .surface-card {
-    @apply bg-base-surface border border-border rounded-card;
+    @apply bg-app-bg-surface border border-border rounded-card;
   }
 
   /* Terminal block */
   .terminal-block {
-    @apply bg-base-elevated border border-border rounded-card font-mono text-sm;
+    @apply bg-app-bg-elevated border border-border rounded-card font-mono text-sm;
   }
 
   /* Section container */

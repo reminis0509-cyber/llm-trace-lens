@@ -304,7 +304,7 @@ export default function ForEngineersPage() {
               </a>
               <a
                 href="/"
-                className="w-full sm:w-auto px-6 py-4 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-base-elevated transition-colors duration-120 text-center"
+                className="w-full sm:w-auto px-6 py-4 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-app-bg-elevated transition-colors duration-120 text-center"
               >
                 経営者向けページへ
               </a>
@@ -352,7 +352,7 @@ export default function ForEngineersPage() {
             <div
               id={`code-panel-${provider}`}
               role="tabpanel"
-              className="bg-base-surface border border-border rounded-card p-4 text-sm font-mono overflow-x-auto"
+              className="bg-app-bg-surface border border-border rounded-card p-4 text-sm font-mono overflow-x-auto"
             >
               {provider === 'openai' && <OpenAIBeforeAfter />}
               {provider === 'anthropic' && <AnthropicBeforeAfter />}
@@ -525,7 +525,7 @@ export default function ForEngineersPage() {
               {piiPatterns.map((pattern) => (
                 <div
                   key={pattern.name}
-                  className="flex items-center justify-between gap-3 bg-base-surface border border-border rounded-card px-4 py-3 hover:bg-base-elevated transition-colors duration-120"
+                  className="flex items-center justify-between gap-3 bg-app-bg-surface border border-border rounded-card px-4 py-3 hover:bg-app-bg-elevated transition-colors duration-120"
                 >
                   <span className="text-sm text-text-primary">{pattern.name}</span>
                   <span className="text-xs text-text-muted font-mono flex-shrink-0">{pattern.example}</span>
@@ -602,7 +602,7 @@ export default function ForEngineersPage() {
             {techFeatures.map((feature, index) => (
               <div
                 key={index}
-                className="feature-card hover:bg-base-elevated transition-colors duration-120"
+                className="feature-card hover:bg-app-bg-elevated transition-colors duration-120"
               >
                 <h3 className="text-sm font-medium text-text-primary mb-2">{feature.title}</h3>
                 <p className="text-sm text-text-secondary">{feature.description}</p>
@@ -635,7 +635,7 @@ export default function ForEngineersPage() {
             {evaluationAxes.map((axis) => (
               <div
                 key={axis.label}
-                className="feature-card hover:bg-base-elevated transition-colors duration-120"
+                className="feature-card hover:bg-app-bg-elevated transition-colors duration-120"
               >
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-8 h-8 rounded-card bg-accent-dim text-accent flex items-center justify-center font-mono text-xs flex-shrink-0">
@@ -718,7 +718,7 @@ export default function ForEngineersPage() {
               </a>
               <a
                 href="mailto:contact@fujitrace.com"
-                className="w-full sm:w-auto px-6 py-4 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-base-elevated transition-colors duration-120 text-center"
+                className="w-full sm:w-auto px-6 py-4 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-app-bg-elevated transition-colors duration-120 text-center"
               >
                 技術的なご質問
               </a>

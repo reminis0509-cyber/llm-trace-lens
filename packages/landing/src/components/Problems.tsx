@@ -43,7 +43,7 @@ export default function Problems() {
           {problems.map((problem, index) => (
             <div
               key={index}
-              className="feature-card hover:bg-base-elevated transition-colors duration-120"
+              className="feature-card hover:bg-app-bg-elevated transition-colors duration-120"
             >
               <h3 className="text-lg font-medium text-text-primary mb-2">{problem.title}</h3>
               <p className="text-sm text-text-secondary">{problem.description}</p>

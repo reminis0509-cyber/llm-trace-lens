@@ -68,7 +68,7 @@ export default function EvaluationStandards() {
           {evaluationAxes.map((axis) => (
             <div
               key={axis.label}
-              className="feature-card hover:bg-base-elevated transition-colors duration-120"
+              className="feature-card hover:bg-app-bg-elevated transition-colors duration-120"
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 rounded-card bg-accent-dim text-accent flex items-center justify-center font-mono text-xs flex-shrink-0">
