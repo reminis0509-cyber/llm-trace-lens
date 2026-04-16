@@ -520,11 +520,15 @@ export default async function chatV2Route(fastify: FastifyInstance): Promise<voi
         { role: 'system', content: systemPrompt },
       ];
 
-      // Add conversation history (skip system messages)
+      // Add conversation history (only user and assistant text messages)
       for (const msg of conversation.messages) {
-        if (msg.role !== 'system' && msg.content !== null) {
+        if (
+          (msg.role === 'user' || msg.role === 'assistant') &&
+          typeof msg.content === 'string' &&
+          msg.content.length > 0
+        ) {
           llmMessages.push({
-            role: msg.role as 'user' | 'assistant',
+            role: msg.role,
             content: msg.content,
           });
         }
@@ -775,17 +779,24 @@ export default async function chatV2Route(fastify: FastifyInstance): Promise<voi
       // ── Save conversation ───────────────────────────────────────────────
       conversation.messages.push({ role: 'assistant', content: finalContent });
 
+      // Strip tool/tool_calls messages — only keep user/assistant text for history
+      const cleanMessages = conversation.messages.filter(
+        (m) =>
+          (m.role === 'user' || m.role === 'assistant') &&
+          typeof m.content === 'string' &&
+          m.content.length > 0,
+      );
+
       // Prune history
-      if (conversation.messages.length > MAX_CONVERSATION_MESSAGES) {
-        conversation.messages = conversation.messages.slice(
-          conversation.messages.length - MAX_CONVERSATION_MESSAGES,
-        );
-      }
+      const prunedMessages =
+        cleanMessages.length > MAX_CONVERSATION_MESSAGES
+          ? cleanMessages.slice(cleanMessages.length - MAX_CONVERSATION_MESSAGES)
+          : cleanMessages;
 
       await saveConversation(
         conversation.id,
         workspaceId,
-        conversation.messages,
+        prunedMessages,
         conversation.isNew,
       );
 
