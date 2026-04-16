@@ -181,8 +181,12 @@ export default function Chapter1Button({ onComplete, onMascot }: Chapter1ButtonP
         </div>
       )}
 
-      {phase === 'working' && (
-        <TutorialStepProgress steps={STEPS} onComplete={handleStepsComplete} />
+      {(phase === 'working' || phase === 'done') && (
+        <TutorialStepProgress
+          steps={STEPS}
+          onComplete={handleStepsComplete}
+          completed={phase === 'done'}
+        />
       )}
 
       {phase === 'done' && (

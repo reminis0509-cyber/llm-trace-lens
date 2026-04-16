@@ -10,6 +10,8 @@ export interface TutorialStep {
 interface TutorialStepProgressProps {
   steps: TutorialStep[];
   onComplete: () => void;
+  /** When true, all steps render as completed immediately (no animation). */
+  completed?: boolean;
 }
 
 /* ─── Icons ───────────────────────────────────────────────────────── */
@@ -102,14 +104,14 @@ function useElapsedSeconds(active: boolean): number {
  * Mimics the SkeletonTrace design from the dashboard:
  * completed = green check, in-progress = spinner + elapsed, pending = grey dot.
  */
-export default function TutorialStepProgress({ steps, onComplete }: TutorialStepProgressProps) {
-  const [completedCount, setCompletedCount] = useState(0);
-  const firedComplete = useRef(false);
-  const isRunning = completedCount < steps.length;
+export default function TutorialStepProgress({ steps, onComplete, completed = false }: TutorialStepProgressProps) {
+  const [completedCount, setCompletedCount] = useState(completed ? steps.length : 0);
+  const firedComplete = useRef(completed);
+  const isRunning = !completed && completedCount < steps.length;
   const elapsed = useElapsedSeconds(isRunning);
 
   useEffect(() => {
-    if (steps.length === 0) return;
+    if (steps.length === 0 || completed) return;
 
     let cancelled = false;
     const timers: ReturnType<typeof setTimeout>[] = [];

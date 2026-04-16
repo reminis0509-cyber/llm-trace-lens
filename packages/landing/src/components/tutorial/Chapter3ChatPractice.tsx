@@ -26,10 +26,14 @@ const TASK_KIND: DocumentKind = 'purchase-order';
 const SUGGESTIONS = ['発注書作って', '発注書出して', 'サーバー機材の発注書'];
 const PLACEHOLDER = '例: 発注書作って';
 
-const GENERATE_STEPS: TutorialStep[] = [
-  { label: '指示を解析中...', duration: 400 },
-  { label: '書類を生成中...', duration: 600 },
-];
+function makeSteps(): TutorialStep[] {
+  const label = documentLabel(TASK_KIND);
+  return [
+    { label: '入力を解析中...', duration: 400 },
+    { label: `${label}を生成中...`, duration: 600 },
+    { label: '出力を検証中...', duration: 500 },
+  ];
+}
 
 type Phase = 'chat' | 'generating' | 'done';
 
@@ -42,6 +46,7 @@ export default function Chapter3ChatPractice({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [phase, setPhase] = useState<Phase>('chat');
+  const [matched, setMatched] = useState(false);
   const idCounter = useRef(0);
   const announcedRef = useRef(false);
 
@@ -72,17 +77,8 @@ export default function Chapter3ChatPractice({
     window.setTimeout(() => {
       const match = matchIntentForKind(text, TASK_KIND);
       if (match) {
-        const label = documentLabel(TASK_KIND);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: nextId(),
-            role: 'assistant',
-            content: `${label}のサンプルを用意したよ。下のプレビューを確認してね。`,
-            footnote: TUTORIAL_FOOTNOTE,
-          },
-        ]);
         playStepSound();
+        setMatched(true);
         setPhase('generating');
         onMascot('talk', '書類を作っているよ。\nちょっと待ってね。');
         onTaskComplete?.(TASK_ID);
@@ -110,6 +106,9 @@ export default function Chapter3ChatPractice({
 
   if (alreadyDone) return null;
 
+  const showTrace = phase === 'generating' || phase === 'done';
+  const label = documentLabel(TASK_KIND);
+
   return (
     <section aria-labelledby="ch3-title" className="space-y-6">
       <header>
@@ -131,8 +130,29 @@ export default function Chapter3ChatPractice({
         disabled={phase !== 'chat'}
       />
 
-      {phase === 'generating' && (
-        <TutorialStepProgress steps={GENERATE_STEPS} onComplete={handleStepsComplete} />
+      {showTrace && matched && (
+        <div className="flex gap-2">
+          <img
+            src="/tutorial/dachshund-idle.gif"
+            alt="AI事務員"
+            className="w-6 h-6 rounded-full flex-shrink-0 mt-1"
+          />
+          <div className="flex-1 space-y-3">
+            <TutorialStepProgress
+              steps={makeSteps()}
+              onComplete={handleStepsComplete}
+              completed={phase === 'done'}
+            />
+            {phase === 'done' && (
+              <div className="rounded-2xl rounded-bl-md bg-slate-100 text-slate-800 px-4 py-2.5">
+                <p className="text-sm leading-relaxed">
+                  {label}のサンプルを用意したよ。下のプレビューを確認してね。
+                </p>
+                <p className="mt-1.5 text-xs text-slate-400">{TUTORIAL_FOOTNOTE}</p>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {phase === 'done' && (
@@ -140,7 +160,7 @@ export default function Chapter3ChatPractice({
           <PdfPreview
             src={PDF_PATHS[TASK_KIND]}
             filename={documentFilename(TASK_KIND)}
-            title={`${documentLabel(TASK_KIND)}（サンプル）`}
+            title={`${label}（サンプル）`}
             summary={PDF_SUMMARIES[TASK_KIND]}
           />
           <div className="flex justify-end">

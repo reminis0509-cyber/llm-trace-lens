@@ -22,12 +22,16 @@ interface Chapter2ChatIntroProps {
 
 const SUGGESTIONS = ['請求書作って', '見積書作って', '納品書お願い'];
 
-const GENERATE_STEPS: TutorialStep[] = [
-  { label: '指示を解析中...', duration: 400 },
-  { label: '書類を生成中...', duration: 600 },
-];
-
 type Phase = 'chat' | 'generating' | 'done';
+
+function makeSteps(kind: DocumentKind): TutorialStep[] {
+  const label = documentLabel(kind);
+  return [
+    { label: '入力を解析中...', duration: 400 },
+    { label: `${label}を生成中...`, duration: 600 },
+    { label: '出力を検証中...', duration: 500 },
+  ];
+}
 
 export default function Chapter2ChatIntro({ onComplete, onMascot }: Chapter2ChatIntroProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -60,15 +64,6 @@ export default function Chapter2ChatIntro({ onComplete, onMascot }: Chapter2Chat
     window.setTimeout(() => {
       const match = matchIntent(text);
       if (match) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: nextId(),
-            role: 'assistant',
-            content: getSimpleResponse(match),
-            footnote: TUTORIAL_FOOTNOTE,
-          },
-        ]);
         playStepSound();
         setRevealedKind(match.kind);
         setPhase('generating');
@@ -93,16 +88,17 @@ export default function Chapter2ChatIntro({ onComplete, onMascot }: Chapter2Chat
   };
 
   const handleStepsComplete = () => {
+    if (!revealedKind) return;
     setPhase('done');
-    if (revealedKind) {
-      const match = matchIntent(revealedKind);
-      const keyword = match ? match.keyword : documentLabel(revealedKind);
-      onMascot(
-        'happy',
-        `やったね！\n\n「${keyword}」って\n言ってくれたから\nボクが作ったよ。`,
-      );
-    }
+    const match = matchIntent(revealedKind);
+    const keyword = match ? match.keyword : documentLabel(revealedKind);
+    onMascot(
+      'happy',
+      `やったね！\n\n「${keyword}」って\n言ってくれたから\nボクが作ったよ。`,
+    );
   };
+
+  const showTrace = phase === 'generating' || phase === 'done';
 
   return (
     <section aria-labelledby="ch2-title" className="space-y-6">
@@ -125,8 +121,31 @@ export default function Chapter2ChatIntro({ onComplete, onMascot }: Chapter2Chat
         disabled={revealedKind !== null}
       />
 
-      {phase === 'generating' && (
-        <TutorialStepProgress steps={GENERATE_STEPS} onComplete={handleStepsComplete} />
+      {showTrace && revealedKind && (
+        <div className="flex gap-2">
+          <img
+            src="/tutorial/dachshund-idle.gif"
+            alt="AI事務員"
+            className="w-6 h-6 rounded-full flex-shrink-0 mt-1"
+          />
+          <div className="flex-1 space-y-3">
+            <TutorialStepProgress
+              steps={makeSteps(revealedKind)}
+              onComplete={handleStepsComplete}
+              completed={phase === 'done'}
+            />
+            {phase === 'done' && (
+              <>
+                <div className="rounded-2xl rounded-bl-md bg-slate-100 text-slate-800 px-4 py-2.5">
+                  <p className="text-sm leading-relaxed">
+                    {getSimpleResponse({ kind: revealedKind, keyword: documentLabel(revealedKind) })}
+                  </p>
+                  <p className="mt-1.5 text-xs text-slate-400">{TUTORIAL_FOOTNOTE}</p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
 
       {phase === 'done' && revealedKind && (
