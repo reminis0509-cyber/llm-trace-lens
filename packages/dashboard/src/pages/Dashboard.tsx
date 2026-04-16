@@ -20,7 +20,7 @@ type TabItem = { id: Tab; label: string; icon: React.ReactNode };
 
 const mainTabs: TabItem[] = [
   { id: 'ai-clerk', label: 'AI事務員', icon: <Bot className="w-4 h-4" strokeWidth={1.5} /> },
-  { id: 'watch', label: '監視', icon: <Radio className="w-4 h-4" strokeWidth={1.5} /> },
+  { id: 'watch', label: 'トレース', icon: <Radio className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'learn', label: '教材', icon: <GraduationCap className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'team', label: 'チーム', icon: <UsersIcon className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'settings', label: '設定', icon: <SettingsIcon className="w-4 h-4" strokeWidth={1.5} /> },

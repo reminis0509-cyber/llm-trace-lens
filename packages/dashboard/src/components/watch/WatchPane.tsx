@@ -335,7 +335,7 @@ export function WatchPane({ fullscreen = false }: WatchPaneProps) {
             <Activity className="w-4 h-4" />
             <span className="watch-heartbeat-dot" />
             <span className="watch-heartbeat-label">
-              {demoMode ? 'デモ信号を受信中' : 'リアルタイム監視中'}
+              {demoMode ? 'デモ信号を受信中' : 'リアルタイムトレース中'}
             </span>
           </div>
           <div className="watch-footer-meta">FujiTrace トレース</div>
