@@ -26,6 +26,7 @@ import {
   GraduationCap,
   ChevronRight,
   BookOpen,
+  Check,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -851,14 +852,90 @@ function PdfPreviewCard({
 }
 
 /* ------------------------------------------------------------------ */
+/*  Confirmation detection                                             */
+/* ------------------------------------------------------------------ */
+
+const CONFIRMATION_PATTERNS = [
+  'よろしいでしょうか',
+  'よろしいですか',
+  'お知らせください',
+  'お願いします',
+  '確認させてください',
+  '進めてよろしい',
+  '問題ありません',
+  'いかがでしょうか',
+  'いかがですか',
+  'ご確認ください',
+];
+
+function isConfirmationMessage(content: string): boolean {
+  const last200 = content.slice(-200);
+  return CONFIRMATION_PATTERNS.some(p => last200.includes(p));
+}
+
+/* ------------------------------------------------------------------ */
+/*  ApprovalBar                                                        */
+/* ------------------------------------------------------------------ */
+
+function ApprovalBar({ onApprove, onCustomSend }: {
+  onApprove: () => void;
+  onCustomSend: (text: string) => void;
+}) {
+  const [customText, setCustomText] = useState('');
+
+  return (
+    <div className="flex items-center gap-2 mt-2">
+      <button
+        type="button"
+        onClick={onApprove}
+        className="flex items-center gap-1.5 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 text-sm font-medium whitespace-nowrap transition-colors"
+        aria-label="承認する"
+      >
+        <Check className="w-4 h-4" strokeWidth={1.5} />
+        承認する
+      </button>
+      <div className="flex-1 flex items-center gap-2">
+        <input
+          type="text"
+          value={customText}
+          onChange={e => setCustomText(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && customText.trim()) {
+              onCustomSend(customText.trim());
+              setCustomText('');
+            }
+          }}
+          placeholder="修正指示を入力..."
+          className="flex-1 px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50 bg-white text-text-primary placeholder-text-muted"
+          aria-label="修正指示"
+        />
+        <button
+          type="button"
+          onClick={() => { if (customText.trim()) { onCustomSend(customText.trim()); setCustomText(''); } }}
+          disabled={!customText.trim()}
+          className="px-3 py-2 text-sm text-text-secondary border border-border rounded-lg hover:bg-base-elevated disabled:opacity-50 transition-colors whitespace-nowrap"
+          aria-label="修正指示を送信"
+        >
+          送信
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  ChatBubble                                                         */
 /* ------------------------------------------------------------------ */
 
-function ChatBubble({ message, isThinking, onTraceUpdate, companyInfo }: {
+function ChatBubble({ message, isThinking, onTraceUpdate, companyInfo, isLastAssistant, isConfirmation, onApprove, onCustomSend }: {
   message: ChatMessage;
   isThinking?: boolean;
   onTraceUpdate: (msgId: string, toolIndex: number, updated: ToolCallTraceState) => void;
   companyInfo: CompanyInfo;
+  isLastAssistant?: boolean;
+  isConfirmation?: boolean;
+  onApprove?: () => void;
+  onCustomSend?: (text: string) => void;
 }) {
   if (message.role === 'user') {
     return (
@@ -983,6 +1060,11 @@ function ChatBubble({ message, isThinking, onTraceUpdate, companyInfo }: {
           <p className="text-[10px] text-text-muted mt-1">
             {message.timestamp.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
           </p>
+        )}
+
+        {/* Approval bar for confirmation messages */}
+        {isLastAssistant && isConfirmation && !message.isStreaming && onApprove && onCustomSend && (
+          <ApprovalBar onApprove={onApprove} onCustomSend={onCustomSend} />
         )}
       </div>
     </div>
@@ -1702,22 +1784,31 @@ export default function AiClerkChat() {
           ) : (
             /* Message list */
             <div className="max-w-2xl mx-auto">
-              {messages.map((msg, idx) => (
-                <ChatBubble
-                  key={msg.id}
-                  message={msg}
-                  isThinking={
-                    isAssistantThinking &&
-                    idx === messages.length - 1 &&
-                    msg.role === 'assistant' &&
-                    !!msg.isStreaming &&
-                    !!msg.toolCalls &&
-                    msg.toolCalls.some(tc => tc.status === 'running')
-                  }
-                  onTraceUpdate={handleTraceUpdate}
-                  companyInfo={companyInfo}
-                />
-              ))}
+              {messages.map((msg, idx) => {
+                // Determine if this is the last assistant message with no user message after it
+                const isLastAssistant = msg.role === 'assistant' &&
+                  !messages.slice(idx + 1).some(m => m.role === 'user');
+                return (
+                  <ChatBubble
+                    key={msg.id}
+                    message={msg}
+                    isThinking={
+                      isAssistantThinking &&
+                      idx === messages.length - 1 &&
+                      msg.role === 'assistant' &&
+                      !!msg.isStreaming &&
+                      !!msg.toolCalls &&
+                      msg.toolCalls.some(tc => tc.status === 'running')
+                    }
+                    onTraceUpdate={handleTraceUpdate}
+                    companyInfo={companyInfo}
+                    isLastAssistant={isLastAssistant}
+                    isConfirmation={isLastAssistant && isConfirmationMessage(msg.content)}
+                    onApprove={() => handleSend('承認します。この内容で進めてください。')}
+                    onCustomSend={(text) => handleSend(text)}
+                  />
+                );
+              })}
               <div ref={messagesEndRef} />
             </div>
           )}
