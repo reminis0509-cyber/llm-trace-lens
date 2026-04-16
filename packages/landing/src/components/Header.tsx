@@ -217,10 +217,10 @@ export default function Header() {
                 ログイン
               </a>
               <a
-                href="/dashboard"
+                href="/tutorial"
                 className="px-4 py-2 bg-accent text-white rounded-card text-sm font-semibold hover:bg-accent-hover transition-colors duration-120"
               >
-                AI 事務員を使い始める
+                無料で試す
               </a>
             </div>
 
@@ -320,11 +320,11 @@ export default function Header() {
                 ログイン
               </a>
               <a
-                href="/dashboard"
+                href="/tutorial"
                 className="px-4 py-3 bg-accent text-white rounded-card text-sm font-semibold text-center hover:bg-accent-hover transition-colors duration-120"
                 onClick={() => setIsMenuOpen(false)}
               >
-                AI 事務員を使い始める
+                無料で試す
               </a>
             </div>
           </nav>

@@ -19,6 +19,8 @@ import ClerkPage from './components/ClerkPage';
 import BlogPage from './components/BlogPage';
 import BlogPostPage from './components/BlogPostPage';
 import TutorialPage from './components/TutorialPage';
+import ScenarioTutorialPage from './components/ScenarioTutorialPage';
+import type { DocumentKind } from './lib/tutorial-scripts';
 import EstimateDemo from './components/EstimateDemo';
 import PiiDetection from './components/PiiDetection';
 import LiveTraceFeed from './components/LiveTraceFeed';
@@ -64,6 +66,9 @@ export default function App() {
     pageContent = <BlogPage />;
   } else if (currentPath.startsWith('/blog/')) {
     pageContent = <BlogPostPage slug={currentPath.replace('/blog/', '')} />;
+  } else if (/^\/tutorial\/(estimate|invoice|purchase-order|delivery-note|cover-letter)$/.test(currentPath)) {
+    const scenarioSlug = currentPath.replace('/tutorial/', '') as DocumentKind;
+    pageContent = <ScenarioTutorialPage scenario={scenarioSlug} />;
   } else if (currentPath === '/tutorial') {
     pageContent = <TutorialPage />;
   } else {
@@ -125,7 +130,7 @@ export default function App() {
 
   // Tutorial is a full-screen modal experience — it paints its own chrome
   // and must not be framed by the LP Header/Footer.
-  const isTutorial = currentPath === '/tutorial';
+  const isTutorial = currentPath === '/tutorial' || /^\/tutorial\/(estimate|invoice|purchase-order|delivery-note|cover-letter)$/.test(currentPath);
 
   if (isTutorial) {
     return (

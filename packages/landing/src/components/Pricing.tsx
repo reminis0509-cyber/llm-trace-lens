@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { trackDashboardConversion } from '../utils/gtag';
 
 const challenges = [
   {
@@ -43,7 +42,7 @@ const mainPlans = [
       '1\u30B7\u30FC\u30C8',
     ],
     cta: '\u7121\u6599\u3067\u59CB\u3081\u308B',
-    ctaHref: '/dashboard',
+    ctaHref: '/tutorial',
     highlighted: false,
   },
   {
@@ -61,8 +60,8 @@ const mainPlans = [
       '\u30E1\u30FC\u30EB\u30B5\u30DD\u30FC\u30C8\uFF08\u65E5\u672C\u8A9E\uFF09',
       '\u4ED8\u9332\u30AF\u30A8\u30B9\u30C8\u6559\u6750 (Phase A1 \u516C\u958B\u4E88\u5B9A)',
     ],
-    cta: 'AI \u4E8B\u52D9\u54E1\u3092\u4F7F\u3044\u59CB\u3081\u308B',
-    ctaHref: '/dashboard',
+    cta: '\u307E\u305A\u306F\u7121\u6599\u3067\u8A66\u3059',
+    ctaHref: '/tutorial',
     highlighted: true,
   },
   {
@@ -207,7 +206,6 @@ export default function Pricing() {
 
               <a
                 href={plan.ctaHref}
-                onClick={plan.ctaHref === '/dashboard' ? trackDashboardConversion : undefined}
                 className={`block w-full py-2.5 px-4 rounded-card text-sm font-medium text-center transition-colors duration-120 ${
                   plan.highlighted
                     ? 'bg-accent text-white hover:bg-accent/90'

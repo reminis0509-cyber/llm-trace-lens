@@ -1,5 +1,3 @@
-import { trackDashboardConversion } from '../utils/gtag';
-
 export default function CTA() {
   return (
     <section id="contact" className="py-16 sm:py-24 px-4 sm:px-6">
@@ -37,11 +35,10 @@ export default function CTA() {
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <a
-              href="/dashboard"
-              onClick={trackDashboardConversion}
+              href="/tutorial"
               className="w-full sm:w-auto px-8 py-4 bg-accent text-white rounded-card text-base font-semibold hover:bg-accent-hover transition-colors duration-120 text-center"
             >
-              無料で登録する
+              まずは無料で試す
             </a>
             <a
               href="mailto:contact@fujitrace.com"
@@ -50,6 +47,11 @@ export default function CTA() {
               導入のご相談
             </a>
           </div>
+          <p className="mt-4 text-sm text-text-muted">
+            <a href="/dashboard" className="hover:text-text-secondary transition-colors duration-120 underline underline-offset-2">
+              ログインはこちら
+            </a>
+          </p>
         </div>
       </div>
     </section>

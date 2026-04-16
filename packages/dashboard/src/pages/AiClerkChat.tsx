@@ -4,7 +4,7 @@
 /* ------------------------------------------------------------------ */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowLeft, X, Paperclip, Download } from 'lucide-react';
+import { ArrowLeft, X, Paperclip, Download, Lock } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { supabase } from '../lib/supabase';
@@ -13,6 +13,7 @@ import type { SkeletonTrace, SkeletonStep } from '../components/SkeletonTrace';
 import AgentChatInput from '../components/agent/AgentChatInput';
 import AgentRunPanel from '../components/agent/AgentRunPanel';
 import type { AgentSseEvent, AgentAttachment } from '../types/agent';
+import { usePlan } from '../contexts/PlanContext';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -1356,6 +1357,56 @@ function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config
 }
 
 /* ------------------------------------------------------------------ */
+/*  ProUpgradeModal                                                    */
+/* ------------------------------------------------------------------ */
+
+function ProUpgradeModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+      <div
+        className="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 p-6"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pro-upgrade-title"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 id="pro-upgrade-title" className="text-base font-semibold text-text-primary">
+            Pro プラン限定機能です
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 text-text-muted hover:text-text-primary rounded transition-colors"
+            aria-label="閉じる"
+          >
+            <X className="w-5 h-5" strokeWidth={1.5} />
+          </button>
+        </div>
+        <p className="text-sm text-text-secondary mb-6">
+          アップグレードすると AI が自律的にタスクを実行します。複数のツールを組み合わせた高度な処理が可能になります。
+        </p>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2 text-sm text-text-secondary border border-border rounded-card hover:bg-base-elevated transition-colors"
+          >
+            閉じる
+          </button>
+          <a
+            href="/dashboard/settings"
+            className="flex-1 px-4 py-2 text-sm text-white bg-accent rounded-card hover:bg-accent/90 transition-colors text-center"
+          >
+            プランを確認
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Main component                                                     */
 /* ------------------------------------------------------------------ */
 
@@ -1369,6 +1420,10 @@ export default function AiClerkChat() {
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>(loadCompanyInfo);
   const [hasSeenCompanySetup, setHasSeenCompanySetup] = useState(false);
+
+  // Plan context for gating Pro features
+  const { isFree, loading: planLoading } = usePlan();
+  const [showProModal, setShowProModal] = useState(false);
 
   // Autonomous mode (β) — Contract-Based AI Clerk Runtime
   const [mode, setMode] = useState<'cards' | 'agent'>('cards');
@@ -1402,6 +1457,17 @@ export default function AiClerkChat() {
           body: JSON.stringify({ message }),
           signal: controller.signal,
         });
+
+        if (res.status === 403) {
+          try {
+            const body = await res.json() as { code?: string; error?: string };
+            if (body.code === 'PRO_REQUIRED') {
+              setShowProModal(true);
+              setIsAgentRunning(false);
+              return;
+            }
+          } catch { /* fall through */ }
+        }
 
         if (!res.ok || !res.body) {
           pushError('HTTP_ERROR', `サーバーエラー (${res.status})`);
@@ -1551,6 +1617,11 @@ export default function AiClerkChat() {
           />
         )}
 
+        {/* Pro Upgrade Modal */}
+        {showProModal && (
+          <ProUpgradeModal onClose={() => setShowProModal(false)} />
+        )}
+
         {/* Payment setup success message */}
         {setupSuccess && (
           <div className="flex-shrink-0 mb-2">
@@ -1622,18 +1693,37 @@ export default function AiClerkChat() {
             </button>
             <button
               type="button"
-              onClick={() => setMode('agent')}
+              onClick={() => {
+                if (isFree && !planLoading) {
+                  setShowProModal(true);
+                } else {
+                  setMode('agent');
+                }
+              }}
               className={`px-4 py-1.5 text-sm rounded-full transition-colors flex items-center gap-1.5 ${
-                mode === 'agent'
-                  ? 'bg-accent text-white'
-                  : 'text-text-secondary hover:text-text-primary'
+                isFree && !planLoading
+                  ? 'text-text-muted cursor-default'
+                  : mode === 'agent'
+                    ? 'bg-accent text-white'
+                    : 'text-text-secondary hover:text-text-primary'
               }`}
               aria-pressed={mode === 'agent'}
+              aria-label={isFree ? '自律モード (Pro プラン限定)' : '自律モード'}
             >
+              {isFree && !planLoading && (
+                <Lock className="w-3.5 h-3.5" strokeWidth={1.5} />
+              )}
               自律
-              <span className="px-1 py-0.5 text-[10px] leading-none font-semibold rounded bg-amber-500 text-white">
+              <span className={`px-1 py-0.5 text-[10px] leading-none font-semibold rounded text-white ${
+                isFree && !planLoading ? 'bg-gray-400' : 'bg-amber-500'
+              }`}>
                 β
               </span>
+              {isFree && !planLoading && (
+                <span className="px-1.5 py-0.5 text-[10px] leading-none font-semibold rounded bg-accent/10 text-accent">
+                  Pro
+                </span>
+              )}
             </button>
           </div>
         </div>

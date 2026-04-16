@@ -18,7 +18,7 @@
  */
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { enforceFreeQuota, resolveWorkspaceId } from '../tools/_shared.js';
+import { enforceFreeQuota, isFreePlan, resolveWorkspaceId } from '../tools/_shared.js';
 import { getKnex } from '../../storage/knex-client.js';
 import { executeContractAgent } from '../../agent/contract-agent.js';
 import type { AgentSseEvent } from '../../agent/contract-agent.types.js';
@@ -57,6 +57,12 @@ export default async function contractChatRoute(fastify: FastifyInstance): Promi
     const workspaceId = await resolveWorkspaceId(request);
     if (!workspaceId) {
       return reply.code(401).send({ success: false, error: '認証が必要です' });
+    }
+
+    // ── Free plan gate (autonomous agent is Pro-only) ────────────────────
+    const free = await isFreePlan(workspaceId);
+    if (free) {
+      return reply.code(403).send({ error: 'Pro plan required', code: 'PRO_REQUIRED' });
     }
 
     // ── Input validation ────────────────────────────────────────────────
