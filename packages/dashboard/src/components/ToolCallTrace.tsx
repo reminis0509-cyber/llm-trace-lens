@@ -40,27 +40,39 @@ export interface ToolCallTraceState {
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
 
+// Tool names from SSE use underscores (OpenAI function name format)
+// Support both dot and underscore formats for safety
 const DOC_TYPE_LABELS: Record<string, string> = {
   'estimate.create': '見積書',
+  'estimate_create': '見積書',
   'estimate.check': '見積書',
+  'estimate_check': '見積書',
   'accounting.invoice_create': '請求書',
+  'accounting_invoice_create': '請求書',
   'accounting.invoice_check': '請求書',
+  'accounting_invoice_check': '請求書',
   'accounting.delivery_note_create': '納品書',
+  'accounting_delivery_note_create': '納品書',
   'accounting.purchase_order_create': '発注書',
+  'accounting_purchase_order_create': '発注書',
   'general_affairs.cover_letter_create': '送付状',
+  'general_affairs_cover_letter_create': '送付状',
+  // Generic office task dispatcher
+  'office_task_execute': '書類',
 };
 
 const CREATE_TOOLS = new Set([
-  'estimate.create',
-  'accounting.invoice_create',
-  'accounting.delivery_note_create',
-  'accounting.purchase_order_create',
-  'general_affairs.cover_letter_create',
+  'estimate.create', 'estimate_create',
+  'accounting.invoice_create', 'accounting_invoice_create',
+  'accounting.delivery_note_create', 'accounting_delivery_note_create',
+  'accounting.purchase_order_create', 'accounting_purchase_order_create',
+  'general_affairs.cover_letter_create', 'general_affairs_cover_letter_create',
+  'office_task_execute',
 ]);
 
 const CHECK_TOOLS = new Set([
-  'estimate.check',
-  'accounting.invoice_check',
+  'estimate.check', 'estimate_check',
+  'accounting.invoice_check', 'accounting_invoice_check',
 ]);
 
 /** Step definitions with delay before auto-advancing (in ms). */
@@ -372,26 +384,7 @@ export default function ToolCallTrace({ traceState, onTraceUpdate }: ToolCallTra
       isError ? 'bg-red-50/50 border-red-200' :
       'bg-slate-50 border-slate-200'
     }`}>
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-3">
-        {isDone && (
-          <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" strokeWidth={1.5} />
-        )}
-        {isError && (
-          <XCircle className="w-4 h-4 text-red-500 flex-shrink-0" strokeWidth={1.5} />
-        )}
-        {traceState.status === 'running' && (
-          <Loader2 className="w-4 h-4 text-blue-500 animate-spin flex-shrink-0" strokeWidth={1.5} />
-        )}
-        <span className={`text-xs font-medium ${
-          isDone ? 'text-green-700' :
-          isError ? 'text-red-700' :
-          'text-slate-700'
-        }`}>
-          {docType}
-          {isDone ? ' - 完了' : isError ? ' - エラー' : ''}
-        </span>
-      </div>
+      {/* No header — steps speak for themselves */}
 
       {/* Steps timeline */}
       <div className="space-y-2 pl-0.5">
