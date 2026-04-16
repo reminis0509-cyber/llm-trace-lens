@@ -84,15 +84,15 @@ const pricingPlans = [
   },
   {
     plan: 'Pro',
-    price: '¥9,800',
-    traces: '50,000/月',
-    features: 'LLM-as-Judge評価、カスタムルール',
+    price: '¥3,000',
+    traces: '\u7121\u5236\u9650',
+    features: '\u30D5\u30B8\u5BFE\u8A71\u7121\u5236\u9650\u3001\u81EA\u5F8B\u30E2\u30FC\u30C9\u3001\u5FDC\u7528\u30AF\u30A8\u30B9\u30C8',
   },
   {
-    plan: 'Enterprise Standard',
-    price: '¥300,000/年',
-    traces: '100,000/月',
-    features: 'SLA 99.5%、オンボーディング',
+    plan: 'Max',
+    price: '¥15,000',
+    traces: '\u7121\u5236\u9650',
+    features: 'Watch Room \u5168\u6587\u691C\u7D22\u3001\u512A\u5148\u30B5\u30DD\u30FC\u30C8',
   },
 ];
 
@@ -101,7 +101,7 @@ const partnershipSteps = [
     step: 1,
     title: '無料で試す',
     description:
-      'まずは御社の環境でFujiTraceをお試しください。Free（月 30 回）から登録のみですぐに利用開始できます。',
+      'まずは御社の環境でFujiTraceをお試しください。Free（5時間ごとにリセット）から登録のみですぐに利用開始できます。',
   },
   {
     step: 2,
@@ -322,11 +322,10 @@ export default function SalesPage() {
             </div>
           </div>
           <p className="text-sm text-text-muted mt-4">
-            Enterprise Plus / Premium
-            プランもご用意しています。詳しくはお問い合わせください。
+            詳しくは料金ページをご覧ください。
           </p>
           <p className="text-sm text-text-secondary mt-2">
-            Free（月 30 回）から、登録のみでご利用いただけます。
+            Free（5時間ごとにリセット）から、登録のみでご利用いただけます。
           </p>
         </div>
 

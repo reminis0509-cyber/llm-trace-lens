@@ -197,7 +197,7 @@ export default function PiiDetection() {
             AI 事務員を使い始める
           </a>
           <p className="text-sm text-text-muted mt-3">
-            無料（Free 30 回/月）から始められます
+            無料（Free・5時間ごとにリセット）から始められます
           </p>
         </div>
       </div>

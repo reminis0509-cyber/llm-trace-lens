@@ -1,89 +1,3 @@
-import { useState } from 'react';
-
-const challenges = [
-  {
-    challenge: 'AIの品質を数値で把握したい',
-    free: 'パターンベースの基本検知のみ',
-    pro: 'LLM-as-Judgeで回答品質をスコア化',
-  },
-  {
-    challenge: '過去の障害から改善したい',
-    free: '7日間のみ保存',
-    pro: '90日間保存 + 全文検索',
-  },
-  {
-    challenge: 'ハルシネーションを即座に検知したい',
-    free: '通知なし（手動確認のみ）',
-    pro: 'リアルタイムアラート通知',
-  },
-  {
-    challenge: 'APIコストを最適化したい',
-    free: '合計金額のみ表示',
-    pro: 'プロバイダー別・モデル別の内訳分析',
-  },
-  {
-    challenge: '監査・コンプライアンスに対応したい',
-    free: '保存期間が不十分',
-    pro: '長期保存 + 証跡エクスポート',
-  },
-];
-
-const mainPlans = [
-  {
-    name: 'Free',
-    price: '\u00A50',
-    priceNote: '/ \u6708',
-    description: '\u307E\u305A\u306F\u8A66\u3057\u3066\u307F\u308B',
-    features: [
-      '\u6708\u9593 5,000 \u30C8\u30EC\u30FC\u30B9',
-      '\u30EA\u30A2\u30EB\u30BF\u30A4\u30E0\u30C8\u30EC\u30FC\u30B9',
-      '\u65E5\u672C\u8A9EPII\u691C\u51FA\u30FB\u30D6\u30ED\u30C3\u30AF',
-      '7\u65E5\u9593\u306E\u30C7\u30FC\u30BF\u4FDD\u6301',
-      '1\u30B7\u30FC\u30C8',
-    ],
-    cta: '\u7121\u6599\u3067\u59CB\u3081\u308B',
-    ctaHref: '/tutorial',
-    highlighted: false,
-  },
-  {
-    name: 'Pro',
-    price: '\u00A59,800',
-    priceNote: '/ \u6708',
-    description: '\u54C1\u8CEA\u7BA1\u7406\u3092\u672C\u683C\u7684\u306B\u59CB\u3081\u308B',
-    features: [
-      '\u6708\u9593 50,000 \u30C8\u30EC\u30FC\u30B9',
-      'LLM-as-Judge \u54C1\u8CEA\u8A55\u4FA1\uFF08\u67081,000\u56DE\uFF09',
-      '\u30AB\u30B9\u30BF\u30E0\u30D0\u30EA\u30C7\u30FC\u30B7\u30E7\u30F3\u30EB\u30FC\u30EB',
-      '90\u65E5\u9593\u306E\u30C7\u30FC\u30BF\u4FDD\u6301',
-      '\u7121\u5236\u9650\u30B7\u30FC\u30C8',
-      '\u30EA\u30A2\u30EB\u30BF\u30A4\u30E0\u30A2\u30E9\u30FC\u30C8\u901A\u77E5',
-      '\u30E1\u30FC\u30EB\u30B5\u30DD\u30FC\u30C8\uFF08\u65E5\u672C\u8A9E\uFF09',
-      '\u4ED8\u9332\u30AF\u30A8\u30B9\u30C8\u6559\u6750 (Phase A1 \u516C\u958B\u4E88\u5B9A)',
-    ],
-    cta: '\u307E\u305A\u306F\u7121\u6599\u3067\u8A66\u3059',
-    ctaHref: '/tutorial',
-    highlighted: true,
-  },
-  {
-    name: 'Enterprise',
-    price: '\u00A5300,000\u301C',
-    priceNote: '/ \u5E74',
-    description: 'SLA\u4ED8\u304D\u306E\u672C\u683C\u904B\u7528\u306B',
-    features: [
-      '\u6708\u9593 100,000+ \u30C8\u30EC\u30FC\u30B9',
-      'LLM-as-Judge \u54C1\u8CEA\u8A55\u4FA1\uFF08\u7121\u5236\u9650\uFF09',
-      'SSO / SAML \u5BFE\u5FDC',
-      '180\u301C365\u65E5\u9593\u306E\u30C7\u30FC\u30BF\u4FDD\u6301',
-      '\u7121\u5236\u9650\u30B7\u30FC\u30C8',
-      'SLA 99.5\u301C99.95%',
-      '\u5C02\u4EFBSlack\u30B5\u30DD\u30FC\u30C8',
-    ],
-    cta: '\u304A\u554F\u3044\u5408\u308F\u305B',
-    ctaHref: '#contact',
-    highlighted: false,
-  },
-];
-
 const CheckIcon = () => (
   <svg
     className="w-4 h-4 mr-2 text-accent flex-shrink-0"
@@ -98,21 +12,70 @@ const CheckIcon = () => (
   </svg>
 );
 
-const CrossIcon = () => (
-  <svg
-    className="w-4 h-4 mr-2 text-text-muted flex-shrink-0"
-    fill="none"
-    viewBox="0 0 20 20"
-    stroke="currentColor"
-    strokeWidth={2}
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l8 8M14 6l-8 8" />
-  </svg>
-);
+interface PlanCard {
+  name: string;
+  price: string;
+  priceNote: string;
+  description: string;
+  features: string[];
+  cta: string;
+  ctaHref: string;
+  highlighted: boolean;
+  badge?: string;
+}
+
+const plans: PlanCard[] = [
+  {
+    name: 'Free',
+    price: '\u00A50',
+    priceNote: '/ \u6708',
+    description: '\u307E\u305A\u306F\u8A66\u3057\u3066\u307F\u308B',
+    features: [
+      '\u30D5\u30B8\u5BFE\u8A71\uFF085 \u6642\u9593\u3054\u3068\u306B\u30EA\u30BB\u30C3\u30C8\uFF09',
+      '\u66F8\u985E\u4F5C\u6210\u30FB\u30C1\u30A7\u30C3\u30AF\uFF08\u5BFE\u8A71\u56DE\u6570\u306B\u542B\u3080\uFF09',
+      '\u30C1\u30E5\u30FC\u30C8\u30EA\u30A2\u30EB 4 \u7AE0',
+      'Watch Room\uFF087 \u65E5\u4FDD\u6301\uFF09',
+      '\u4F1A\u793E\u60C5\u5831 1 \u793E',
+    ],
+    cta: '\u7121\u6599\u3067\u59CB\u3081\u308B',
+    ctaHref: '/tutorial',
+    highlighted: false,
+  },
+  {
+    name: 'Pro',
+    price: '\u00A53,000',
+    priceNote: '/ \u6708',
+    description: 'AI \u3092\u4F7F\u3044\u3053\u306A\u3059',
+    features: [
+      '\u30D5\u30B8\u5BFE\u8A71 \u7121\u5236\u9650',
+      '\u66F8\u985E\u4F5C\u6210\u30FB\u30C1\u30A7\u30C3\u30AF \u7121\u5236\u9650',
+      '\u81EA\u5F8B\u30E2\u30FC\u30C9',
+      '\u5FDC\u7528\u30AF\u30A8\u30B9\u30C8\u6559\u6750 \u5168\u958B\u653E',
+      'Watch Room\uFF0890 \u65E5\u4FDD\u6301\uFF09',
+      '\u4F1A\u793E\u60C5\u5831 \u7121\u5236\u9650',
+    ],
+    cta: '\u307E\u305A\u306F\u7121\u6599\u3067\u8A66\u3059',
+    ctaHref: '/tutorial',
+    highlighted: true,
+    badge: '\u304A\u3059\u3059\u3081',
+  },
+  {
+    name: 'Max',
+    price: '\u00A515,000',
+    priceNote: '/ \u6708',
+    description: '\u30C1\u30FC\u30E0\u3067\u672C\u683C\u904B\u7528',
+    features: [
+      'Pro \u306E\u5168\u6A5F\u80FD',
+      'Watch Room\uFF0890 \u65E5 + \u5168\u6587\u691C\u7D22\uFF09',
+      '\u512A\u5148\u30B5\u30DD\u30FC\u30C8',
+    ],
+    cta: '\u307E\u305A\u306F\u7121\u6599\u3067\u8A66\u3059',
+    ctaHref: '/tutorial',
+    highlighted: false,
+  },
+];
 
 export default function Pricing() {
-  const [showDetail, setShowDetail] = useState(false);
-
   return (
     <section id="pricing" className="py-16 sm:py-24 px-4 sm:px-6">
       <div className="section-container">
@@ -121,61 +84,30 @@ export default function Pricing() {
             Pricing
           </span>
           <h2 className="text-2xl sm:text-display-sm font-semibold text-text-primary mb-4">
-            あなたの課題に合った
-            <br className="sm:hidden" />
-            プランを選ぶ
+            シンプルな料金体系
           </h2>
           <p className="text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
-            Free（月 30 回）から、登録するだけですぐに始められます。
-            <br className="hidden md:block" />
-            まずは無料で、AIの品質管理を実感してください。
+            Free（5時間ごとにリセット）から、登録するだけですぐに始められます。
           </p>
         </div>
 
-        {/* Challenge-based comparison table */}
-        <div className="surface-card p-6 mb-8 overflow-x-auto">
-          <h3 className="text-sm font-medium text-text-muted label-spacing uppercase mb-6">
-            あなたの課題はどれですか？
-          </h3>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-3 pr-4 text-text-secondary font-medium w-2/5">課題</th>
-                <th className="text-left py-3 px-4 text-text-muted font-medium w-[30%]">Free</th>
-                <th className="text-left py-3 pl-4 text-accent font-medium w-[30%]">Pro</th>
-              </tr>
-            </thead>
-            <tbody>
-              {challenges.map((row, i) => (
-                <tr key={i} className="border-b border-border/50 last:border-0">
-                  <td className="py-3 pr-4 text-text-primary font-medium">{row.challenge}</td>
-                  <td className="py-3 px-4 text-text-muted">
-                    <span className="flex items-center">
-                      <CrossIcon />
-                      {row.free}
-                    </span>
-                  </td>
-                  <td className="py-3 pl-4 text-text-secondary">
-                    <span className="flex items-center">
-                      <CheckIcon />
-                      {row.pro}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Main 3 plans */}
-        <div className="grid lg:grid-cols-3 gap-4">
-          {mainPlans.map((plan, index) => (
+        {/* 3 plan cards */}
+        <div className="grid lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          {plans.map((plan, index) => (
             <div
               key={index}
-              className={`surface-card p-6 relative ${
-                plan.highlighted ? 'border-accent' : ''
+              className={`relative surface-card p-6 flex flex-col ${
+                plan.highlighted
+                  ? 'border-accent ring-1 ring-accent/20'
+                  : ''
               }`}
             >
+              {plan.badge && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-block px-3 py-0.5 text-xs font-medium text-white bg-accent rounded-full">
+                  {plan.badge}
+                </span>
+              )}
+
               <div className="mb-6">
                 <h3 className="text-lg font-medium text-text-primary mb-1">
                   {plan.name}
@@ -184,19 +116,19 @@ export default function Pricing() {
               </div>
 
               <div className="mb-6">
-                <span className="text-2xl font-mono tabular-nums text-text-primary">
+                <span className="text-3xl font-mono tabular-nums text-text-primary">
                   {plan.price}
                 </span>
-                <span className="ml-2 text-text-muted text-sm">
+                <span className="ml-1 text-text-muted text-sm">
                   {plan.priceNote}
                 </span>
               </div>
 
-              <ul className="space-y-3 mb-6">
+              <ul className="space-y-3 mb-8 flex-1">
                 {plan.features.map((feature, i) => (
                   <li
                     key={i}
-                    className="flex items-center text-sm text-text-secondary"
+                    className="flex items-start text-sm text-text-secondary"
                   >
                     <CheckIcon />
                     <span>{feature}</span>
@@ -216,101 +148,6 @@ export default function Pricing() {
               </a>
             </div>
           ))}
-        </div>
-
-        {/* Detail expansion toggle */}
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => setShowDetail(!showDetail)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors duration-120"
-          >
-            <span>Enterprise Plus / Premium の詳細を見る</span>
-            <svg
-              className={`w-4 h-4 transition-transform duration-200 ${
-                showDetail ? 'rotate-180' : ''
-              }`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </button>
-        </div>
-
-        {/* Enterprise Plus / Premium */}
-        {showDetail && (
-          <div className="mt-4 grid md:grid-cols-2 gap-4">
-            <div className="surface-card p-6">
-              <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between mb-4">
-                <h3 className="text-lg font-medium text-text-primary">Enterprise Plus</h3>
-                <div className="mt-1 sm:mt-0 text-right">
-                  <span className="text-lg font-mono tabular-nums text-text-primary">{'\u00A5960,000 / \u5E74'}</span>
-                  <span className="block text-xs text-text-muted mt-0.5">{'\u6708\u984D\u63DB\u7B97 \u00A580,000'}</span>
-                </div>
-              </div>
-              <ul className="space-y-2 mb-6">
-                {[
-                  '\u6708\u9593 500,000 \u30C8\u30EC\u30FC\u30B9',
-                  'LLM-as-Judge \u8A55\u4FA1\uFF08\u670815,000\u56DE\uFF09',
-                  'SSO / SAML \u5BFE\u5FDC',
-                  '365\u65E5\u9593\u306E\u30C7\u30FC\u30BF\u4FDD\u6301',
-                  'SLA 99.9% + \u5C02\u4EFBSlack\u30B5\u30DD\u30FC\u30C8',
-                ].map((f, i) => (
-                  <li key={i} className="flex items-center text-sm text-text-secondary">
-                    <CheckIcon /><span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <a href="#contact" className="block w-full py-2.5 px-4 rounded-card text-sm font-medium text-center bg-app-bg-elevated text-text-secondary border border-border hover:text-text-primary transition-colors duration-120">
-                お問い合わせ
-              </a>
-            </div>
-            <div className="surface-card p-6">
-              <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between mb-4">
-                <h3 className="text-lg font-medium text-text-primary">Enterprise Premium</h3>
-                <div className="mt-1 sm:mt-0 text-right">
-                  <span className="text-lg font-mono tabular-nums text-text-primary">{'\u00A52,400,000\u301C / \u5E74'}</span>
-                  <span className="block text-xs text-text-muted mt-0.5">{'\u6708\u984D\u63DB\u7B97 \u00A5200,000\u301C'}</span>
-                </div>
-              </div>
-              <ul className="space-y-2 mb-6">
-                {[
-                  '\u30C8\u30EC\u30FC\u30B9\u4E0A\u9650 \u500B\u5225\u898B\u7A4D',
-                  'LLM-as-Judge \u8A55\u4FA1 \u500B\u5225\u898B\u7A4D',
-                  '\u7121\u5236\u9650\u30C7\u30FC\u30BF\u4FDD\u6301',
-                  'SLA 99.95% + \u5C02\u4EFB\u96FB\u8A71\u30B5\u30DD\u30FC\u30C8',
-                  '\u30AA\u30F3\u30D7\u30EC\u30DF\u30B9 / VPC \u5BFE\u5FDC',
-                ].map((f, i) => (
-                  <li key={i} className="flex items-center text-sm text-text-secondary">
-                    <CheckIcon /><span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <a href="#contact" className="block w-full py-2.5 px-4 rounded-card text-sm font-medium text-center bg-app-bg-elevated text-text-secondary border border-border hover:text-text-primary transition-colors duration-120">
-                お問い合わせ
-              </a>
-            </div>
-          </div>
-        )}
-
-        {/* Overage & note */}
-        <div className="mt-8 surface-card p-5">
-          <h4 className="text-sm font-medium text-text-primary mb-3">
-            従量課金（上限超過時）
-          </h4>
-          <div className="grid sm:grid-cols-2 gap-x-8 gap-y-1 text-sm text-text-secondary">
-            <p>トレース超過: \u00A5200\u301C300 / 万トレース</p>
-            <p>評価超過: \u00A5100\u301C200 / 千回</p>
-          </div>
-          <p className="text-xs text-text-muted mt-3">
-            ※ OSSセルフホスト版は全機能無料。クラウド版は上記プランが適用されます。
-          </p>
         </div>
       </div>
     </section>

@@ -707,7 +707,7 @@ export default function ForEngineersPage() {
               今すぐ導入を始める
             </h2>
             <p className="text-lg text-text-secondary mb-8 max-w-xl mx-auto">
-              Free（月 30 回）から。クレジットカード不要。1行のコード変更で導入できます。
+              Free（5時間ごとにリセット）から。クレジットカード不要。1行のコード変更で導入できます。
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <a

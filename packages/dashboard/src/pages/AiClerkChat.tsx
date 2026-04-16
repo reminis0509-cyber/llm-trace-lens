@@ -1,38 +1,30 @@
 /* ------------------------------------------------------------------ */
-/*  AiClerkChat — Card-based task hub for AI clerk                     */
-/*  Redesigned from chat interface to structured task forms             */
+/*  AiClerkChat — Unified chat interface for AI clerk (chat-v2)        */
+/*  Single chat experience with SSE streaming, tool call display,      */
+/*  and suggestion chips for common tasks.                              */
 /* ------------------------------------------------------------------ */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowLeft, X, Paperclip, Download, Lock } from 'lucide-react';
+import {
+  X,
+  Paperclip,
+  Send,
+  Download,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  Wrench,
+  Settings,
+  FileText,
+} from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { supabase } from '../lib/supabase';
-import { SkeletonTrace as SkeletonTraceComponent, StreamingSkeletonTrace } from '../components/SkeletonTrace';
-import type { SkeletonTrace, SkeletonStep } from '../components/SkeletonTrace';
-import AgentChatInput from '../components/agent/AgentChatInput';
-import AgentRunPanel from '../components/agent/AgentRunPanel';
-import type { AgentSseEvent, AgentAttachment } from '../types/agent';
 import { usePlan } from '../contexts/PlanContext';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
-
-type ViewType =
-  | { type: 'hub' }
-  | { type: 'estimate' }
-  | { type: 'invoice' }
-  | { type: 'delivery-note' }
-  | { type: 'purchase-order' }
-  | { type: 'cover-letter' };
-
-interface TrialInfo {
-  used: number;
-  limit: number;
-  remaining: number;
-  isTrialExhausted: boolean;
-}
 
 interface CompanyInfo {
   companyName: string;
@@ -43,29 +35,26 @@ interface CompanyInfo {
   invoiceNumber: string;
 }
 
-interface TaskCardDef {
+interface ToolCallState {
+  tool: string;
+  index: number;
+  status: 'running' | 'ok' | 'error';
+  result?: Record<string, unknown>;
+}
+
+interface ChatMessage {
   id: string;
-  title: string;
-  description: string;
-  actions: Array<{
-    label: string;
-    view: ViewType;
-  }>;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  toolCalls?: ToolCallState[];
+  attachments?: string[];
+  isStreaming?: boolean;
+  error?: string;
 }
 
-interface GenericFormField {
-  key: string;
-  label: string;
-  type: 'text' | 'date' | 'select' | 'textarea' | 'items';
-  placeholder?: string;
-  options?: string[];
-  required?: boolean;
-}
-
-interface GenericFormConfig {
-  title: string;
-  taskId: string;
-  fields: GenericFormField[];
+interface RateLimitInfo {
+  resetAt: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -74,139 +63,13 @@ interface GenericFormConfig {
 
 const STORAGE_KEY = 'fujitrace-company-info';
 
-const TASK_CARDS: TaskCardDef[] = [
-  {
-    id: 'estimate',
-    title: '見積書',
-    description: '作成・チェック',
-    actions: [
-      { label: '開く', view: { type: 'estimate' } },
-    ],
-  },
-  {
-    id: 'invoice',
-    title: '請求書',
-    description: '作成・チェック',
-    actions: [
-      { label: '開く', view: { type: 'invoice' } },
-    ],
-  },
-  {
-    id: 'delivery-note',
-    title: '納品書',
-    description: '作成',
-    actions: [
-      { label: '開く', view: { type: 'delivery-note' } },
-    ],
-  },
-  {
-    id: 'purchase-order',
-    title: '発注書',
-    description: '作成',
-    actions: [
-      { label: '開く', view: { type: 'purchase-order' } },
-    ],
-  },
-  {
-    id: 'cover-letter',
-    title: '送付状',
-    description: '作成',
-    actions: [
-      { label: '開く', view: { type: 'cover-letter' } },
-    ],
-  },
+const SUGGESTION_CHIPS: { label: string; message: string }[] = [
+  { label: '見積書を作成', message: '見積書を作成してください' },
+  { label: '請求書をチェック', message: '請求書をチェックしてください' },
+  { label: '発注書を作成', message: '発注書を作成してください' },
+  { label: '納品書を作成', message: '納品書を作成してください' },
+  { label: '送付状を作成', message: '送付状を作成してください' },
 ];
-
-interface TaskConfig {
-  title: string;
-  hasCheck: boolean;
-  createConfig: GenericFormConfig;
-  checkConfig?: GenericFormConfig;
-}
-
-const TASK_CONFIGS: Record<string, TaskConfig> = {
-  'estimate': {
-    title: '見積書',
-    hasCheck: true,
-    createConfig: {
-      title: '見積書作成',
-      taskId: 'estimate.create',
-      fields: [], // Uses dedicated EstimateCreateForm
-    },
-    checkConfig: {
-      title: '見積書チェック',
-      taskId: 'accounting.estimate_check',
-      fields: [
-        { key: 'content', label: 'チェックしたい見積書の内容を貼り付け、またはファイルを添付してください', type: 'textarea', placeholder: '見積書の内容をここに貼り付け...', required: true },
-      ],
-    },
-  },
-  'invoice': {
-    title: '請求書',
-    hasCheck: true,
-    createConfig: {
-      title: '請求書作成',
-      taskId: 'accounting.invoice_create',
-      fields: [
-        { key: 'client', label: '宛先（会社名）', type: 'text', placeholder: '株式会社○○', required: true },
-        { key: 'invoiceNumber', label: '請求書番号', type: 'text', placeholder: 'INV-2026-001' },
-        { key: 'items', label: '明細', type: 'items', required: true },
-        { key: 'dueDate', label: '支払期限', type: 'date', required: true },
-        { key: 'bankAccount', label: '振込先口座', type: 'textarea', placeholder: '銀行名 支店名 普通 口座番号 口座名義' },
-        { key: 'paymentTerms', label: '支払条件', type: 'select', options: ['月末締め翌月末払い', '月末締め翌々月末払い', '納品後30日以内', '前払い'] },
-      ],
-    },
-    checkConfig: {
-      title: '請求書チェック',
-      taskId: 'accounting.invoice_check',
-      fields: [
-        { key: 'content', label: 'チェックしたい請求書の内容を貼り付け、またはファイルを添付してください', type: 'textarea', placeholder: '請求書の内容をここに貼り付け...', required: true },
-      ],
-    },
-  },
-  'delivery-note': {
-    title: '納品書',
-    hasCheck: false,
-    createConfig: {
-      title: '納品書作成',
-      taskId: 'accounting.delivery_note_create',
-      fields: [
-        { key: 'client', label: '宛先（会社名）', type: 'text', placeholder: '株式会社○○', required: true },
-        { key: 'deliveryDate', label: '納品日', type: 'date', required: true },
-        { key: 'items', label: '明細', type: 'items', required: true },
-        { key: 'notes', label: '備考', type: 'textarea', placeholder: '特記事項があれば入力' },
-      ],
-    },
-  },
-  'purchase-order': {
-    title: '発注書',
-    hasCheck: false,
-    createConfig: {
-      title: '発注書作成',
-      taskId: 'accounting.purchase_order_create',
-      fields: [
-        { key: 'client', label: '発注先（会社名）', type: 'text', placeholder: '株式会社○○', required: true },
-        { key: 'items', label: '明細', type: 'items', required: true },
-        { key: 'deliveryDate', label: '納期', type: 'date' },
-        { key: 'paymentTerms', label: '支払条件', type: 'select', options: ['月末締め翌月末払い', '月末締め翌々月末払い', '納品後30日以内'] },
-      ],
-    },
-  },
-  'cover-letter': {
-    title: '送付状',
-    hasCheck: false,
-    createConfig: {
-      title: '送付状作成',
-      taskId: 'general_affairs.cover_letter_create',
-      fields: [
-        { key: 'client', label: '宛先（会社名・担当者名）', type: 'text', placeholder: '株式会社○○ ○○様', required: true },
-        { key: 'subject', label: '件名', type: 'text', placeholder: '見積書送付のご案内', required: true },
-        { key: 'enclosures', label: '同封物', type: 'textarea', placeholder: '見積書 1部\nカタログ 1部' },
-        { key: 'body', label: '本文（任意、空白ならAIが生成）', type: 'textarea', placeholder: '' },
-      ],
-    },
-  },
-};
 
 /* ------------------------------------------------------------------ */
 /*  Auth helper                                                        */
@@ -252,6 +115,24 @@ function hasCompanyInfo(info: CompanyInfo): boolean {
 }
 
 /* ------------------------------------------------------------------ */
+/*  File to base64                                                     */
+/* ------------------------------------------------------------------ */
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Remove "data:...;base64," prefix
+      const base64 = result.split(',')[1] || result;
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ------------------------------------------------------------------ */
 /*  Company Info Modal                                                 */
 /* ------------------------------------------------------------------ */
 
@@ -263,12 +144,12 @@ function CompanyInfoModal({ info, onSave, onClose }: {
   const [form, setForm] = useState<CompanyInfo>(info);
 
   const fields: { key: keyof CompanyInfo; label: string; placeholder: string }[] = [
-    { key: 'companyName', label: '\u4f1a\u793e\u540d', placeholder: '\u682a\u5f0f\u4f1a\u793e\u25cb\u25cb' },
-    { key: 'address', label: '\u4f4f\u6240', placeholder: '\u6771\u4eac\u90fd\u6e2f\u533a...' },
-    { key: 'phone', label: '\u96fb\u8a71\u756a\u53f7', placeholder: '03-XXXX-XXXX' },
-    { key: 'email', label: '\u30e1\u30fc\u30eb', placeholder: 'info@example.co.jp' },
-    { key: 'representative', label: '\u4ee3\u8868\u8005\u540d', placeholder: '\u5c71\u7530 \u592a\u90ce' },
-    { key: 'invoiceNumber', label: '\u30a4\u30f3\u30dc\u30a4\u30b9\u767b\u9332\u756a\u53f7', placeholder: 'T1234567890123' },
+    { key: 'companyName', label: '会社名', placeholder: '株式会社○○' },
+    { key: 'address', label: '住所', placeholder: '東京都港区...' },
+    { key: 'phone', label: '電話番号', placeholder: '03-XXXX-XXXX' },
+    { key: 'email', label: 'メール', placeholder: 'info@example.co.jp' },
+    { key: 'representative', label: '代表者名', placeholder: '山田 太郎' },
+    { key: 'invoiceNumber', label: 'インボイス登録番号', placeholder: 'T1234567890123' },
   ];
 
   return (
@@ -331,1032 +212,6 @@ function CompanyInfoModal({ info, onSave, onClose }: {
 }
 
 /* ------------------------------------------------------------------ */
-/*  TaskCard                                                           */
-/* ------------------------------------------------------------------ */
-
-function TaskCard({ card, onAction }: { card: TaskCardDef; onAction: (view: ViewType) => void }) {
-  return (
-    <div className="surface-card p-5">
-      <h3 className="text-base font-medium text-text-primary">{card.title}</h3>
-      <p className="mt-1 text-sm text-text-muted">{card.description}</p>
-      <div className="flex gap-2 mt-4">
-        {card.actions.map((action) => (
-          <button
-            key={action.label}
-            type="button"
-            onClick={() => onAction(action.view)}
-            className="px-4 py-2 text-sm text-white bg-accent rounded-card hover:bg-accent/90 transition-colors"
-          >
-            {action.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  TaskViewWrapper                                                    */
-/* ------------------------------------------------------------------ */
-
-function TaskViewWrapper({ title, onBack, children, embedded }: { title: string; onBack: () => void; children: React.ReactNode; embedded?: boolean }) {
-  // When embedded inside TaskWithTabs, skip the outer wrapper (header + scroll handled by parent)
-  if (embedded) return <>{children}</>;
-  return (
-    <div className="flex flex-col" style={{ height: 'calc(100vh - 48px - 5rem)' }}>
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
-        <button onClick={onBack} className="p-1 text-text-muted hover:text-text-primary transition-colors" aria-label="戻る">
-          <ArrowLeft className="w-5 h-5" strokeWidth={1.5} />
-        </button>
-        <h2 className="text-base font-medium text-text-primary">{title}</h2>
-      </div>
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="max-w-2xl mx-auto">
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  EstimateResult — Preview + Edit + Download                         */
-/* ------------------------------------------------------------------ */
-
-function formatEstimateText(estimate: Record<string, unknown>): string {
-  const e = estimate;
-  const client = e.client as Record<string, unknown> | undefined;
-  const estItems = (e.items as Array<Record<string, unknown>>) ?? [];
-  return [
-    `見積書`,
-    ``,
-    `見積番号: ${e.estimate_number ?? ''}`,
-    `発行日: ${e.issue_date ?? ''}`,
-    `有効期限: ${e.valid_until ?? ''}`,
-    ``,
-    `宛先: ${client?.company_name ?? ''} ${client?.honorific ?? ''}`,
-    `件名: ${e.subject ?? ''}`,
-    ``,
-    `--- 明細 ---`,
-    ...estItems.map((it, i) => `${i + 1}. ${it.name}  数量${it.quantity}  単価¥${Number(it.unit_price ?? 0).toLocaleString()}  金額¥${Number(it.subtotal ?? 0).toLocaleString()}`),
-    ``,
-    `小計: ¥${Number(e.subtotal ?? 0).toLocaleString()}`,
-    `消費税: ¥${Number(e.tax_amount ?? 0).toLocaleString()}`,
-    `合計: ¥${Number(e.total ?? 0).toLocaleString()}`,
-    ``,
-    e.payment_terms ? `支払条件: ${e.payment_terms}` : '',
-    e.delivery_date ? `納期: ${e.delivery_date}` : '',
-    e.notes ? `備考: ${e.notes}` : '',
-  ].filter(Boolean).join('\n');
-}
-
-function EstimateResult({ result, onReset, onBack, embedded }: {
-  result: Record<string, unknown>;
-  onReset: () => void;
-  onBack: () => void;
-  embedded?: boolean;
-}) {
-  const estimate = result.estimate as Record<string, unknown> | undefined;
-  const verification = result.verification as Record<string, unknown> | undefined;
-  const [mode, setMode] = useState<'preview' | 'edit'>('preview');
-  const [editText, setEditText] = useState(() => estimate ? formatEstimateText(estimate) : '');
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [isPdfLoading, setIsPdfLoading] = useState(false);
-  const pdfBlobRef = useRef<Blob | null>(null);
-
-  const estNum = estimate ? String((estimate as Record<string, unknown>).estimate_number ?? 'draft') : 'draft';
-
-  const getIssuer = () => {
-    const raw = localStorage.getItem('fujitrace-company-info');
-    return raw ? JSON.parse(raw) : {};
-  };
-
-  // Generate PDF preview on mount
-  useEffect(() => {
-    if (!estimate) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        setIsPdfLoading(true);
-        const { generateEstimatePdf } = await import('../lib/estimate-pdf.js');
-        const blob = await generateEstimatePdf(estimate as Parameters<typeof generateEstimatePdf>[0], getIssuer());
-        if (cancelled) return;
-        pdfBlobRef.current = blob;
-        setPdfUrl(URL.createObjectURL(blob));
-      } catch (err) {
-        console.error('PDF preview generation failed:', err);
-      } finally {
-        if (!cancelled) setIsPdfLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [estimate]);
-
-  const handleDownloadPdf = () => {
-    if (pdfBlobRef.current) {
-      const url = URL.createObjectURL(pdfBlobRef.current);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `見積書_${estNum}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } else {
-      // Fallback to text download
-      const blob = new Blob([editText], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `見積書_${estNum}.txt`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-  };
-
-  return (
-    <TaskViewWrapper title="見積書作成" onBack={onBack} embedded={embedded}>
-      <div className="space-y-4">
-        {/* Preview / Edit tabs */}
-        <div className="surface-card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex gap-3">
-              <button
-                onClick={() => setMode('preview')}
-                className={`text-sm transition-colors ${mode === 'preview' ? 'text-accent font-medium border-b-2 border-accent pb-1' : 'text-text-muted hover:text-text-secondary pb-1'}`}
-              >
-                プレビュー
-              </button>
-              <button
-                onClick={() => setMode('edit')}
-                className={`text-sm transition-colors ${mode === 'edit' ? 'text-accent font-medium border-b-2 border-accent pb-1' : 'text-text-muted hover:text-text-secondary pb-1'}`}
-              >
-                編集
-              </button>
-            </div>
-            <button onClick={handleDownloadPdf} disabled={isPdfLoading} className="inline-flex items-center gap-1 text-sm text-accent hover:text-accent/80 transition-colors disabled:opacity-50">
-              <Download className="w-4 h-4" strokeWidth={1.5} />
-              {isPdfLoading ? 'PDF生成中...' : 'PDFダウンロード'}
-            </button>
-          </div>
-
-          {mode === 'preview' ? (
-            isPdfLoading ? (
-              <div className="flex items-center justify-center py-16 bg-gray-50 rounded-card border border-border">
-                <img src="/dashboard/mascot-run.gif" alt="" className="w-12 h-12" style={{ imageRendering: 'pixelated' }} />
-                <p className="ml-3 text-sm text-text-secondary">PDFを生成中...</p>
-              </div>
-            ) : pdfUrl ? (
-              <iframe src={pdfUrl} className="w-full rounded-card border border-border" style={{ height: '600px' }} title="見積書プレビュー" />
-            ) : (
-              <div className="text-sm text-text-secondary whitespace-pre-wrap font-mono bg-gray-50 p-4 rounded-card border border-border leading-relaxed">
-                {editText}
-              </div>
-            )
-          ) : (
-            <textarea
-              value={editText}
-              onChange={e => setEditText(e.target.value)}
-              rows={20}
-              className="w-full px-4 py-3 text-sm font-mono border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent resize-y leading-relaxed"
-            />
-          )}
-        </div>
-
-        {/* Verification */}
-        {verification && (
-          <div className="surface-card p-5">
-            <h3 className="text-sm font-medium text-text-primary mb-3">FujiTrace 品質チェック</h3>
-            {Array.isArray((verification as Record<string, unknown>).critical_issues) && ((verification as Record<string, unknown>).critical_issues as Array<Record<string, unknown>>).length > 0 && (
-              <div className="text-sm p-3 rounded-card border-l-2 border-status-fail bg-status-fail/5 mb-2">
-                {((verification as Record<string, unknown>).critical_issues as Array<Record<string, unknown>>).map((issue, i) => (
-                  <p key={i} className="text-status-fail">{String(issue.message)}</p>
-                ))}
-              </div>
-            )}
-            {Array.isArray((verification as Record<string, unknown>).warnings) && ((verification as Record<string, unknown>).warnings as Array<Record<string, unknown>>).length > 0 && (
-              <div className="text-sm p-3 rounded-card border-l-2 border-status-warn bg-status-warn/5 mb-2">
-                {((verification as Record<string, unknown>).warnings as Array<Record<string, unknown>>).map((issue, i) => (
-                  <p key={i} className="text-status-warn">{String(issue.message)}</p>
-                ))}
-              </div>
-            )}
-            {Array.isArray((verification as Record<string, unknown>).suggestions) && ((verification as Record<string, unknown>).suggestions as string[]).length > 0 && (
-              <details className="text-sm">
-                <summary className="text-text-muted cursor-pointer hover:text-text-secondary">改善提案 ({((verification as Record<string, unknown>).suggestions as string[]).length}件)</summary>
-                <div className="mt-2 text-text-muted pl-3">
-                  {((verification as Record<string, unknown>).suggestions as string[]).map((s, i) => (
-                    <p key={i}>- {s}</p>
-                  ))}
-                </div>
-              </details>
-            )}
-          </div>
-        )}
-
-        <button
-          onClick={onReset}
-          className="px-4 py-2 text-sm text-accent border border-accent rounded-card hover:bg-accent/5 transition-colors"
-        >
-          もう一度作成する
-        </button>
-      </div>
-    </TaskViewWrapper>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  EstimateCreateForm                                                 */
-/* ------------------------------------------------------------------ */
-
-function EstimateCreateForm({ companyInfo, onBack, embedded }: { companyInfo: CompanyInfo; onBack: () => void; embedded?: boolean }) {
-  const [clientName, setClientName] = useState('');
-  const [subject, setSubject] = useState('');
-  const [items, setItems] = useState([{ name: '', quantity: 1, unitPrice: '' as string | number }]);
-  const [deliveryDate, setDeliveryDate] = useState('');
-  const [paymentTerms, setPaymentTerms] = useState('月末締め翌月末払い');
-  const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<Record<string, unknown> | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [skeletonTrace, setSkeletonTrace] = useState<SkeletonTrace | null>(null);
-  const [sseSteps, setSseSteps] = useState<SkeletonStep[]>([]);
-  const [isExecuting, setIsExecuting] = useState(false);
-  const estimateExpectedSteps = ['入力データ受信', 'AI見積書生成', '自動検証', '完了'];
-
-  const addItem = () => setItems([...items, { name: '', quantity: 1, unitPrice: '' }]);
-  const removeItem = (index: number) => setItems(items.filter((_, i) => i !== index));
-  const updateItem = (index: number, field: string, value: string | number) => {
-    const updated = [...items];
-    updated[index] = { ...updated[index], [field]: value };
-    setItems(updated);
-  };
-
-  const subtotal = items.reduce((sum, item) => sum + item.quantity * (Number(item.unitPrice) || 0), 0);
-  const tax = Math.floor(subtotal * 0.1);
-  const total = subtotal + tax;
-
-  const handleSubmit = async () => {
-    if (!clientName.trim()) { setError('宛先を入力してください'); return; }
-    if (items.some(i => !i.name.trim())) { setError('全ての明細に品名を入力してください'); return; }
-
-    setIsLoading(true);
-    setIsExecuting(true);
-    setError(null);
-    setSkeletonTrace(null);
-    setSseSteps([]);
-
-    try {
-      const headers = await getAuthHeaders();
-
-      const ci = companyInfo;
-      const parts: string[] = [];
-      if (ci.companyName) parts.push(`発行元: ${ci.companyName}`);
-      if (ci.address) parts.push(`住所: ${ci.address}`);
-      if (ci.phone) parts.push(`電話: ${ci.phone}`);
-      if (ci.email) parts.push(`メール: ${ci.email}`);
-      if (ci.representative) parts.push(`代表者: ${ci.representative}`);
-      if (ci.invoiceNumber) parts.push(`インボイス番号: ${ci.invoiceNumber}`);
-
-      const itemLines = items.map(i => `- ${i.name}: ${i.quantity}個 × ¥${(Number(i.unitPrice) || 0).toLocaleString()}`).join('\n');
-
-      const userMsg = `${parts.join('\n')}\n\n宛先: ${clientName}\n件名: ${subject || 'Webサイト制作'}\n\n明細:\n${itemLines}\n\n納期: ${deliveryDate || '未定'}\n支払条件: ${paymentTerms}`;
-
-      // Try SSE streaming endpoint first, fall back to non-streaming
-      const res = await fetch('/api/tools/estimate/create-stream', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          conversation_history: [{ role: 'user', content: userMsg }],
-          business_info_id: 'default',
-        }),
-      });
-
-      if (!res.ok || !res.body) {
-        // Fall back to non-streaming endpoint
-        const fallbackRes = await fetch('/api/tools/estimate/create', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            conversation_history: [{ role: 'user', content: userMsg }],
-            business_info_id: 'default',
-          }),
-        });
-        const body = await fallbackRes.json() as Record<string, unknown>;
-        if ((body as { success?: boolean }).success) {
-          setResult(body.data as Record<string, unknown>);
-          const data = body.data as Record<string, unknown> | undefined;
-          if (data?.skeleton_trace) {
-            setSkeletonTrace(data.skeleton_trace as SkeletonTrace);
-          }
-        } else {
-          setError(String(body.error || 'エラーが発生しました'));
-        }
-        setIsExecuting(false);
-        setIsLoading(false);
-        return;
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        let currentEvent = '';
-        for (const line of lines) {
-          if (line.startsWith('event: ')) {
-            currentEvent = line.slice(7);
-          } else if (line.startsWith('data: ') && currentEvent) {
-            try {
-              const data = JSON.parse(line.slice(6)) as Record<string, unknown>;
-              if (currentEvent === 'step') {
-                setSseSteps(prev => [...prev, data as unknown as SkeletonStep]);
-              } else if (currentEvent === 'done') {
-                const doneData = data as { success?: boolean; data?: Record<string, unknown> };
-                if (doneData.success && doneData.data) {
-                  setResult(doneData.data);
-                  if (doneData.data.skeleton_trace) {
-                    setSkeletonTrace(doneData.data.skeleton_trace as SkeletonTrace);
-                  }
-                } else {
-                  setError(String(data.error || 'エラーが発生しました'));
-                }
-              } else if (currentEvent === 'error') {
-                setError(String(data.error || 'エラーが発生しました'));
-              }
-            } catch {
-              /* ignore parse errors */
-            }
-            currentEvent = '';
-          }
-        }
-      }
-    } catch {
-      setError('通信エラーが発生しました');
-    } finally {
-      setIsExecuting(false);
-      setIsLoading(false);
-    }
-  };
-
-  if (isLoading || isExecuting) {
-    return (
-      <TaskViewWrapper title="見積書作成" onBack={onBack} embedded={embedded}>
-        <StreamingSkeletonTrace
-          steps={sseSteps}
-          expectedSteps={estimateExpectedSteps}
-          taskName="見積書作成"
-          isExecuting={isExecuting}
-          trace={null}
-          soundEnabled={true}
-        />
-      </TaskViewWrapper>
-    );
-  }
-
-  if (result) {
-    return (
-      <>
-        <EstimateResult result={result} onReset={() => setResult(null)} onBack={onBack} embedded={embedded} />
-        {skeletonTrace && (
-          <div className="max-w-2xl mx-auto px-4 mt-6">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">FujiTrace 実行レポート</h3>
-            <SkeletonTraceComponent trace={skeletonTrace} isLoading={false} />
-          </div>
-        )}
-      </>
-    );
-  }
-
-  return (
-    <TaskViewWrapper title="見積書作成" onBack={onBack} embedded={embedded}>
-      {error && (
-        <div className="text-sm p-3 rounded-card border-l-2 border-status-fail bg-status-fail/5 mb-4">
-          <p className="text-status-fail">{error}</p>
-        </div>
-      )}
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm text-text-secondary mb-1">宛先（会社名）</label>
-          <input
-            type="text"
-            value={clientName}
-            onChange={e => setClientName(e.target.value)}
-            placeholder="株式会社○○"
-            className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm text-text-secondary mb-1">件名</label>
-          <input
-            type="text"
-            value={subject}
-            onChange={e => setSubject(e.target.value)}
-            placeholder="Webサイト制作費用"
-            className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm text-text-secondary mb-2">明細</label>
-          {items.map((item, idx) => (
-            <div key={idx} className="flex gap-2 mb-2 items-end">
-              <div className="flex-1">
-                {idx === 0 && <span className="text-xs text-text-muted">品名</span>}
-                <input
-                  type="text"
-                  value={item.name}
-                  onChange={e => updateItem(idx, 'name', e.target.value)}
-                  placeholder="デザイン費"
-                  className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                />
-              </div>
-              <div className="w-20">
-                {idx === 0 && <span className="text-xs text-text-muted">数量</span>}
-                <input
-                  type="number"
-                  min="1"
-                  value={item.quantity}
-                  onChange={e => updateItem(idx, 'quantity', parseInt(e.target.value) || 1)}
-                  className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                />
-              </div>
-              <div className="w-32">
-                {idx === 0 && <span className="text-xs text-text-muted">単価 (円)</span>}
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={item.unitPrice}
-                  onChange={e => {
-                    const v = e.target.value.replace(/[^0-9]/g, '');
-                    updateItem(idx, 'unitPrice', v === '' ? '' : parseInt(v));
-                  }}
-                  placeholder="0"
-                  className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                />
-              </div>
-              {items.length > 1 && (
-                <button onClick={() => removeItem(idx)} className="p-2 text-text-muted hover:text-status-fail transition-colors" aria-label="明細を削除">
-                  <X className="w-4 h-4" strokeWidth={1.5} />
-                </button>
-              )}
-            </div>
-          ))}
-          <button onClick={addItem} className="text-sm text-accent hover:text-accent/80 transition-colors mt-1">
-            + 明細を追加
-          </button>
-        </div>
-
-        <div className="surface-card p-4 text-sm">
-          <div className="flex justify-between text-text-secondary"><span>小計</span><span>¥{subtotal.toLocaleString()}</span></div>
-          <div className="flex justify-between text-text-secondary mt-1"><span>消費税 (10%)</span><span>¥{tax.toLocaleString()}</span></div>
-          <div className="flex justify-between font-medium text-text-primary mt-2 pt-2 border-t border-border"><span>合計</span><span>¥{total.toLocaleString()}</span></div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-text-secondary mb-1">納期</label>
-            <input
-              type="date"
-              value={deliveryDate}
-              onChange={e => setDeliveryDate(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-text-secondary mb-1">支払条件</label>
-            <select
-              value={paymentTerms}
-              onChange={e => setPaymentTerms(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-            >
-              <option>月末締め翌月末払い</option>
-              <option>月末締め翌々月末払い</option>
-              <option>納品後30日以内</option>
-              <option>納品後即日</option>
-              <option>前払い</option>
-            </select>
-          </div>
-        </div>
-
-        <button
-          onClick={handleSubmit}
-          disabled={isLoading}
-          className="w-full py-3 text-sm text-white bg-accent rounded-card hover:bg-accent/90 transition-colors disabled:opacity-50"
-        >
-          見積書を作成
-        </button>
-      </div>
-    </TaskViewWrapper>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  TaskWithTabs — unified create/check with tab switcher              */
-/* ------------------------------------------------------------------ */
-
-function TaskWithTabs({ taskConfig, isEstimate, companyInfo, onBack }: {
-  taskConfig: TaskConfig;
-  isEstimate: boolean;
-  companyInfo: CompanyInfo;
-  onBack: () => void;
-}) {
-  const [mode, setMode] = useState<'create' | 'check'>('create');
-
-  return (
-    <div className="flex flex-col" style={{ height: 'calc(100vh - 48px - 5rem)' }}>
-      {/* Header with back button */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
-        <button onClick={onBack} className="p-1 text-text-muted hover:text-text-primary transition-colors">
-          <ArrowLeft className="w-5 h-5" strokeWidth={1.5} />
-        </button>
-        <h2 className="text-base font-medium text-text-primary">{taskConfig.title}</h2>
-      </div>
-
-      {/* Tab switcher (only if task has check) */}
-      {taskConfig.hasCheck && (
-        <div className="flex border-b border-border px-4">
-          <button
-            onClick={() => setMode('create')}
-            className={`px-4 py-2.5 text-sm transition-colors ${
-              mode === 'create'
-                ? 'text-accent border-b-2 border-accent font-medium'
-                : 'text-text-muted hover:text-text-secondary'
-            }`}
-          >
-            作成
-          </button>
-          <button
-            onClick={() => setMode('check')}
-            className={`px-4 py-2.5 text-sm transition-colors ${
-              mode === 'check'
-                ? 'text-accent border-b-2 border-accent font-medium'
-                : 'text-text-muted hover:text-text-secondary'
-            }`}
-          >
-            チェック
-          </button>
-        </div>
-      )}
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="max-w-2xl mx-auto">
-          {mode === 'create' ? (
-            isEstimate ? (
-              <EstimateCreateForm companyInfo={companyInfo} onBack={onBack} embedded />
-            ) : (
-              <GenericDocumentForm config={taskConfig.createConfig} companyInfo={companyInfo} onBack={onBack} embedded />
-            )
-          ) : (
-            taskConfig.checkConfig && (
-              <GenericDocumentForm config={taskConfig.checkConfig} companyInfo={companyInfo} onBack={onBack} embedded />
-            )
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  GenericDocumentForm                                                 */
-/* ------------------------------------------------------------------ */
-
-interface CheckResultData {
-  status?: string;
-  critical_issues?: Array<{ field?: string; severity?: string; message: string }>;
-  warnings?: Array<{ field?: string; severity?: string; message: string }>;
-  suggestions?: string[];
-  arithmetic_check?: { ok: boolean; issues: Array<{ field: string; severity: string; message: string }> };
-}
-
-function GenericDocumentForm({ config, companyInfo, onBack, embedded }: { config: GenericFormConfig; companyInfo: CompanyInfo; onBack: () => void; embedded?: boolean }) {
-  const [formData, setFormData] = useState<Record<string, unknown>>({});
-  const [items, setItems] = useState([{ name: '', quantity: 1, unitPrice: 0 }]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
-  const [checkResult, setCheckResult] = useState<CheckResultData | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [attachedFile, setAttachedFile] = useState<File | null>(null);
-  const [skeletonTrace, setSkeletonTrace] = useState<SkeletonTrace | null>(null);
-  const [sseSteps, setSseSteps] = useState<SkeletonStep[]>([]);
-  const [isExecuting, setIsExecuting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const isCheckTask = config.taskId.endsWith('_check') || config.taskId === 'estimate.check';
-  const expectedStepNames = isCheckTask
-    ? ['入力データ受信', '数値データ抽出', '算術検証', 'AI品質チェック', '結果統合']
-    : ['入力データ受信', 'AI生成', '出力検証'];
-
-  const handleSubmit = async () => {
-    for (const field of config.fields) {
-      if (field.required && field.type !== 'items' && !formData[field.key]) {
-        setError(`${field.label}を入力してください`);
-        return;
-      }
-    }
-
-    setIsLoading(true);
-    setIsExecuting(true);
-    setError(null);
-    setSkeletonTrace(null);
-    setSseSteps([]);
-
-    const handleDoneResponse = (data: Record<string, unknown>) => {
-      if (data.skeleton_trace) {
-        setSkeletonTrace(data.skeleton_trace as SkeletonTrace);
-      }
-      const isCheckResponse = data.archetype === 'document_check';
-
-      if (isCheckResponse) {
-        const structured = data.structured_result as CheckResultData | undefined;
-        const arithmeticCheck = data.arithmetic_check as CheckResultData['arithmetic_check'] | undefined;
-        if (structured) {
-          const cr: CheckResultData = {
-            status: structured.status as string | undefined,
-            critical_issues: (structured.critical_issues as CheckResultData['critical_issues']) ?? [],
-            warnings: (structured.warnings as CheckResultData['warnings']) ?? [],
-            suggestions: (structured.suggestions as string[]) ?? [],
-            arithmetic_check: arithmeticCheck,
-          };
-          setCheckResult(cr);
-        } else {
-          try {
-            const parsed = JSON.parse(data.result as string) as CheckResultData;
-            parsed.arithmetic_check = arithmeticCheck;
-            setCheckResult(parsed);
-          } catch {
-            setResult(data.result as string || JSON.stringify(data, null, 2));
-          }
-        }
-      } else {
-        let resultText = '';
-        const structured = data.structured_result as Record<string, unknown> | undefined;
-        if (structured?.document) {
-          resultText = String(structured.document);
-          if (structured.summary) resultText += '\n\n' + String(structured.summary);
-          const warnings = structured.warnings as string[] | undefined;
-          if (warnings?.length) resultText += '\n\n注意事項:\n' + warnings.map(w => '- ' + w).join('\n');
-        } else if (data.result && typeof data.result === 'string') {
-          try {
-            const parsed = JSON.parse(data.result as string) as Record<string, unknown>;
-            if (parsed.document) {
-              resultText = String(parsed.document);
-              if (parsed.summary) resultText += '\n\n' + String(parsed.summary);
-            } else {
-              resultText = data.result as string;
-            }
-          } catch {
-            resultText = data.result as string;
-          }
-        } else if (data.reply) {
-          resultText = String(data.reply);
-        }
-        if (!resultText) resultText = JSON.stringify(data, null, 2);
-        setResult(resultText);
-      }
-    };
-
-    try {
-      const headers = await getAuthHeaders();
-
-      // Build instruction from company info + form data
-      const ci = companyInfo;
-      const ciParts: string[] = [];
-      if (ci.companyName) ciParts.push(`発行元: ${ci.companyName}`);
-      if (ci.address) ciParts.push(`住所: ${ci.address}`);
-      if (ci.phone) ciParts.push(`電話: ${ci.phone}`);
-      if (ci.email) ciParts.push(`メール: ${ci.email}`);
-      if (ci.representative) ciParts.push(`代表者: ${ci.representative}`);
-      if (ci.invoiceNumber) ciParts.push(`インボイス番号: ${ci.invoiceNumber}`);
-
-      const formParts: string[] = [];
-      for (const field of config.fields) {
-        if (field.type === 'items') {
-          const itemLines = items
-            .filter(i => i.name.trim())
-            .map(i => `- ${i.name}: ${i.quantity}個 × ¥${i.unitPrice.toLocaleString()}`)
-            .join('\n');
-          if (itemLines) formParts.push(`明細:\n${itemLines}`);
-        } else {
-          const val = formData[field.key];
-          if (val) formParts.push(`${field.label}: ${val}`);
-        }
-      }
-
-      const instruction = `${ciParts.join('\n')}\n\n${config.title}を作成してください。\n\n${formParts.join('\n')}`;
-
-      if (attachedFile) {
-        // For file-attached check tasks, use agent chat (supports multipart, no SSE)
-        const fd = new FormData();
-        fd.append('file', attachedFile);
-        fd.append('message', `[会社情報]\n${ciParts.join('\n')}\n\n[依頼]\n${instruction}`);
-        const uploadHeaders = { ...headers };
-        delete uploadHeaders['Content-Type'];
-        const res = await fetch('/api/agent/chat', { method: 'POST', headers: uploadHeaders, body: fd });
-        const body = await res.json() as Record<string, unknown>;
-        if (!res.ok || body.success === false) {
-          setError(String(body.error || `エラーが発生しました (${res.status})`));
-        } else {
-          handleDoneResponse((body.data ?? body) as Record<string, unknown>);
-        }
-        setIsExecuting(false);
-        setIsLoading(false);
-        return;
-      }
-
-      // Try SSE streaming endpoint first
-      const res = await fetch('/api/stream/office-task', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          task_id: config.taskId,
-          instruction,
-          ...(isCheckTask ? { document_text: formData['content'] as string || '' } : {}),
-        }),
-      });
-
-      if (!res.ok || !res.body) {
-        // Fall back to non-streaming endpoint
-        const fallbackRes = await fetch('/api/tools/office-task/execute', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            task_id: config.taskId,
-            instruction,
-            ...(isCheckTask ? { document_text: formData['content'] as string || '' } : {}),
-          }),
-        });
-        const body = await fallbackRes.json() as Record<string, unknown>;
-        if (!fallbackRes.ok || body.success === false) {
-          setError(String(body.error || `エラーが発生しました (${fallbackRes.status})`));
-        } else {
-          handleDoneResponse((body.data ?? body) as Record<string, unknown>);
-        }
-        setIsExecuting(false);
-        setIsLoading(false);
-        return;
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        let currentEvent = '';
-        for (const line of lines) {
-          if (line.startsWith('event: ')) {
-            currentEvent = line.slice(7);
-          } else if (line.startsWith('data: ') && currentEvent) {
-            try {
-              const data = JSON.parse(line.slice(6)) as Record<string, unknown>;
-              if (currentEvent === 'step') {
-                setSseSteps(prev => [...prev, data as unknown as SkeletonStep]);
-              } else if (currentEvent === 'done') {
-                const doneData = data as { success?: boolean; data?: Record<string, unknown> };
-                if (doneData.success && doneData.data) {
-                  handleDoneResponse(doneData.data);
-                } else {
-                  setError(String(data.error || 'エラーが発生しました'));
-                }
-              } else if (currentEvent === 'error') {
-                setError(String(data.error || 'エラーが発生しました'));
-              }
-            } catch {
-              /* ignore parse errors */
-            }
-            currentEvent = '';
-          }
-        }
-      }
-    } catch {
-      setError('通信エラーが発生しました');
-    } finally {
-      setIsExecuting(false);
-      setIsLoading(false);
-    }
-  };
-
-  if (isLoading || isExecuting) {
-    return (
-      <TaskViewWrapper title={config.title} onBack={onBack} embedded={embedded}>
-        <StreamingSkeletonTrace
-          steps={sseSteps}
-          expectedSteps={expectedStepNames}
-          taskName={config.title}
-          isExecuting={isExecuting}
-          trace={null}
-          soundEnabled={true}
-        />
-      </TaskViewWrapper>
-    );
-  }
-
-  if (checkResult) {
-    const hasCritical = (checkResult.critical_issues?.length ?? 0) > 0;
-    const hasWarnings = (checkResult.warnings?.length ?? 0) > 0;
-    const hasSuggestions = (checkResult.suggestions?.length ?? 0) > 0;
-    const statusLabel = checkResult.status === 'ok' ? '問題なし' : checkResult.status === 'warning' ? '要確認' : 'エラーあり';
-    const statusColor = checkResult.status === 'ok' ? 'text-green-600' : checkResult.status === 'warning' ? 'text-status-warn' : 'text-status-fail';
-
-    return (
-      <TaskViewWrapper title={config.title} onBack={onBack} embedded={embedded}>
-        <div className="space-y-4">
-          <div className="surface-card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-text-primary">FujiTrace 品質チェック</h3>
-              <span className={`text-sm font-medium ${statusColor}`}>{statusLabel}</span>
-            </div>
-
-            {hasCritical && (
-              <div className="text-sm p-3 rounded-card border-l-2 border-status-fail bg-status-fail/5 mb-3">
-                <p className="text-xs font-medium text-status-fail mb-1">重大な問題</p>
-                {checkResult.critical_issues!.map((issue, i) => (
-                  <p key={i} className="text-status-fail">{issue.message}</p>
-                ))}
-              </div>
-            )}
-
-            {hasWarnings && (
-              <div className="text-sm p-3 rounded-card border-l-2 border-status-warn bg-status-warn/5 mb-3">
-                <p className="text-xs font-medium text-status-warn mb-1">確認事項</p>
-                {checkResult.warnings!.map((issue, i) => (
-                  <p key={i} className="text-status-warn">{issue.message}</p>
-                ))}
-              </div>
-            )}
-
-            {hasSuggestions && (
-              <details className="text-sm mb-3">
-                <summary className="text-text-muted cursor-pointer hover:text-text-secondary">改善提案 ({checkResult.suggestions!.length}件)</summary>
-                <div className="mt-2 text-text-muted pl-3">
-                  {checkResult.suggestions!.map((s, i) => (
-                    <p key={i}>- {s}</p>
-                  ))}
-                </div>
-              </details>
-            )}
-
-            {!hasCritical && !hasWarnings && !hasSuggestions && (
-              <p className="text-sm text-green-600">チェック項目に問題は見つかりませんでした。</p>
-            )}
-          </div>
-
-          {skeletonTrace && (
-            <div className="mt-6">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">FujiTrace 実行レポート</h3>
-              <SkeletonTraceComponent trace={skeletonTrace} isLoading={false} />
-            </div>
-          )}
-
-          <button
-            onClick={() => { setCheckResult(null); setFormData({}); }}
-            className="px-4 py-2 text-sm text-accent border border-accent rounded-card hover:bg-accent/5 transition-colors"
-          >
-            もう一度チェックする
-          </button>
-        </div>
-      </TaskViewWrapper>
-    );
-  }
-
-  if (result) {
-    return (
-      <TaskViewWrapper title={config.title} onBack={onBack} embedded={embedded}>
-        <div className="space-y-4">
-          <div className="surface-card p-5">
-            <h3 className="text-sm font-medium text-text-primary mb-3">結果</h3>
-            <div className="text-sm text-text-secondary prose prose-sm max-w-none prose-headings:text-text-primary prose-strong:text-text-primary prose-th:text-left prose-td:px-2 prose-td:py-1 prose-th:px-2 prose-th:py-1 prose-table:border-collapse prose-td:border prose-td:border-border prose-th:border prose-th:border-border">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{result}</ReactMarkdown>
-              </div>
-          </div>
-          {skeletonTrace && (
-            <div className="mt-6">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">FujiTrace 実行レポート</h3>
-              <SkeletonTraceComponent trace={skeletonTrace} isLoading={false} />
-            </div>
-          )}
-
-          <button
-            onClick={() => { setResult(null); setFormData({}); }}
-            className="px-4 py-2 text-sm text-accent border border-accent rounded-card hover:bg-accent/5 transition-colors"
-          >
-            もう一度作成する
-          </button>
-        </div>
-      </TaskViewWrapper>
-    );
-  }
-
-  return (
-    <TaskViewWrapper title={config.title} onBack={onBack} embedded={embedded}>
-      {error && (
-        <div className="text-sm p-3 rounded-card border-l-2 border-status-fail bg-status-fail/5 mb-4">
-          <p className="text-status-fail">{error}</p>
-        </div>
-      )}
-      <div className="space-y-4">
-        {config.fields.map(field => {
-          if (field.type === 'items') {
-            const itemSubtotal = items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
-            const itemTax = Math.floor(itemSubtotal * 0.1);
-            const itemTotal = itemSubtotal + itemTax;
-            return (
-              <div key={field.key}>
-                <label className="block text-sm text-text-secondary mb-2">{field.label}</label>
-                {items.map((item, idx) => (
-                  <div key={idx} className="flex gap-2 mb-2 items-end">
-                    <div className="flex-1">
-                      {idx === 0 && <span className="text-xs text-text-muted">品名</span>}
-                      <input type="text" value={item.name} onChange={e => { const u = [...items]; u[idx] = { ...u[idx], name: e.target.value }; setItems(u); }} placeholder="品名" className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent" />
-                    </div>
-                    <div className="w-20">
-                      {idx === 0 && <span className="text-xs text-text-muted">数量</span>}
-                      <input type="number" min="1" value={item.quantity} onChange={e => { const u = [...items]; u[idx] = { ...u[idx], quantity: parseInt(e.target.value) || 1 }; setItems(u); }} className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent" />
-                    </div>
-                    <div className="w-32">
-                      {idx === 0 && <span className="text-xs text-text-muted">単価 (円)</span>}
-                      <input type="number" min="0" value={item.unitPrice} onChange={e => { const u = [...items]; u[idx] = { ...u[idx], unitPrice: parseInt(e.target.value) || 0 }; setItems(u); }} className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent" />
-                    </div>
-                    {items.length > 1 && (
-                      <button onClick={() => setItems(items.filter((_, i) => i !== idx))} className="p-2 text-text-muted hover:text-status-fail transition-colors" aria-label="明細を削除"><X className="w-4 h-4" strokeWidth={1.5} /></button>
-                    )}
-                  </div>
-                ))}
-                <button onClick={() => setItems([...items, { name: '', quantity: 1, unitPrice: 0 }])} className="text-sm text-accent hover:text-accent/80 transition-colors mt-1">+ 明細を追加</button>
-                <div className="surface-card p-3 mt-3 text-sm">
-                  <div className="flex justify-between text-text-secondary"><span>小計</span><span>¥{itemSubtotal.toLocaleString()}</span></div>
-                  <div className="flex justify-between text-text-secondary mt-1"><span>消費税 (10%)</span><span>¥{itemTax.toLocaleString()}</span></div>
-                  <div className="flex justify-between font-medium text-text-primary mt-2 pt-2 border-t border-border"><span>合計</span><span>¥{itemTotal.toLocaleString()}</span></div>
-                </div>
-              </div>
-            );
-          }
-          if (field.type === 'select') {
-            return (
-              <div key={field.key}>
-                <label className="block text-sm text-text-secondary mb-1">{field.label}</label>
-                <select value={(formData[field.key] as string) || field.options?.[0] || ''} onChange={e => setFormData({ ...formData, [field.key]: e.target.value })} className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent">
-                  {field.options?.map(opt => <option key={opt}>{opt}</option>)}
-                </select>
-              </div>
-            );
-          }
-          if (field.type === 'textarea') {
-            return (
-              <div key={field.key}>
-                <label className="block text-sm text-text-secondary mb-1">{field.label}</label>
-                <textarea value={(formData[field.key] as string) || ''} onChange={e => setFormData({ ...formData, [field.key]: e.target.value })} placeholder={field.placeholder} rows={4} className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent resize-none" />
-                {field.key === 'content' && (
-                  <div className="mt-2">
-                    <input ref={fileInputRef} type="file" accept=".txt,.csv,.pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f && f.size <= 5 * 1024 * 1024) setAttachedFile(f); e.target.value = ''; }} />
-                    <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-1 text-sm text-accent hover:text-accent/80 transition-colors">
-                      <Paperclip className="w-4 h-4" strokeWidth={1.5} />
-                      ファイルを添付
-                    </button>
-                    {attachedFile && (
-                      <span className="ml-2 text-xs text-text-muted">
-                        {attachedFile.name} ({(attachedFile.size / 1024).toFixed(0)} KB)
-                        <button onClick={() => setAttachedFile(null)} className="text-status-fail ml-1" aria-label="添付ファイルを削除">x</button>
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          }
-          return (
-            <div key={field.key}>
-              <label className="block text-sm text-text-secondary mb-1">{field.label}</label>
-              <input type={field.type} value={(formData[field.key] as string) || ''} onChange={e => setFormData({ ...formData, [field.key]: e.target.value })} placeholder={field.placeholder} className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent" />
-            </div>
-          );
-        })}
-
-        <button onClick={handleSubmit} disabled={isLoading} className="w-full py-3 text-sm text-white bg-accent rounded-card hover:bg-accent/90 transition-colors disabled:opacity-50">
-          {config.title.includes('チェック') ? 'チェック開始' : '作成開始'}
-        </button>
-      </div>
-    </TaskViewWrapper>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 /*  ProUpgradeModal                                                    */
 /* ------------------------------------------------------------------ */
 
@@ -1407,120 +262,223 @@ function ProUpgradeModal({ onClose }: { onClose: () => void }) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  RateLimitModal                                                     */
+/* ------------------------------------------------------------------ */
+
+function RateLimitModal({ resetAt, onClose }: { resetAt: string; onClose: () => void }) {
+  const resetDate = new Date(resetAt);
+  const formatted = resetDate.toLocaleString('ja-JP', {
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+      <div
+        className="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 p-6"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="rate-limit-title"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 id="rate-limit-title" className="text-base font-semibold text-text-primary">
+            利用制限に達しました
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 text-text-muted hover:text-text-primary rounded transition-colors"
+            aria-label="閉じる"
+          >
+            <X className="w-5 h-5" strokeWidth={1.5} />
+          </button>
+        </div>
+        <p className="text-sm text-text-secondary mb-2">
+          {formatted} にリセットされます。
+        </p>
+        <p className="text-sm text-text-secondary mb-6">
+          Pro プランにアップグレードすると無制限でご利用いただけます。
+        </p>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2 text-sm text-text-secondary border border-border rounded-card hover:bg-base-elevated transition-colors"
+          >
+            閉じる
+          </button>
+          <a
+            href="/dashboard/settings"
+            className="flex-1 px-4 py-2 text-sm text-white bg-accent rounded-card hover:bg-accent/90 transition-colors text-center"
+          >
+            Pro にアップグレード
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  ToolCallIndicator                                                  */
+/* ------------------------------------------------------------------ */
+
+function ToolCallIndicator({ toolCall }: { toolCall: ToolCallState }) {
+  return (
+    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+      toolCall.status === 'running'
+        ? 'bg-blue-50 text-blue-700 border border-blue-100'
+        : toolCall.status === 'ok'
+          ? 'bg-green-50 text-green-700 border border-green-100'
+          : 'bg-red-50 text-red-700 border border-red-100'
+    }`}>
+      {toolCall.status === 'running' && (
+        <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" strokeWidth={1.5} />
+      )}
+      {toolCall.status === 'ok' && (
+        <CheckCircle2 className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+      )}
+      {toolCall.status === 'error' && (
+        <AlertCircle className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+      )}
+      <Wrench className="w-3.5 h-3.5 flex-shrink-0 opacity-60" strokeWidth={1.5} />
+      <span className="font-mono text-xs truncate">{toolCall.tool}</span>
+      {toolCall.status === 'running' && (
+        <span className="text-xs opacity-70">実行中...</span>
+      )}
+      {toolCall.status === 'ok' && (
+        <span className="text-xs opacity-70">完了</span>
+      )}
+      {toolCall.status === 'error' && (
+        <span className="text-xs opacity-70">エラー</span>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  ChatBubble                                                         */
+/* ------------------------------------------------------------------ */
+
+function ChatBubble({ message }: { message: ChatMessage }) {
+  if (message.role === 'user') {
+    return (
+      <div className="flex justify-end mb-4">
+        <div className="max-w-[80%] sm:max-w-[70%]">
+          <div className="bg-accent text-white px-4 py-3 rounded-2xl rounded-br-md text-sm leading-relaxed whitespace-pre-wrap">
+            {message.content}
+          </div>
+          <p className="text-[10px] text-text-muted mt-1 text-right">
+            {message.timestamp.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Assistant message
+  return (
+    <div className="flex justify-start mb-4">
+      <div className="max-w-[85%] sm:max-w-[75%]">
+        {/* Tool calls */}
+        {message.toolCalls && message.toolCalls.length > 0 && (
+          <div className="space-y-1.5 mb-2">
+            {message.toolCalls.map((tc, i) => (
+              <ToolCallIndicator key={`${tc.index}-${i}`} toolCall={tc} />
+            ))}
+          </div>
+        )}
+
+        {/* Message content */}
+        {message.content && (
+          <div className="bg-white border border-border px-4 py-3 rounded-2xl rounded-bl-md text-sm text-text-primary">
+            <div className="prose prose-sm max-w-none prose-headings:text-text-primary prose-strong:text-text-primary prose-th:text-left prose-td:px-2 prose-td:py-1 prose-th:px-2 prose-th:py-1 prose-table:border-collapse prose-td:border prose-td:border-border prose-th:border prose-th:border-border">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+            </div>
+          </div>
+        )}
+
+        {/* Streaming indicator */}
+        {message.isStreaming && !message.content && (!message.toolCalls || message.toolCalls.length === 0) && (
+          <div className="bg-white border border-border px-4 py-3 rounded-2xl rounded-bl-md">
+            <div className="flex items-center gap-2 text-sm text-text-muted">
+              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
+              考え中...
+            </div>
+          </div>
+        )}
+
+        {/* Attachments */}
+        {message.attachments && message.attachments.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {message.attachments.map((url, i) => (
+              <a
+                key={i}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-accent border border-accent/30 rounded-lg hover:bg-accent/5 transition-colors"
+              >
+                <FileText className="w-3.5 h-3.5" strokeWidth={1.5} />
+                <Download className="w-3 h-3" strokeWidth={1.5} />
+                添付ファイル {i + 1}
+              </a>
+            ))}
+          </div>
+        )}
+
+        {/* Error */}
+        {message.error && (
+          <div className="mt-2 text-sm p-3 rounded-lg border border-red-200 bg-red-50 text-red-700">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+              {message.error}
+            </div>
+          </div>
+        )}
+
+        {/* Timestamp */}
+        {!message.isStreaming && message.content && (
+          <p className="text-[10px] text-text-muted mt-1">
+            {message.timestamp.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Main component                                                     */
 /* ------------------------------------------------------------------ */
 
 export default function AiClerkChat() {
-  const [view, setView] = useState<ViewType>({ type: 'hub' });
-  const [trialInfo, setTrialInfo] = useState<TrialInfo | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [setupSuccess, setSetupSuccess] = useState(false);
-  const [isSettingUp, setIsSettingUp] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  // conversation_id can be set when the server returns one in future iterations
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [conversationId, setConversationId] = useState<string | undefined>(undefined);
+
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>(loadCompanyInfo);
   const [hasSeenCompanySetup, setHasSeenCompanySetup] = useState(false);
 
-  // Plan context for gating Pro features
-  const { isFree, loading: planLoading } = usePlan();
   const [showProModal, setShowProModal] = useState(false);
+  const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitInfo | null>(null);
 
-  // Autonomous mode (β) — Contract-Based AI Clerk Runtime
-  const [mode, setMode] = useState<'cards' | 'agent'>('cards');
-  const [agentEvents, setAgentEvents] = useState<AgentSseEvent[]>([]);
-  const [isAgentRunning, setIsAgentRunning] = useState(false);
-  const agentAbortRef = useRef<AbortController | null>(null);
+  const { loading: planLoading } = usePlan();
 
-  const handleOpenAttachment = useCallback((att: AgentAttachment) => {
-    if (att.url) {
-      window.open(att.url, '_blank', 'noopener,noreferrer');
-    }
-  }, []);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  const handleAgentSend = useCallback(
-    async (message: string) => {
-      if (isAgentRunning) return;
-      setAgentEvents([]);
-      setIsAgentRunning(true);
-      const controller = new AbortController();
-      agentAbortRef.current = controller;
-
-      const pushError = (code: string, msg: string) => {
-        setAgentEvents((prev) => [...prev, { type: 'error', code, message: msg }]);
-      };
-
-      try {
-        const headers = await getAuthHeaders();
-        const res = await fetch('/api/agent/contract-chat', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ message }),
-          signal: controller.signal,
-        });
-
-        if (res.status === 403) {
-          try {
-            const body = await res.json() as { code?: string; error?: string };
-            if (body.code === 'PRO_REQUIRED') {
-              setShowProModal(true);
-              setIsAgentRunning(false);
-              return;
-            }
-          } catch { /* fall through */ }
-        }
-
-        if (!res.ok || !res.body) {
-          pushError('HTTP_ERROR', `サーバーエラー (${res.status})`);
-          setIsAgentRunning(false);
-          return;
-        }
-
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-
-        // Parse SSE: events separated by blank lines, each line "data: <json>"
-        // [DONE] sentinel signals end of stream.
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          let idx: number;
-          while ((idx = buffer.indexOf('\n\n')) !== -1) {
-            const raw = buffer.slice(0, idx);
-            buffer = buffer.slice(idx + 2);
-            const lines = raw.split('\n');
-            for (const line of lines) {
-              if (!line.startsWith('data:')) continue;
-              const payload = line.slice(5).trim();
-              if (!payload) continue;
-              if (payload === '[DONE]') {
-                setIsAgentRunning(false);
-                return;
-              }
-              try {
-                const ev = JSON.parse(payload) as AgentSseEvent;
-                setAgentEvents((prev) => [...prev, ev]);
-              } catch {
-                pushError('PARSE_ERROR', 'SSE イベントの解析に失敗しました');
-              }
-            }
-          }
-        }
-      } catch (err) {
-        if ((err as Error).name !== 'AbortError') {
-          pushError('NETWORK_ERROR', (err as Error).message || 'ネットワークエラー');
-        }
-      } finally {
-        setIsAgentRunning(false);
-        agentAbortRef.current = null;
-      }
-    },
-    [isAgentRunning],
-  );
-
-  // Auto-open company info modal on mount if company info is empty
+  // Auto-open company info modal on mount if empty
   useEffect(() => {
     if (!hasCompanyInfo(companyInfo) && !hasSeenCompanySetup) {
       setShowCompanyModal(true);
@@ -1528,277 +486,456 @@ export default function AiClerkChat() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch trial status
-  const fetchTrialStatus = useCallback(async () => {
-    try {
-      const headers = await getAuthHeaders();
-      const res = await fetch('/api/agent/trial-status', { headers });
-      if (res.ok) {
-        const body = (await res.json()) as {
-          success: boolean;
-          data: { trialInfo: TrialInfo; isAdmin?: boolean };
-        };
-        if (body.success && body.data?.trialInfo) {
-          setTrialInfo(body.data.trialInfo);
-          if (body.data.isAdmin) setIsAdmin(true);
-        }
-      }
-    } catch {
-      // Silent fail -- trial badge is non-critical
-    }
-  }, []);
-
+  // Auto-scroll to bottom
   useEffect(() => {
-    fetchTrialStatus();
-  }, [fetchTrialStatus]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-  // Handle ?setup=success return from Stripe Checkout
+  // Auto-expand textarea
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('setup') === 'success') {
-      setError(null);
-      setSetupSuccess(true);
-      window.history.replaceState({}, '', window.location.pathname);
-      fetchTrialStatus();
-      const timer = setTimeout(() => setSetupSuccess(false), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [fetchTrialStatus]);
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const next = Math.min(el.scrollHeight, 160);
+    el.style.height = `${next}px`;
+  }, [inputValue]);
 
-  // Redirect to Stripe Checkout for payment method registration
-  const handleSetupPayment = useCallback(async () => {
-    setIsSettingUp(true);
-    try {
-      const headers = await getAuthHeaders();
-      const res = await fetch('/api/billing/agent-setup', {
-        method: 'POST',
-        headers,
-      });
-      const body = (await res.json()) as {
-        setupUrl?: string;
-        error?: string;
-      };
-      if (body.setupUrl) {
-        window.location.href = body.setupUrl;
-      } else {
-        setError(body.error || 'お支払い方法の登録に失敗しました。');
-      }
-    } catch {
-      setError('お支払い方法の登録に失敗しました。');
-    } finally {
-      setIsSettingUp(false);
-    }
-  }, []);
-
-  // Save company info
   const handleSaveCompanyInfo = useCallback((info: CompanyInfo) => {
     setCompanyInfo(info);
     saveCompanyInfo(info);
   }, []);
 
-  const handleTaskAction = useCallback((targetView: ViewType) => {
-    if (!hasCompanyInfo(companyInfo)) {
+  const generateId = () => `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  /* ---------------------------------------------------------------- */
+  /*  SSE Chat Streaming                                               */
+  /* ---------------------------------------------------------------- */
+
+  const handleSend = useCallback(async (overrideMessage?: string) => {
+    const text = (overrideMessage || inputValue).trim();
+    if (!text || isStreaming) return;
+
+    // Check company info before first message
+    if (messages.length === 0 && !hasCompanyInfo(companyInfo)) {
       setShowCompanyModal(true);
       return;
     }
-    setView(targetView);
-  }, [companyInfo]);
 
-  // Hub view
-  if (view.type === 'hub') {
-    return (
-      <div className="flex flex-col items-center" style={{ height: 'calc(100vh - 48px - 5rem)' }}>
-        {/* Company Info Modal */}
-        {showCompanyModal && (
-          <CompanyInfoModal
-            info={companyInfo}
-            onSave={handleSaveCompanyInfo}
-            onClose={() => setShowCompanyModal(false)}
-          />
-        )}
+    // Build user message with company info context if this is the first message
+    let messageToSend = text;
+    if (messages.length === 0 && hasCompanyInfo(companyInfo)) {
+      const ci = companyInfo;
+      const parts: string[] = [];
+      if (ci.companyName) parts.push(`会社名: ${ci.companyName}`);
+      if (ci.address) parts.push(`住所: ${ci.address}`);
+      if (ci.phone) parts.push(`電話: ${ci.phone}`);
+      if (ci.email) parts.push(`メール: ${ci.email}`);
+      if (ci.representative) parts.push(`代表者: ${ci.representative}`);
+      if (ci.invoiceNumber) parts.push(`インボイス番号: ${ci.invoiceNumber}`);
+      if (parts.length > 0) {
+        messageToSend = `[会社情報]\n${parts.join('\n')}\n\n[依頼]\n${text}`;
+      }
+    }
 
-        {/* Pro Upgrade Modal */}
-        {showProModal && (
-          <ProUpgradeModal onClose={() => setShowProModal(false)} />
-        )}
+    // Add user message to chat
+    const userMsg: ChatMessage = {
+      id: generateId(),
+      role: 'user',
+      content: text,
+      timestamp: new Date(),
+    };
 
-        {/* Payment setup success message */}
-        {setupSuccess && (
-          <div className="flex-shrink-0 mb-2">
-            <span className="text-xs text-status-pass bg-status-pass/10 px-2 py-1 rounded-card">
-              お支払い方法の登録が完了しました
-            </span>
-          </div>
-        )}
+    const assistantId = generateId();
+    const assistantMsg: ChatMessage = {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      toolCalls: [],
+      isStreaming: true,
+    };
 
-        {/* Trial exhausted + payment setup */}
-        {trialInfo && !isAdmin && trialInfo.remaining === 0 && (
-          <div className="flex-shrink-0 mb-3 flex flex-col items-center gap-2">
-            <span className="text-xs text-status-fail">
-              無料お試し（{trialInfo.limit}回）が終了しました
-            </span>
-            <button
-              type="button"
-              onClick={handleSetupPayment}
-              disabled={isSettingUp}
-              className="text-sm text-white bg-accent hover:bg-accent/90 px-4 py-2 rounded-card disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              aria-label="お支払い方法を登録する"
-            >
-              {isSettingUp ? '処理中...' : 'お支払い方法を登録する'}
-            </button>
-          </div>
-        )}
+    setMessages(prev => [...prev, userMsg, assistantMsg]);
+    setInputValue('');
+    setIsStreaming(true);
 
-        {/* Error message */}
-        {error && (
-          <p className="mt-2 text-sm text-status-fail text-center" role="alert">
-            {error}
-          </p>
-        )}
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-        {/* Header */}
-        <div className="flex flex-col items-center pt-8 sm:pt-12 mb-8">
-          <img
-            src="/dashboard/mascot-idle.gif"
-            alt=""
-            className="w-16 h-16 sm:w-20 sm:h-20"
-            style={{ imageRendering: 'pixelated' }}
-            aria-hidden="true"
-          />
-          <h2 className="mt-3 text-xl font-semibold text-text-primary">FujiTrace AI 事務員</h2>
-          <p className="mt-1 text-sm text-text-secondary">作業を選んで開始してください</p>
+    try {
+      const headers = await getAuthHeaders();
 
-          {/* Trial badge */}
-          {trialInfo && !isAdmin && trialInfo.remaining > 0 && (
-            <span className="mt-2 text-xs px-2 py-1 rounded-card text-text-secondary bg-base-elevated">
-              お試し: 残り{trialInfo.remaining}回
-            </span>
-          )}
+      // Build request body
+      const body: Record<string, unknown> = {
+        message: messageToSend,
+      };
+      if (conversationId) {
+        body.conversation_id = conversationId;
+      }
+      if (attachedFile) {
+        const base64 = await fileToBase64(attachedFile);
+        body.file = {
+          name: attachedFile.name,
+          type: attachedFile.type,
+          content_base64: base64,
+        };
+        setAttachedFile(null);
+      }
+
+      const res = await fetch('/api/agent/chat-v2', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+
+      // Handle error responses
+      if (res.status === 429) {
+        try {
+          const errorBody = await res.json() as { code?: string; resetAt?: string };
+          if (errorBody.code === 'FREE_LIMIT' && errorBody.resetAt) {
+            setRateLimitInfo({ resetAt: errorBody.resetAt });
+          }
+        } catch { /* ignore */ }
+        setMessages(prev => prev.map(m =>
+          m.id === assistantId
+            ? { ...m, isStreaming: false, error: '利用制限に達しました。しばらくお待ちください。' }
+            : m
+        ));
+        setIsStreaming(false);
+        return;
+      }
+
+      if (res.status === 403) {
+        try {
+          const errorBody = await res.json() as { code?: string };
+          if (errorBody.code === 'PRO_REQUIRED') {
+            setShowProModal(true);
+          }
+        } catch { /* ignore */ }
+        setMessages(prev => prev.map(m =>
+          m.id === assistantId
+            ? { ...m, isStreaming: false, error: 'この機能は Pro プラン以上でご利用いただけます。' }
+            : m
+        ));
+        setIsStreaming(false);
+        return;
+      }
+
+      if (!res.ok || !res.body) {
+        setMessages(prev => prev.map(m =>
+          m.id === assistantId
+            ? { ...m, isStreaming: false, error: `サーバーエラーが発生しました (${res.status})` }
+            : m
+        ));
+        setIsStreaming(false);
+        return;
+      }
+
+      // Parse SSE stream
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Split on double newlines (SSE event boundary)
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() || '';
+
+        for (const part of parts) {
+          const lines = part.split('\n');
+          for (const line of lines) {
+            if (!line.startsWith('data:')) continue;
+            const payload = line.slice(5).trim();
+            if (!payload) continue;
+            if (payload === '[DONE]') {
+              setMessages(prev => prev.map(m =>
+                m.id === assistantId ? { ...m, isStreaming: false } : m
+              ));
+              setIsStreaming(false);
+              return;
+            }
+
+            try {
+              const event = JSON.parse(payload) as Record<string, unknown>;
+              const eventType = event.type as string;
+
+              switch (eventType) {
+                case 'message_start':
+                  // No-op, stream has started
+                  break;
+
+                case 'tool_start':
+                  setMessages(prev => prev.map(m => {
+                    if (m.id !== assistantId) return m;
+                    const newToolCall: ToolCallState = {
+                      tool: event.tool as string,
+                      index: event.index as number,
+                      status: 'running',
+                    };
+                    return {
+                      ...m,
+                      toolCalls: [...(m.toolCalls || []), newToolCall],
+                    };
+                  }));
+                  break;
+
+                case 'tool_result':
+                  setMessages(prev => prev.map(m => {
+                    if (m.id !== assistantId) return m;
+                    const updatedToolCalls = (m.toolCalls || []).map(tc =>
+                      tc.index === (event.index as number)
+                        ? {
+                            ...tc,
+                            status: (event.status as string) === 'ok' ? 'ok' as const : 'error' as const,
+                            result: event.result as Record<string, unknown> | undefined,
+                          }
+                        : tc
+                    );
+                    return { ...m, toolCalls: updatedToolCalls };
+                  }));
+                  break;
+
+                case 'message':
+                  setMessages(prev => prev.map(m => {
+                    if (m.id !== assistantId) return m;
+                    return {
+                      ...m,
+                      content: event.content as string || '',
+                      attachments: event.attachments as string[] | undefined,
+                    };
+                  }));
+                  break;
+
+                case 'error':
+                  setMessages(prev => prev.map(m => {
+                    if (m.id !== assistantId) return m;
+                    return {
+                      ...m,
+                      isStreaming: false,
+                      error: (event.message as string) || 'エラーが発生しました',
+                    };
+                  }));
+                  setIsStreaming(false);
+                  return;
+
+                default:
+                  break;
+              }
+            } catch {
+              /* ignore parse errors */
+            }
+          }
+        }
+      }
+
+      // If we exit the while loop without [DONE], mark as done
+      setMessages(prev => prev.map(m =>
+        m.id === assistantId ? { ...m, isStreaming: false } : m
+      ));
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        setMessages(prev => prev.map(m =>
+          m.id === assistantId
+            ? { ...m, isStreaming: false, error: '通信エラーが発生しました' }
+            : m
+        ));
+      }
+    } finally {
+      setIsStreaming(false);
+      abortRef.current = null;
+    }
+  }, [inputValue, isStreaming, messages.length, companyInfo, conversationId, attachedFile]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }, [handleSend]);
+
+  const handleChipClick = useCallback((message: string) => {
+    if (isStreaming) return;
+    setInputValue(message);
+    // Directly send the message
+    handleSend(message);
+  }, [isStreaming, handleSend]);
+
+  const handleFileAttach = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f && f.size <= 5 * 1024 * 1024) {
+      setAttachedFile(f);
+    }
+    e.target.value = '';
+  }, []);
+
+  /* ---------------------------------------------------------------- */
+  /*  Render                                                           */
+  /* ---------------------------------------------------------------- */
+
+  const hasMessages = messages.length > 0;
+
+  return (
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 48px - 5rem)' }}>
+      {/* Modals */}
+      {showCompanyModal && (
+        <CompanyInfoModal
+          info={companyInfo}
+          onSave={handleSaveCompanyInfo}
+          onClose={() => setShowCompanyModal(false)}
+        />
+      )}
+      {showProModal && (
+        <ProUpgradeModal onClose={() => setShowProModal(false)} />
+      )}
+      {rateLimitInfo && (
+        <RateLimitModal
+          resetAt={rateLimitInfo.resetAt}
+          onClose={() => setRateLimitInfo(null)}
+        />
+      )}
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-medium text-text-primary">AI 事務員</h2>
         </div>
+        <button
+          type="button"
+          onClick={() => setShowCompanyModal(true)}
+          className="p-1.5 text-text-muted hover:text-text-primary rounded-lg hover:bg-base-elevated transition-colors"
+          aria-label="会社情報を設定"
+        >
+          <Settings className="w-4.5 h-4.5" strokeWidth={1.5} />
+        </button>
+      </div>
 
-        {/* Mode toggle: cards (default) / autonomous agent (β) */}
-        <div className="w-full max-w-2xl px-4 mb-4 flex justify-center">
-          <div className="inline-flex rounded-full border border-border bg-white p-0.5">
-            <button
-              type="button"
-              onClick={() => setMode('cards')}
-              className={`px-4 py-1.5 text-sm rounded-full transition-colors ${
-                mode === 'cards'
-                  ? 'bg-accent text-white'
-                  : 'text-text-secondary hover:text-text-primary'
-              }`}
-              aria-pressed={mode === 'cards'}
-            >
-              カード
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (isFree && !planLoading) {
-                  setShowProModal(true);
-                } else {
-                  setMode('agent');
-                }
-              }}
-              className={`px-4 py-1.5 text-sm rounded-full transition-colors flex items-center gap-1.5 ${
-                isFree && !planLoading
-                  ? 'text-text-muted cursor-default'
-                  : mode === 'agent'
-                    ? 'bg-accent text-white'
-                    : 'text-text-secondary hover:text-text-primary'
-              }`}
-              aria-pressed={mode === 'agent'}
-              aria-label={isFree ? '自律モード (Pro プラン限定)' : '自律モード'}
-            >
-              {isFree && !planLoading && (
-                <Lock className="w-3.5 h-3.5" strokeWidth={1.5} />
-              )}
-              自律
-              <span className={`px-1 py-0.5 text-[10px] leading-none font-semibold rounded text-white ${
-                isFree && !planLoading ? 'bg-gray-400' : 'bg-amber-500'
-              }`}>
-                β
-              </span>
-              {isFree && !planLoading && (
-                <span className="px-1.5 py-0.5 text-[10px] leading-none font-semibold rounded bg-accent/10 text-accent">
-                  Pro
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {mode === 'cards' ? (
-          <>
-            {/* Task Cards Grid */}
-            <div className="w-full max-w-2xl px-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {TASK_CARDS.map(card => (
-                <TaskCard key={card.id} card={card} onAction={handleTaskAction} />
-              ))}
-            </div>
-
-            {/* Company Info Settings Button */}
-            <button onClick={() => setShowCompanyModal(true)} className="mt-6 text-xs text-text-muted hover:text-accent transition-colors">
-              会社情報を設定
-            </button>
-          </>
-        ) : (
-          <div className="w-full max-w-2xl px-4 space-y-4 pb-8 overflow-y-auto">
-            <div className="rounded-xl border border-gray-100 bg-white p-4">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="text-sm font-medium text-text-primary flex items-center gap-2">
-                  自律型 AI 事務員
-                  <span className="px-1.5 py-0.5 text-[10px] leading-none font-semibold rounded bg-amber-500 text-white">
-                    β
-                  </span>
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setShowCompanyModal(true)}
-                  className="text-xs text-text-muted hover:text-accent transition-colors"
-                >
-                  会社名: {companyInfo.companyName || '未設定'} (編集)
-                </button>
-              </div>
-              <p className="text-xs text-text-secondary mb-3">
-                自由記述で指示を出すと、AI が複数のツールを組み合わせて実行します。
-              </p>
-              <AgentChatInput onSend={handleAgentSend} disabled={isAgentRunning} />
-            </div>
-
-            <AgentRunPanel
-              events={agentEvents}
-              isRunning={isAgentRunning}
-              companyInfo={{ company_name: companyInfo.companyName }}
-              onOpenAttachment={handleOpenAttachment}
+      {/* Chat area */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        {!hasMessages ? (
+          /* Welcome state */
+          <div className="flex flex-col items-center justify-center h-full">
+            <img
+              src="/dashboard/mascot-idle.gif"
+              alt=""
+              className="w-16 h-16 sm:w-20 sm:h-20"
+              style={{ imageRendering: 'pixelated' }}
+              aria-hidden="true"
             />
+            <h3 className="mt-3 text-lg font-semibold text-text-primary">
+              何をお手伝いしましょうか?
+            </h3>
+            <p className="mt-1 text-sm text-text-secondary text-center max-w-md">
+              見積書や請求書の作成、書類チェックなど、事務作業をお手伝いします。
+            </p>
+            {hasCompanyInfo(companyInfo) && (
+              <p className="mt-2 text-xs text-text-muted">
+                会社: {companyInfo.companyName || '未設定'}
+              </p>
+            )}
+          </div>
+        ) : (
+          /* Message list */
+          <div className="max-w-2xl mx-auto">
+            {messages.map(msg => (
+              <ChatBubble key={msg.id} message={msg} />
+            ))}
+            <div ref={messagesEndRef} />
           </div>
         )}
       </div>
-    );
-  }
 
-  // Task view with integrated create/check tabs
-  const taskConfig = TASK_CONFIGS[view.type];
-  if (taskConfig) {
-    return (
-      <>
-        {showCompanyModal && (
-          <CompanyInfoModal
-            info={companyInfo}
-            onSave={handleSaveCompanyInfo}
-            onClose={() => setShowCompanyModal(false)}
-          />
-        )}
-        <TaskWithTabs
-          taskConfig={taskConfig}
-          isEstimate={view.type === 'estimate'}
-          companyInfo={companyInfo}
-          onBack={() => setView({ type: 'hub' })}
-        />
-      </>
-    );
-  }
+      {/* Bottom input area */}
+      <div className="flex-shrink-0 border-t border-border bg-white px-4 py-3">
+        <div className="max-w-2xl mx-auto">
+          {/* Suggestion chips */}
+          {!hasMessages && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {SUGGESTION_CHIPS.map(chip => (
+                <button
+                  key={chip.label}
+                  type="button"
+                  onClick={() => handleChipClick(chip.message)}
+                  disabled={isStreaming || planLoading}
+                  className="px-3 py-1.5 text-xs text-text-secondary border border-border rounded-full bg-white hover:bg-base-elevated hover:border-accent/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+          )}
 
-  return null;
+          {/* Attached file indicator */}
+          {attachedFile && (
+            <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-base-elevated rounded-lg text-xs text-text-secondary">
+              <Paperclip className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.5} />
+              <span className="truncate">{attachedFile.name}</span>
+              <span className="text-text-muted">({(attachedFile.size / 1024).toFixed(0)} KB)</span>
+              <button
+                type="button"
+                onClick={() => setAttachedFile(null)}
+                className="ml-auto p-0.5 text-text-muted hover:text-status-fail transition-colors"
+                aria-label="添付ファイルを削除"
+              >
+                <X className="w-3.5 h-3.5" strokeWidth={1.5} />
+              </button>
+            </div>
+          )}
+
+          {/* Input row */}
+          <div className="flex items-end gap-2">
+            {/* File attach button */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".txt,.csv,.pdf,.jpg,.jpeg,.png"
+              className="hidden"
+              onChange={handleFileAttach}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isStreaming}
+              className="flex-shrink-0 p-2 text-text-muted hover:text-text-primary rounded-lg hover:bg-base-elevated disabled:opacity-40 transition-colors"
+              aria-label="ファイルを添付"
+            >
+              <Paperclip className="w-5 h-5" strokeWidth={1.5} />
+            </button>
+
+            {/* Textarea */}
+            <div className="flex-1 flex items-end rounded-xl border border-border bg-white focus-within:ring-2 focus-within:ring-accent focus-within:border-transparent px-3 py-2">
+              <textarea
+                ref={textareaRef}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="メッセージを入力..."
+                disabled={isStreaming}
+                rows={1}
+                aria-label="AI事務員への指示"
+                className="flex-1 resize-none border-0 bg-transparent text-sm text-text-primary placeholder-text-muted focus:outline-none disabled:opacity-50"
+                style={{ minHeight: '24px', maxHeight: '160px' }}
+              />
+            </div>
+
+            {/* Send button */}
+            <button
+              type="button"
+              onClick={() => handleSend()}
+              disabled={isStreaming || (!inputValue.trim() && !attachedFile)}
+              className="flex-shrink-0 p-2 text-white bg-accent rounded-xl hover:bg-accent/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              aria-label="送信"
+            >
+              <Send className="w-5 h-5" strokeWidth={1.5} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

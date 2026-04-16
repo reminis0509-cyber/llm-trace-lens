@@ -8,7 +8,7 @@ export default function MidPageCTA() {
               AI事故が起きる前に、ガバナンス体制を整えませんか？
             </h3>
             <p className="text-sm text-text-secondary leading-relaxed">
-              無料（Free 30 回/月）から、AI通信の可視化と保護を体験できます。
+              無料（Free・5時間ごとにリセット）から、AI通信の可視化と保護を体験できます。
               <br className="hidden sm:block" />
               クレジットカード不要。
             </p>

@@ -264,7 +264,7 @@ export default function CompletionCertificate({
           <div className="flex items-baseline justify-between">
             <span className="text-sm font-semibold text-slate-900">Pro プラン</span>
             <span className="text-sm text-slate-700">
-              <span className="text-lg font-bold text-slate-900">¥9,800</span>
+              <span className="text-lg font-bold text-slate-900">¥3,000</span>
               <span className="text-xs text-slate-500"> / 月</span>
             </span>
           </div>

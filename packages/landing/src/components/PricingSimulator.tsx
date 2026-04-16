@@ -4,118 +4,34 @@ import { trackDashboardConversion } from '../utils/gtag';
 interface PlanInfo {
   name: string;
   monthlyBase: number;
-  tracesIncluded: number;
-  evalsIncluded: number;
-  traceOveragePerTenK: number;
-  evalOveragePerThousand: number;
   features: string[];
   cta: string;
   ctaHref: string;
-}
-
-interface CostBreakdown {
-  base: number;
-  traceOverage: number;
-  evalOverage: number;
-  total: number;
 }
 
 const plans: PlanInfo[] = [
   {
     name: 'Free',
     monthlyBase: 0,
-    tracesIncluded: 5000,
-    evalsIncluded: 0,
-    traceOveragePerTenK: 0,
-    evalOveragePerThousand: 0,
-    features: ['月間 5,000 トレース', '日本語PII検出', '7日間のデータ保持'],
-    cta: '無料で始める',
-    ctaHref: '/dashboard',
+    features: ['\u30D5\u30B8\u5BFE\u8A71 \u6708 30 \u56DE', '\u66F8\u985E\u4F5C\u6210\u30FB\u30C1\u30A7\u30C3\u30AF\uFF08\u5BFE\u8A71\u56DE\u6570\u306B\u542B\u3080\uFF09', 'Watch Room\uFF087 \u65E5\u4FDD\u6301\uFF09', '\u4F1A\u793E\u60C5\u5831 1 \u793E'],
+    cta: '\u7121\u6599\u3067\u59CB\u3081\u308B',
+    ctaHref: '/tutorial',
   },
   {
     name: 'Pro',
-    monthlyBase: 9800,
-    tracesIncluded: 50000,
-    evalsIncluded: 1000,
-    traceOveragePerTenK: 300,
-    evalOveragePerThousand: 200,
-    features: ['月間 50,000 トレース', 'LLM-as-Judge 品質評価', '90日間のデータ保持', 'リアルタイムアラート'],
-    cta: 'AI 事務員を使い始める',
-    ctaHref: '/dashboard',
+    monthlyBase: 3000,
+    features: ['\u30D5\u30B8\u5BFE\u8A71 \u7121\u5236\u9650', '\u66F8\u985E\u4F5C\u6210\u30FB\u30C1\u30A7\u30C3\u30AF \u7121\u5236\u9650', '\u81EA\u5F8B\u30E2\u30FC\u30C9', '\u5FDC\u7528\u30AF\u30A8\u30B9\u30C8\u6559\u6750 \u5168\u958B\u653E', 'Watch Room\uFF0890 \u65E5\u4FDD\u6301\uFF09', '\u4F1A\u793E\u60C5\u5831 \u7121\u5236\u9650'],
+    cta: '\u307E\u305A\u306F\u7121\u6599\u3067\u8A66\u3059',
+    ctaHref: '/tutorial',
   },
   {
-    name: 'Enterprise Standard',
-    monthlyBase: 25000,
-    tracesIncluded: 100000,
-    evalsIncluded: 3000,
-    traceOveragePerTenK: 300,
-    evalOveragePerThousand: 200,
-    features: ['月間 100,000 トレース', 'SSO / SAML 対応', '180日間のデータ保持', 'SLA 99.5%'],
-    cta: 'お問い合わせ',
-    ctaHref: '#contact',
-  },
-  {
-    name: 'Enterprise Plus',
-    monthlyBase: 80000,
-    tracesIncluded: 500000,
-    evalsIncluded: 15000,
-    traceOveragePerTenK: 200,
-    evalOveragePerThousand: 150,
-    features: ['月間 500,000 トレース', 'SSO / SAML 対応', '365日間のデータ保持', 'SLA 99.9%'],
-    cta: 'お問い合わせ',
-    ctaHref: '#contact',
-  },
-  {
-    name: 'Enterprise Premium',
-    monthlyBase: 200000,
-    tracesIncluded: Infinity,
-    evalsIncluded: Infinity,
-    traceOveragePerTenK: 0,
-    evalOveragePerThousand: 0,
-    features: ['トレース無制限', '無制限データ保持', 'SLA 99.95%', 'オンプレミス対応'],
-    cta: 'お問い合わせ',
-    ctaHref: '#contact',
+    name: 'Max',
+    monthlyBase: 15000,
+    features: ['Pro \u306E\u5168\u6A5F\u80FD', 'Watch Room\uFF0890 \u65E5 + \u5168\u6587\u691C\u7D22\uFF09', '\u512A\u5148\u30B5\u30DD\u30FC\u30C8'],
+    cta: '\u307E\u305A\u306F\u7121\u6599\u3067\u8A66\u3059',
+    ctaHref: '/tutorial',
   },
 ];
-
-function selectPlan(traces: number, evals: number): PlanInfo {
-  // Free only if within Free limits
-  if (traces <= 5000 && evals === 0) return plans[0];
-
-  // For paid plans, calculate total cost for each and pick the cheapest
-  const candidates = plans.slice(1); // Pro, Standard, Plus, Premium
-  let bestPlan = candidates[0];
-  let bestCost = Infinity;
-
-  for (const candidate of candidates) {
-    const cost = calculateCost(candidate, traces, evals);
-    if (cost.total < bestCost) {
-      bestCost = cost.total;
-      bestPlan = candidate;
-    }
-  }
-
-  return bestPlan;
-}
-
-function calculateCost(plan: PlanInfo, traces: number, evals: number): CostBreakdown {
-  const traceOverage = Math.max(0, traces - plan.tracesIncluded);
-  const evalOverage = Math.max(0, evals - plan.evalsIncluded);
-
-  const traceOverageCost = plan.tracesIncluded === Infinity
-    ? 0
-    : Math.ceil(traceOverage / 10000) * plan.traceOveragePerTenK;
-  const evalOverageCost = plan.evalsIncluded === Infinity
-    ? 0
-    : Math.ceil(evalOverage / 1000) * plan.evalOveragePerThousand;
-
-  return {
-    base: plan.monthlyBase,
-    traceOverage: traceOverageCost,
-    evalOverage: evalOverageCost,
-    total: plan.monthlyBase + traceOverageCost + evalOverageCost,
-  };
-}
 
 const CheckIcon = () => (
   <svg
@@ -131,184 +47,66 @@ const CheckIcon = () => (
   </svg>
 );
 
-const TRACE_MAX = 1000000;
-const TRACE_STEP = 1000;
-const EVAL_MAX = 50000;
-const EVAL_STEP = 100;
-
-function formatNumber(n: number): string {
-  return n.toLocaleString('ja-JP');
-}
-
 function formatPrice(n: number): string {
   return `\u00A5${n.toLocaleString('ja-JP')}`;
 }
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
 export default function PricingSimulator() {
-  const [traces, setTraces] = useState(10000);
-  const [evals, setEvals] = useState(0);
-
-  const plan = selectPlan(traces, evals);
-  const cost = calculateCost(plan, traces, evals);
-
-  const tracePercentage = (traces / TRACE_MAX) * 100;
-  const evalPercentage = (evals / EVAL_MAX) * 100;
-
-  const handleTraceInput = (value: string) => {
-    const parsed = parseInt(value.replace(/,/g, ''), 10);
-    if (!isNaN(parsed)) {
-      setTraces(clamp(parsed, 0, TRACE_MAX));
-    } else if (value === '') {
-      setTraces(0);
-    }
-  };
-
-  const handleEvalInput = (value: string) => {
-    const parsed = parseInt(value.replace(/,/g, ''), 10);
-    if (!isNaN(parsed)) {
-      setEvals(clamp(parsed, 0, EVAL_MAX));
-    } else if (value === '') {
-      setEvals(0);
-    }
-  };
+  const [selectedIndex, setSelectedIndex] = useState(1);
+  const plan = plans[selectedIndex];
 
   return (
     <section id="pricing-simulator" className="py-16 sm:py-24 px-4 sm:px-6">
-      <style>{`
-        .sim-range {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 100%;
-          height: 6px;
-          border-radius: 3px;
-          background: #e2e8f0;
-          outline: none;
-        }
-        .sim-range::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: #1d3557;
-          cursor: pointer;
-        }
-        .sim-range::-moz-range-thumb {
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: #1d3557;
-          cursor: pointer;
-          border: none;
-        }
-      `}</style>
       <div className="section-container">
         <div className="text-center mb-16">
           <span className="inline-block px-3 py-1.5 text-xs text-text-muted label-spacing uppercase surface-card mb-6">
             Pricing Simulator
           </span>
           <h2 className="text-2xl sm:text-display-sm font-semibold text-text-primary mb-4">
-            月額料金を試算する
+            プランを比較する
           </h2>
           <p className="text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
-            想定利用量を入力すると、最適なプランと月額目安が表示されます
+            あなたの利用スタイルに合ったプランをお選びください
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Left Column - Inputs */}
+        <div className="grid lg:grid-cols-2 gap-8 max-w-3xl mx-auto">
+          {/* Left Column - Plan selector */}
           <div className="surface-card p-6">
-            <h3 className="text-sm font-medium text-text-muted label-spacing uppercase mb-8">
-              想定利用量
+            <h3 className="text-sm font-medium text-text-muted label-spacing uppercase mb-6">
+              プラン選択
             </h3>
-
-            {/* Trace slider */}
-            <div className="mb-8">
-              <div className="flex items-center justify-between mb-3">
-                <label
-                  htmlFor="trace-slider"
-                  className="text-sm font-medium text-text-primary"
+            <div className="space-y-3">
+              {plans.map((p, i) => (
+                <button
+                  key={p.name}
+                  onClick={() => setSelectedIndex(i)}
+                  className={`w-full text-left px-4 py-3 rounded-card border transition-colors duration-120 ${
+                    selectedIndex === i
+                      ? 'border-accent bg-accent/5'
+                      : 'border-border hover:border-accent/40'
+                  }`}
+                  aria-pressed={selectedIndex === i}
+                  aria-label={`${p.name} プランを選択`}
                 >
-                  月間トレース数
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={formatNumber(traces)}
-                  onChange={(e) => handleTraceInput(e.target.value)}
-                  aria-label="月間トレース数を入力"
-                  className="w-32 text-right text-sm font-mono tabular-nums text-text-primary bg-app-bg-elevated border border-border rounded px-2 py-1 outline-none focus:border-accent"
-                />
-              </div>
-              <input
-                id="trace-slider"
-                type="range"
-                className="sim-range"
-                min={0}
-                max={TRACE_MAX}
-                step={TRACE_STEP}
-                value={traces}
-                onChange={(e) => setTraces(Number(e.target.value))}
-                aria-label="月間トレース数スライダー"
-                style={{
-                  background: `linear-gradient(to right, #1d3557 ${tracePercentage}%, #e2e8f0 ${tracePercentage}%)`,
-                }}
-              />
-              <div className="flex justify-between mt-1 text-xs text-text-muted font-mono tabular-nums">
-                <span>0</span>
-                <span>{formatNumber(TRACE_MAX)}</span>
-              </div>
-            </div>
-
-            {/* Eval slider */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <label
-                  htmlFor="eval-slider"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  月間評価数
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={formatNumber(evals)}
-                  onChange={(e) => handleEvalInput(e.target.value)}
-                  aria-label="月間評価数を入力"
-                  className="w-32 text-right text-sm font-mono tabular-nums text-text-primary bg-app-bg-elevated border border-border rounded px-2 py-1 outline-none focus:border-accent"
-                />
-              </div>
-              <input
-                id="eval-slider"
-                type="range"
-                className="sim-range"
-                min={0}
-                max={EVAL_MAX}
-                step={EVAL_STEP}
-                value={evals}
-                onChange={(e) => setEvals(Number(e.target.value))}
-                aria-label="月間評価数スライダー"
-                style={{
-                  background: `linear-gradient(to right, #1d3557 ${evalPercentage}%, #e2e8f0 ${evalPercentage}%)`,
-                }}
-              />
-              <div className="flex justify-between mt-1 text-xs text-text-muted font-mono tabular-nums">
-                <span>0</span>
-                <span>{formatNumber(EVAL_MAX)}</span>
-              </div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-sm font-medium text-text-primary">{p.name}</span>
+                    <span className="text-sm font-mono tabular-nums text-text-primary">
+                      {formatPrice(p.monthlyBase)}
+                      <span className="text-text-muted text-xs"> / 月</span>
+                    </span>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Right Column - Results */}
+          {/* Right Column - Details */}
           <div className="surface-card p-6">
             {/* Plan badge */}
             <div className="mb-6">
               <span className="text-xs text-text-muted label-spacing uppercase">
-                おすすめプラン
+                選択中のプラン
               </span>
               <div className="mt-2">
                 <span className="inline-block px-3 py-1 text-sm font-medium text-accent bg-accent/10 rounded-card">
@@ -320,51 +118,14 @@ export default function PricingSimulator() {
             {/* Price display */}
             <div className="mb-6">
               <span className="text-xs text-text-muted label-spacing uppercase">
-                月額見積もり
+                月額
               </span>
               <div className="mt-2">
                 <span className="text-3xl font-mono tabular-nums text-text-primary">
-                  {formatPrice(cost.total)}
+                  {formatPrice(plan.monthlyBase)}
                 </span>
                 <span className="ml-2 text-text-muted text-sm">/ 月</span>
               </div>
-            </div>
-
-            {/* Breakdown */}
-            <div className="mb-6 border-t border-border pt-4">
-              <span className="text-xs text-text-muted label-spacing uppercase">
-                内訳
-              </span>
-              <dl className="mt-3 space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <dt className="text-text-secondary">基本料金</dt>
-                  <dd className="font-mono tabular-nums text-text-primary">
-                    {formatPrice(cost.base)}
-                  </dd>
-                </div>
-                {cost.traceOverage > 0 && (
-                  <div className="flex justify-between">
-                    <dt className="text-text-secondary">トレース超過</dt>
-                    <dd className="font-mono tabular-nums text-text-primary">
-                      {formatPrice(cost.traceOverage)}
-                    </dd>
-                  </div>
-                )}
-                {cost.evalOverage > 0 && (
-                  <div className="flex justify-between">
-                    <dt className="text-text-secondary">評価超過</dt>
-                    <dd className="font-mono tabular-nums text-text-primary">
-                      {formatPrice(cost.evalOverage)}
-                    </dd>
-                  </div>
-                )}
-                <div className="flex justify-between border-t border-border pt-2 font-medium">
-                  <dt className="text-text-primary">合計</dt>
-                  <dd className="font-mono tabular-nums text-text-primary">
-                    {formatPrice(cost.total)}
-                  </dd>
-                </div>
-              </dl>
             </div>
 
             {/* Features */}
