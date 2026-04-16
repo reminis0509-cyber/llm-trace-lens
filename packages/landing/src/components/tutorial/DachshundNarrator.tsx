@@ -9,66 +9,65 @@ interface DachshundNarratorProps {
 }
 
 /**
- * Per-character delay table — ドラクエ風の「間」を句読点で演出する。
- * 通常文字は 38ms、句読点・三点リーダー・感嘆符・改行は長めに取る。
+ * Per-character delay table — DQ-style "spacing" at punctuation marks.
+ * Normal chars: 38ms, punctuation / ellipsis / exclamation / newline are longer.
  */
 function getCharDelay(ch: string): number {
-  if (ch === '、') return 200;
-  if (ch === '。') return 400;
-  if (ch === '…') return 600;
-  if (ch === '！' || ch === '？' || ch === '!' || ch === '?') return 300;
+  if (ch === '\u3001') return 200; // 、
+  if (ch === '\u3002') return 400; // 。
+  if (ch === '\u2026') return 600; // …
+  if (ch === '\uff01' || ch === '\uff1f' || ch === '!' || ch === '?') return 300;
   if (ch === '\n') return 250;
   return 38;
 }
 
 /**
- * ダックスフンドのフジ + ドラクエ風メッセージウィンドウ。
- * - 文字ごとに動的 delay を適用（句読点で溜め、「…」で長めの間）
- * - 「全部表示 ▶▶」ボタンで即時完了にスキップ
- * - message prop が切り替わると途中でも即クリーンアップして新シーケンスを開始
+ * Dachshund mascot "Fuji" + DQ-style message window.
+ * - Applies dynamic per-char delay (longer pauses at punctuation)
+ * - "Skip" button to show full message instantly
+ * - Cleans up cleanly when message prop changes (Strict Mode safe)
  */
 export default function DachshundNarrator({ state, message, actionHint }: DachshundNarratorProps) {
   const [shown, setShown] = useState('');
   const [done, setDone] = useState(false);
-  const timerRef = useRef<number | null>(null);
-  const cancelledRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    cancelledRef.current = false;
+    // Reset state for the new message.
     setShown('');
     setDone(false);
 
-    let i = 0;
-    const step = () => {
-      if (cancelledRef.current) return;
-      if (i >= message.length) {
+    let cancelled = false;
+    let idx = 0;
+
+    function tick() {
+      if (cancelled) return;
+      if (idx >= message.length) {
         setDone(true);
         timerRef.current = null;
         return;
       }
-      const ch = message.charAt(i);
-      i += 1;
-      setShown(message.slice(0, i));
-      const delay = getCharDelay(ch);
-      timerRef.current = window.setTimeout(step, delay);
-    };
+      const ch = message.charAt(idx);
+      idx += 1;
+      setShown(message.slice(0, idx));
+      timerRef.current = setTimeout(tick, getCharDelay(ch));
+    }
 
-    // Kick off the sequence on the next tick so React has time to reset state.
-    timerRef.current = window.setTimeout(step, getCharDelay(message.charAt(0) || ''));
+    // Start with a short initial delay so React has time to flush the reset.
+    timerRef.current = setTimeout(tick, 60);
 
     return () => {
-      cancelledRef.current = true;
+      cancelled = true;
       if (timerRef.current !== null) {
-        window.clearTimeout(timerRef.current);
+        clearTimeout(timerRef.current);
         timerRef.current = null;
       }
     };
   }, [message]);
 
   const skip = () => {
-    cancelledRef.current = true;
     if (timerRef.current !== null) {
-      window.clearTimeout(timerRef.current);
+      clearTimeout(timerRef.current);
       timerRef.current = null;
     }
     setShown(message);
@@ -93,7 +92,7 @@ export default function DachshundNarrator({ state, message, actionHint }: Dachsh
     >
       <img
         src={mascotSrc}
-        alt="ダックスフンドのフジ"
+        alt="Dachshund mascot Fuji"
         className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 object-contain"
       />
       <div className="relative flex-1 min-w-0">
@@ -114,7 +113,7 @@ export default function DachshundNarrator({ state, message, actionHint }: Dachsh
             <button
               type="button"
               onClick={skip}
-              aria-label="メッセージを全部表示する"
+              aria-label="Skip to show full message"
               className="absolute bottom-2 right-3 inline-flex items-center gap-1 rounded-md border border-slate-300 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-800"
             >
               全部表示 <span aria-hidden="true">▶▶</span>

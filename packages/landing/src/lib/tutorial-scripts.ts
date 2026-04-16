@@ -157,6 +157,14 @@ export function extractComplexPrompt(input: string): ExtractedPrompt {
   };
 }
 
+export const PDF_SUMMARIES: Record<DocumentKind, string> = {
+  estimate: '宛先: 株式会社サンプル商事\n件名: AI 事務員導入コンサルティング\n合計: ¥330,000（税込）',
+  invoice: '宛先: 株式会社サンプル商事\n請求番号: INV-2026-001\n合計: ¥330,000（税込）',
+  'delivery-note': '宛先: 株式会社サンプル商事\n納品日: 2026-04-15\n品目: AI 事務員初期構築',
+  'purchase-order': '宛先: 株式会社ベンダー様\n品目: サーバー機材一式\n合計: ¥220,000（税込）',
+  'cover-letter': '宛先: 株式会社サンプル商事\n送付物: 見積書 1 部\n担当: 山田太郎',
+};
+
 export const PDF_PATHS: Record<DocumentKind, string> = {
   estimate: '/tutorial/sample-estimate.pdf',
   invoice: '/tutorial/sample-invoice.pdf',

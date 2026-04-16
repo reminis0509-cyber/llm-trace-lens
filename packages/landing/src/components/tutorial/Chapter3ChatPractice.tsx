@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import TutorialChatUI, { type ChatMessage } from './TutorialChatUI';
 import PdfPreview from './PdfPreview';
+import TutorialStepProgress, { type TutorialStep } from './TutorialStepProgress';
 import {
   matchIntentForKind,
   TUTORIAL_FOOTNOTE,
   PDF_PATHS,
+  PDF_SUMMARIES,
   documentFilename,
   documentLabel,
   type DocumentKind,
 } from '../../lib/tutorial-scripts';
+import { playStepSound } from '../../lib/tutorialSound';
 import type { PracticeTaskId } from '../../lib/tutorial-progress';
 
 interface Chapter3ChatPracticeProps {
@@ -18,54 +21,17 @@ interface Chapter3ChatPracticeProps {
   onTaskComplete?: (task: PracticeTaskId) => void;
 }
 
-interface PracticeTaskDef {
-  mascotIntro: string;
-  mascotHint?: string;
-  suggestions: string[];
-  kind: DocumentKind;
-  placeholder: string;
-}
+const TASK_ID: PracticeTaskId = 'purchase_order';
+const TASK_KIND: DocumentKind = 'purchase-order';
+const SUGGESTIONS = ['発注書作って', '発注書出して', 'サーバー機材の発注書'];
+const PLACEHOLDER = '例: 発注書作って';
 
-const PRACTICE_TASKS: Record<PracticeTaskId, PracticeTaskDef> = {
-  purchase_order: {
-    mascotIntro: '次は…\n発注書を出してみて。',
-    mascotHint: 'チップから選んでOK',
-    suggestions: ['発注書作って', '発注書出して', 'サーバー機材の発注書'],
-    kind: 'purchase-order',
-    placeholder: '例: 発注書作って',
-  },
-  cover_letter: {
-    mascotIntro: '今度は…\n送付状はどう？',
-    mascotHint: 'チップから選んでOK',
-    suggestions: ['送付状作って', '書類の送付状', '送り状お願い'],
-    kind: 'cover-letter',
-    placeholder: '例: 送付状作って',
-  },
-  delivery_note: {
-    mascotIntro: '納品書も…\nいけるかな？',
-    mascotHint: 'チップから選んでOK',
-    suggestions: ['納品書作って', '納品書お願い', '納品書出して'],
-    kind: 'delivery-note',
-    placeholder: '例: 納品書作って',
-  },
-};
-
-const DEFAULT_ORDER: PracticeTaskId[] = [
-  'purchase_order',
-  'cover_letter',
-  'delivery_note',
+const GENERATE_STEPS: TutorialStep[] = [
+  { label: '指示を解析中...', duration: 400 },
+  { label: '書類を生成中...', duration: 600 },
 ];
 
-const SUCCESS_COMMENTS = [
-  'いいね！',
-  '上手く…\nなってきた！',
-  'もう慣れたね。\n\n次はちょっと\n難しいのに\n挑戦しよう。',
-];
-
-interface RevealedPdf {
-  kind: DocumentKind;
-  taskId: PracticeTaskId;
-}
+type Phase = 'chat' | 'generating' | 'done';
 
 export default function Chapter3ChatPractice({
   onComplete,
@@ -73,33 +39,25 @@ export default function Chapter3ChatPractice({
   initialCompletedTasks = [],
   onTaskComplete,
 }: Chapter3ChatPracticeProps) {
-  const queue = useMemo<PracticeTaskId[]>(
-    () => DEFAULT_ORDER.filter((t) => !initialCompletedTasks.includes(t)),
-    [initialCompletedTasks],
-  );
-
-  const [queueIdx, setQueueIdx] = useState(0);
-  const [completedCount, setCompletedCount] = useState(initialCompletedTasks.length);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
-  const [revealed, setRevealed] = useState<RevealedPdf | null>(null);
+  const [phase, setPhase] = useState<Phase>('chat');
   const idCounter = useRef(0);
-  const announcedFor = useRef<PracticeTaskId | null>(null);
+  const announcedRef = useRef(false);
 
-  const currentTaskId: PracticeTaskId | null = queue[queueIdx] ?? null;
-  const currentTask = currentTaskId ? PRACTICE_TASKS[currentTaskId] : null;
+  // If the single task was already completed in a previous session, skip to completion.
+  const alreadyDone = initialCompletedTasks.includes(TASK_ID);
 
   useEffect(() => {
-    if (!currentTaskId || !currentTask) {
-      // No remaining tasks (all previously completed) — jump straight out.
+    if (alreadyDone) {
       onComplete();
       return;
     }
-    if (revealed) return;
-    if (announcedFor.current === currentTaskId) return;
-    announcedFor.current = currentTaskId;
-    onMascot('talk', currentTask.mascotIntro, currentTask.mascotHint);
-  }, [currentTaskId, currentTask, revealed, onMascot, onComplete]);
+    if (!announcedRef.current) {
+      announcedRef.current = true;
+      onMascot('talk', '次は…\n発注書を出してみて。', 'チップから選んでOK');
+    }
+  }, [alreadyDone, onMascot, onComplete]);
 
   const nextId = () => {
     idCounter.current += 1;
@@ -107,14 +65,14 @@ export default function Chapter3ChatPractice({
   };
 
   const handleSend = (text: string) => {
-    if (!currentTask || !currentTaskId || revealed) return;
+    if (phase !== 'chat') return;
     setMessages((prev) => [...prev, { id: nextId(), role: 'user', content: text }]);
     setIsTyping(true);
 
     window.setTimeout(() => {
-      const match = matchIntentForKind(text, currentTask.kind);
+      const match = matchIntentForKind(text, TASK_KIND);
       if (match) {
-        const label = documentLabel(currentTask.kind);
+        const label = documentLabel(TASK_KIND);
         setMessages((prev) => [
           ...prev,
           {
@@ -124,13 +82,10 @@ export default function Chapter3ChatPractice({
             footnote: TUTORIAL_FOOTNOTE,
           },
         ]);
-        setRevealed({ kind: currentTask.kind, taskId: currentTaskId });
-        const newCompleted = completedCount + 1;
-        setCompletedCount(newCompleted);
-        const comment =
-          SUCCESS_COMMENTS[Math.min(newCompleted - 1, SUCCESS_COMMENTS.length - 1)];
-        onMascot('happy', comment);
-        onTaskComplete?.(currentTaskId);
+        playStepSound();
+        setPhase('generating');
+        onMascot('talk', '書類を作っているよ。\nちょっと待ってね。');
+        onTaskComplete?.(TASK_ID);
       } else {
         setMessages((prev) => [
           ...prev,
@@ -142,25 +97,18 @@ export default function Chapter3ChatPractice({
             footnote: TUTORIAL_FOOTNOTE,
           },
         ]);
+        playStepSound();
       }
       setIsTyping(false);
-    }, 800);
+    }, 500);
   };
 
-  const handleNextPractice = () => {
-    if (!revealed) return;
-    const nextIdx = queueIdx + 1;
-    setRevealed(null);
-    setMessages([]);
-    if (nextIdx >= queue.length) {
-      onComplete();
-      return;
-    }
-    setQueueIdx(nextIdx);
+  const handleStepsComplete = () => {
+    setPhase('done');
+    onMascot('happy', 'いいね！もう慣れたね。\n\n次はちょっと\n難しいのに\n挑戦しよう。');
   };
 
-  const progressText = `${completedCount} / 3 タスク完了`;
-  const isLast = revealed && queueIdx + 1 >= queue.length;
+  if (alreadyDone) return null;
 
   return (
     <section aria-labelledby="ch3-title" className="space-y-6">
@@ -170,36 +118,38 @@ export default function Chapter3ChatPractice({
           反復で経験値を積む
         </h2>
         <p className="mt-2 text-sm text-slate-600">
-          3 つの書類を順番に練習します。1 度は偶然、3 度目は実力。
+          発注書を作ってみましょう。チャットで指示してね。
         </p>
-        <p className="mt-1 text-xs text-slate-500 tabular-nums">{progressText}</p>
       </header>
 
-      {currentTask && (
-        <TutorialChatUI
-          messages={messages}
-          onSend={handleSend}
-          suggestions={currentTask.suggestions}
-          isTyping={isTyping}
-          placeholder={currentTask.placeholder}
-          disabled={revealed !== null}
-        />
+      <TutorialChatUI
+        messages={messages}
+        onSend={handleSend}
+        suggestions={SUGGESTIONS}
+        isTyping={isTyping}
+        placeholder={PLACEHOLDER}
+        disabled={phase !== 'chat'}
+      />
+
+      {phase === 'generating' && (
+        <TutorialStepProgress steps={GENERATE_STEPS} onComplete={handleStepsComplete} />
       )}
 
-      {revealed && (
+      {phase === 'done' && (
         <>
           <PdfPreview
-            src={PDF_PATHS[revealed.kind]}
-            filename={documentFilename(revealed.kind)}
-            title={`${documentLabel(revealed.kind)}（サンプル）`}
+            src={PDF_PATHS[TASK_KIND]}
+            filename={documentFilename(TASK_KIND)}
+            title={`${documentLabel(TASK_KIND)}（サンプル）`}
+            summary={PDF_SUMMARIES[TASK_KIND]}
           />
           <div className="flex justify-end">
             <button
               type="button"
-              onClick={handleNextPractice}
+              onClick={onComplete}
               className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
             >
-              {isLast ? '第 3 章を終える' : '次の練習へ'}
+              第 3 章を終える
               <span aria-hidden="true">→</span>
             </button>
           </div>

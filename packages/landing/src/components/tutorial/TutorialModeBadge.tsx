@@ -36,7 +36,7 @@ export default function TutorialModeBadge() {
         <p className="leading-snug">
           <span className="font-semibold">チュートリアルモード</span>
           {' ── '}
-          このページのAI応答はスクリプト（関数）で動いています。実サービスはもっと賢いAIです。
+          このページのAI応答はスクリプトで動いています。
         </p>
       </div>
     </div>

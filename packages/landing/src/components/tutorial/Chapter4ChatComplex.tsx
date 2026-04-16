@@ -6,6 +6,7 @@ import {
   getComplexResponse,
   TUTORIAL_FOOTNOTE,
 } from '../../lib/tutorial-scripts';
+import { playStepSound, playCompleteSound } from '../../lib/tutorialSound';
 
 interface Chapter4ChatComplexProps {
   onComplete: () => void;
@@ -74,6 +75,7 @@ export default function Chapter4ChatComplex({ onComplete, onMascot }: Chapter4Ch
             extra: <DetectedSummary summary={result.detectedSummary as string} />,
           },
         ]);
+        playStepSound();
       }, 700);
 
       window.setTimeout(() => {
@@ -88,10 +90,13 @@ export default function Chapter4ChatComplex({ onComplete, onMascot }: Chapter4Ch
         ]);
         if (result.pdfPath && result.filename) {
           setPdf({ src: result.pdfPath, filename: result.filename });
+          playCompleteSound();
           onMascot(
             'happy',
             '読めた！\n\n金額と会社名を…\nちゃんと読み取って\n作ったよ。',
           );
+        } else {
+          playStepSound();
         }
         setIsTyping(false);
       }, 1600);
@@ -110,7 +115,10 @@ export default function Chapter4ChatComplex({ onComplete, onMascot }: Chapter4Ch
       ]);
       if (result.pdfPath && result.filename) {
         setPdf({ src: result.pdfPath, filename: result.filename });
+        playCompleteSound();
         onMascot('happy', '書類だけ用意したよ。\n金額や会社名を足すと…\nもっと詳しく反映できるよ。');
+      } else {
+        playStepSound();
       }
       setIsTyping(false);
     }, 900);

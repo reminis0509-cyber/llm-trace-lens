@@ -1,8 +1,14 @@
+import { useState } from 'react';
+
 interface PdfPreviewProps {
   src: string;
   filename: string;
   title?: string;
+  /** Optional multi-line summary text shown above the download buttons. */
+  summary?: string;
 }
+
+type Tab = 'preview' | 'download';
 
 const iconSvgProps = {
   viewBox: '0 0 24 24',
@@ -43,43 +49,136 @@ function ExternalIcon({ className }: { className?: string }) {
   );
 }
 
+function FileIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} {...iconSvgProps}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+    </svg>
+  );
+}
+
 /**
- * Success card that surfaces a clear download CTA.
- * No iframe preview — embedded PDF viewers render as a dark UI on Chromium,
- * which Founder mistook for "the PDF did not appear". A generated-PDF
- * confirmation + large download button is the most reliable UX across devices.
+ * Success card with tabbed PDF preview (iframe) and download actions.
+ * Desktop: inline iframe preview tab + download tab.
+ * Mobile (< sm): iframe replaced with "PDF を開く" button (iOS Safari compat).
  */
-export default function PdfPreview({ src, filename, title = '見積書ができました！' }: PdfPreviewProps) {
+export default function PdfPreview({
+  src,
+  filename,
+  title = '見積書ができました！',
+  summary,
+}: PdfPreviewProps) {
+  const [tab, setTab] = useState<Tab>('preview');
+
+  const tabClass = (t: Tab) =>
+    `px-4 py-2 text-sm font-medium rounded-t-lg border border-b-0 transition-colors ${
+      tab === t
+        ? 'bg-white text-slate-900 border-green-200'
+        : 'bg-green-100/60 text-slate-500 border-transparent hover:text-slate-700'
+    }`;
+
   return (
     <div className="rounded-xl border border-green-200 bg-green-50 p-6 sm:p-8 shadow-sm">
-      <div className="flex flex-col items-center text-center">
-        <CheckCircleIcon className="w-12 h-12 text-green-600" />
-        <h3 className="mt-3 text-xl sm:text-2xl font-bold text-slate-900">{title}</h3>
-        <p className="mt-2 text-sm text-slate-600">
-          下のボタンから PDF をダウンロードできます。
-        </p>
+      {/* Header */}
+      <div className="flex flex-col items-center text-center mb-4">
+        <CheckCircleIcon className="w-10 h-10 text-green-600" />
+        <h3 className="mt-2 text-xl sm:text-2xl font-bold text-slate-900">{title}</h3>
+        {summary && (
+          <pre className="mt-3 text-left text-sm text-slate-700 font-mono whitespace-pre-wrap bg-white/60 rounded-lg border border-green-100 px-4 py-3 w-full max-w-sm">
+            {summary}
+          </pre>
+        )}
+      </div>
 
-        <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
-          <a
-            href={src}
-            download={filename}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-6 py-3 text-base font-semibold text-white hover:bg-blue-700 shadow-sm"
-          >
-            <DownloadIcon className="w-5 h-5" />
-            PDF をダウンロード
-          </a>
-          <a
-            href={src}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            <ExternalIcon className="w-4 h-4" />
-            別タブで開く
-          </a>
-        </div>
+      {/* Tabs */}
+      <div className="flex gap-1 -mb-px" role="tablist" aria-label="PDF 表示切替">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'preview'}
+          aria-controls="pdf-panel-preview"
+          onClick={() => setTab('preview')}
+          className={tabClass('preview')}
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <FileIcon className="w-4 h-4" />
+            プレビュー
+          </span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'download'}
+          aria-controls="pdf-panel-download"
+          onClick={() => setTab('download')}
+          className={tabClass('download')}
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <DownloadIcon className="w-4 h-4" />
+            ダウンロード
+          </span>
+        </button>
+      </div>
 
-        <p className="mt-4 text-xs text-slate-500">ファイル名: {filename}</p>
+      {/* Panels */}
+      <div className="rounded-b-xl rounded-tr-xl border border-green-200 bg-white overflow-hidden">
+        {tab === 'preview' && (
+          <div id="pdf-panel-preview" role="tabpanel">
+            {/* Desktop: iframe */}
+            <iframe
+              src={src}
+              title={`${filename} プレビュー`}
+              className="hidden sm:block w-full border-0"
+              style={{ height: '600px' }}
+            />
+            {/* Mobile: fallback button (iOS Safari cannot render inline PDF well) */}
+            <div className="sm:hidden flex flex-col items-center gap-3 p-6">
+              <p className="text-sm text-slate-600 text-center">
+                モバイルでは PDF を別タブで開いて確認できます。
+              </p>
+              <a
+                href={src}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-6 py-3 text-base font-semibold text-white hover:bg-blue-700 shadow-sm"
+              >
+                <ExternalIcon className="w-5 h-5" />
+                PDF を開く
+              </a>
+            </div>
+          </div>
+        )}
+
+        {tab === 'download' && (
+          <div id="pdf-panel-download" role="tabpanel" className="p-6">
+            <div className="flex flex-col items-center text-center gap-4">
+              <p className="text-sm text-slate-600">
+                下のボタンから PDF をダウンロードできます。
+              </p>
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <a
+                  href={src}
+                  download={filename}
+                  className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-6 py-3 text-base font-semibold text-white hover:bg-blue-700 shadow-sm"
+                >
+                  <DownloadIcon className="w-5 h-5" />
+                  PDF をダウンロード
+                </a>
+                <a
+                  href={src}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  <ExternalIcon className="w-4 h-4" />
+                  別タブで開く
+                </a>
+              </div>
+              <p className="text-xs text-slate-500">ファイル名: {filename}</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import PdfPreview from './PdfPreview';
+import TutorialStepProgress, { type TutorialStep } from './TutorialStepProgress';
 
 interface Chapter1ButtonProps {
   onComplete: () => void;
@@ -8,10 +9,10 @@ interface Chapter1ButtonProps {
 
 type Phase = 'waiting' | 'working' | 'done';
 
-const PROGRESS_STEPS = [
-  'AI が作業中...',
-  '書式を確認中...',
-  'PDF を生成中...',
+const STEPS: TutorialStep[] = [
+  { label: '入力データを受信中...', duration: 500 },
+  { label: 'AI が見積書を生成中...', duration: 800 },
+  { label: '出力を検証中...', duration: 500 },
 ];
 
 const PREFILL = {
@@ -29,6 +30,9 @@ const PREFILL = {
   total: '¥330,000',
   paymentTerms: '月末締翌月末払い',
 };
+
+const PDF_SUMMARY =
+  '宛先: 株式会社サンプル商事\n件名: AI 事務員導入コンサルティング\n合計: ¥330,000（税込）';
 
 function ReadOnlyField({
   label,
@@ -61,29 +65,16 @@ function ReadOnlyField({
 
 export default function Chapter1Button({ onComplete, onMascot }: Chapter1ButtonProps) {
   const [phase, setPhase] = useState<Phase>('waiting');
-  const [progressIdx, setProgressIdx] = useState(0);
-
-  useEffect(() => {
-    if (phase !== 'working') return;
-    const timers: number[] = [];
-    timers.push(window.setTimeout(() => setProgressIdx(1), 500));
-    timers.push(window.setTimeout(() => setProgressIdx(2), 1000));
-    timers.push(
-      window.setTimeout(() => {
-        setPhase('done');
-        onMascot('happy', 'できた！');
-      }, 1500),
-    );
-    return () => {
-      for (const t of timers) window.clearTimeout(t);
-    };
-  }, [phase, onMascot]);
 
   const handleGenerate = () => {
     if (phase !== 'waiting') return;
     setPhase('working');
-    setProgressIdx(0);
     onMascot('talk', '見積書を作っているよ。\nちょっとだけ…\n待っててね。');
+  };
+
+  const handleStepsComplete = () => {
+    setPhase('done');
+    onMascot('happy', 'できた！');
   };
 
   return (
@@ -191,25 +182,7 @@ export default function Chapter1Button({ onComplete, onMascot }: Chapter1ButtonP
       )}
 
       {phase === 'working' && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="rounded-xl border border-slate-200 bg-white p-6"
-        >
-          <div className="flex items-center gap-3">
-            <span className="w-4 h-4 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
-            <span className="text-sm font-medium text-slate-700">
-              {PROGRESS_STEPS[progressIdx]}
-            </span>
-          </div>
-          <ul className="mt-4 space-y-1 text-xs text-slate-500">
-            {PROGRESS_STEPS.map((s, i) => (
-              <li key={s} className={i <= progressIdx ? 'text-slate-800' : ''}>
-                {i < progressIdx ? '済' : i === progressIdx ? '実行中' : '待機'} — {s}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <TutorialStepProgress steps={STEPS} onComplete={handleStepsComplete} />
       )}
 
       {phase === 'done' && (
@@ -218,6 +191,7 @@ export default function Chapter1Button({ onComplete, onMascot }: Chapter1ButtonP
             src="/tutorial/sample-estimate.pdf"
             filename="見積書_サンプル.pdf"
             title="見積書ができました！"
+            summary={PDF_SUMMARY}
           />
           <div className="flex justify-end">
             <button
