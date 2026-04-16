@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import type { EstimatePdfData } from '../lib/pdf/estimate';
+import type { IssuerInfo } from '../lib/pdf/base';
 import { supabase } from '../lib/supabase';
 import { usePlan } from '../contexts/PlanContext';
 import ToolCallTrace, {
@@ -558,13 +560,79 @@ function ToolCallTraceInline({
 }
 
 /* ------------------------------------------------------------------ */
+/*  Estimate PDF extraction + download button                          */
+/* ------------------------------------------------------------------ */
+
+function extractEstimateData(result: Record<string, unknown>): EstimatePdfData | null {
+  const data =
+    (result as Record<string, Record<string, unknown>>)?.data?.estimate ||
+    (result as Record<string, unknown>)?.estimate;
+  if (!data || typeof data !== 'object') return null;
+  return data as EstimatePdfData;
+}
+
+function PdfDownloadButton({
+  estimateData,
+  issuerInfo,
+}: {
+  estimateData: EstimatePdfData;
+  issuerInfo: IssuerInfo;
+}) {
+  const [generating, setGenerating] = useState(false);
+
+  const handleDownload = useCallback(async () => {
+    if (generating) return;
+    setGenerating(true);
+    try {
+      const { generateEstimatePdf } = await import('../lib/pdf/estimate');
+      const blob = await generateEstimatePdf(estimateData, issuerInfo);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `見積書_${estimateData.estimate_number || new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      /* PDF generation failed — silently ignore for now */
+    } finally {
+      setGenerating(false);
+    }
+  }, [estimateData, issuerInfo, generating]);
+
+  return (
+    <button
+      type="button"
+      onClick={handleDownload}
+      disabled={generating}
+      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-accent border border-accent/30 rounded-lg bg-white hover:bg-accent/5 disabled:opacity-50 disabled:cursor-wait transition-colors"
+      aria-label="見積書のPDFをダウンロード"
+    >
+      {generating ? (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
+          PDF生成中...
+        </>
+      ) : (
+        <>
+          <Download className="w-4 h-4" strokeWidth={1.5} />
+          PDFをダウンロード
+        </>
+      )}
+    </button>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  ChatBubble                                                         */
 /* ------------------------------------------------------------------ */
 
-function ChatBubble({ message, isThinking, onTraceUpdate }: {
+function ChatBubble({ message, isThinking, onTraceUpdate, companyInfo }: {
   message: ChatMessage;
   isThinking?: boolean;
   onTraceUpdate: (msgId: string, toolIndex: number, updated: ToolCallTraceState) => void;
+  companyInfo: CompanyInfo;
 }) {
   if (message.role === 'user') {
     return (
@@ -615,6 +683,26 @@ function ChatBubble({ message, isThinking, onTraceUpdate }: {
             ))}
           </div>
         )}
+
+        {/* PDF download button — shown when a tool_result contains estimate data */}
+        {message.toolCalls && message.toolCalls.some(tc => tc.status === 'ok' && tc.result && extractEstimateData(tc.result)) && (() => {
+          const completedTool = message.toolCalls!.find(tc => tc.status === 'ok' && tc.result && extractEstimateData(tc.result));
+          const estimateData = completedTool?.result ? extractEstimateData(completedTool.result) : null;
+          if (!estimateData) return null;
+          const issuerInfo: IssuerInfo = {
+            companyName: companyInfo.companyName || undefined,
+            address: companyInfo.address || undefined,
+            phone: companyInfo.phone || undefined,
+            email: companyInfo.email || undefined,
+            representative: companyInfo.representative || undefined,
+            invoiceNumber: companyInfo.invoiceNumber || undefined,
+          };
+          return (
+            <div className="mb-2">
+              <PdfDownloadButton estimateData={estimateData} issuerInfo={issuerInfo} />
+            </div>
+          );
+        })()}
 
         {/* Message content */}
         {message.content && (
@@ -1351,6 +1439,7 @@ export default function AiClerkChat() {
                     msg.toolCalls.some(tc => tc.status === 'running')
                   }
                   onTraceUpdate={handleTraceUpdate}
+                  companyInfo={companyInfo}
                 />
               ))}
               <div ref={messagesEndRef} />
