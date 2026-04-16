@@ -3,7 +3,7 @@ import TutorialChatUI, { type ChatMessage } from './TutorialChatUI';
 import PdfPreview from './PdfPreview';
 import TutorialStepProgress, { type TutorialStep } from './TutorialStepProgress';
 import {
-  matchIntentForKind,
+  matchIntent,
   TUTORIAL_FOOTNOTE,
   PDF_PATHS,
   PDF_SUMMARIES,
@@ -23,11 +23,11 @@ interface Chapter3ChatPracticeProps {
 
 const TASK_ID: PracticeTaskId = 'purchase_order';
 const TASK_KIND: DocumentKind = 'purchase-order';
-const SUGGESTIONS = ['発注書作って', '発注書出して', 'サーバー機材の発注書'];
+const SUGGESTIONS = ['発注書作って', '見積書作って', '納品書お願い'];
 const PLACEHOLDER = '例: 発注書作って';
 
-function makeSteps(): TutorialStep[] {
-  const label = documentLabel(TASK_KIND);
+function makeSteps(kind: DocumentKind): TutorialStep[] {
+  const label = documentLabel(kind);
   return [
     { label: '入力を解析中...', duration: 400 },
     { label: `${label}を生成中...`, duration: 600 },
@@ -40,29 +40,25 @@ type Phase = 'chat' | 'generating' | 'done';
 export default function Chapter3ChatPractice({
   onComplete,
   onMascot,
-  initialCompletedTasks = [],
+  initialCompletedTasks: _initialCompletedTasks = [],
   onTaskComplete,
 }: Chapter3ChatPracticeProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [phase, setPhase] = useState<Phase>('chat');
-  const [matched, setMatched] = useState(false);
+  const [matchedKind, setMatchedKind] = useState<DocumentKind | null>(null);
   const idCounter = useRef(0);
   const announcedRef = useRef(false);
 
-  // If the single task was already completed in a previous session, skip to completion.
-  const alreadyDone = initialCompletedTasks.includes(TASK_ID);
+  // NOTE: alreadyDone auto-skip を削除。localStorage 状態に関わらず
+  // 必ずチャット体験させる（チュートリアルの目的は「触らせること」）。
 
   useEffect(() => {
-    if (alreadyDone) {
-      onComplete();
-      return;
-    }
     if (!announcedRef.current) {
       announcedRef.current = true;
-      onMascot('talk', '次は…\n発注書を出してみて。', 'チップから選んでOK');
+      onMascot('talk', '次は…\n好きな書類を\n作ってみて。', 'チップから選んでOK');
     }
-  }, [alreadyDone, onMascot, onComplete]);
+  }, [onMascot]);
 
   const nextId = () => {
     idCounter.current += 1;
@@ -75,10 +71,11 @@ export default function Chapter3ChatPractice({
     setIsTyping(true);
 
     window.setTimeout(() => {
-      const match = matchIntentForKind(text, TASK_KIND);
+      // Ch3 では任意の書類キーワードを受け入れる（練習なので制限しない）
+      const match = matchIntent(text);
       if (match) {
         playStepSound();
-        setMatched(true);
+        setMatchedKind(match.kind);
         setPhase('generating');
         onMascot('talk', '書類を作っているよ。\nちょっと待ってね。');
         onTaskComplete?.(TASK_ID);
@@ -89,7 +86,7 @@ export default function Chapter3ChatPractice({
             id: nextId(),
             role: 'assistant',
             content:
-              'そのキーワードは\nチュートリアル外だよ。\n下のチップから\n選んでみて。',
+              '書類名が見つからなかったよ。\n「見積書」「請求書」「発注書」\nなどを含めてみて。',
             footnote: TUTORIAL_FOOTNOTE,
           },
         ]);
@@ -104,10 +101,9 @@ export default function Chapter3ChatPractice({
     onMascot('happy', 'いいね！もう慣れたね。\n\n次はちょっと\n難しいのに\n挑戦しよう。');
   };
 
-  if (alreadyDone) return null;
-
   const showTrace = phase === 'generating' || phase === 'done';
-  const label = documentLabel(TASK_KIND);
+  const resolvedKind = matchedKind ?? TASK_KIND;
+  const label = documentLabel(resolvedKind);
 
   return (
     <section aria-labelledby="ch3-title" className="space-y-6">
@@ -130,7 +126,7 @@ export default function Chapter3ChatPractice({
         disabled={phase !== 'chat'}
       />
 
-      {showTrace && matched && (
+      {showTrace && matchedKind && (
         <div className="flex gap-2">
           <img
             src="/tutorial/dachshund-idle.gif"
@@ -139,7 +135,7 @@ export default function Chapter3ChatPractice({
           />
           <div className="flex-1 space-y-3">
             <TutorialStepProgress
-              steps={makeSteps()}
+              steps={makeSteps(resolvedKind)}
               onComplete={handleStepsComplete}
               completed={phase === 'done'}
             />
@@ -158,10 +154,10 @@ export default function Chapter3ChatPractice({
       {phase === 'done' && (
         <>
           <PdfPreview
-            src={PDF_PATHS[TASK_KIND]}
-            filename={documentFilename(TASK_KIND)}
+            src={PDF_PATHS[resolvedKind]}
+            filename={documentFilename(resolvedKind)}
             title={`${label}（サンプル）`}
-            summary={PDF_SUMMARIES[TASK_KIND]}
+            summary={PDF_SUMMARIES[resolvedKind]}
           />
           <div className="flex justify-end">
             <button
