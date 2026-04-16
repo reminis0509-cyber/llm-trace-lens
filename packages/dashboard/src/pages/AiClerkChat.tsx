@@ -694,11 +694,29 @@ function ToolCallTraceInline({
 /* ------------------------------------------------------------------ */
 
 function extractEstimateData(result: Record<string, unknown>): EstimatePdfData | null {
-  const data =
-    (result as Record<string, Record<string, unknown>>)?.data?.estimate ||
-    (result as Record<string, unknown>)?.estimate;
-  if (!data || typeof data !== 'object') return null;
-  return data as EstimatePdfData;
+  try {
+    // Try multiple paths where estimate data might live
+    const r = result as Record<string, unknown>;
+    const data =
+      (r?.data as Record<string, unknown>)?.estimate ||
+      r?.estimate ||
+      // Sometimes the whole result IS the estimate (no wrapper)
+      (r?.items && r?.client ? r : null);
+    if (!data || typeof data !== 'object') return null;
+    const est = data as EstimatePdfData;
+    // Normalize items: ensure they have the required fields
+    if (est.items && Array.isArray(est.items)) {
+      est.items = est.items.map((item: Record<string, unknown>) => ({
+        name: String(item.name || item.description || ''),
+        quantity: Number(item.quantity) || 1,
+        unit_price: Number(item.unit_price) || 0,
+        subtotal: Number(item.subtotal) || (Number(item.quantity || 1) * Number(item.unit_price || 0)),
+      }));
+    }
+    return est;
+  } catch {
+    return null;
+  }
 }
 
 function PdfPreviewCard({
@@ -730,7 +748,8 @@ function PdfPreviewCard({
         const url = URL.createObjectURL(blob);
         urlRef.current = url;
         setBlobUrl(url);
-      } catch {
+      } catch (err) {
+        console.error('[PdfPreviewCard] PDF generation failed:', err, { estimateData, issuerInfo });
         if (!cancelled) setError(true);
       } finally {
         if (!cancelled) setGenerating(false);
