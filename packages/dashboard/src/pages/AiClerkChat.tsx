@@ -25,6 +25,7 @@ import {
   Clock,
   GraduationCap,
   ChevronRight,
+  BookOpen,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -140,6 +141,131 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   }
 
   return headers;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Memory API helpers                                                 */
+/* ------------------------------------------------------------------ */
+
+async function loadMemory(): Promise<string> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch('/api/agent/memory', { headers });
+    if (!res.ok) return '';
+    const json = await res.json() as { data?: { content?: string } };
+    return json.data?.content || '';
+  } catch {
+    return '';
+  }
+}
+
+async function saveMemoryApi(content: string): Promise<boolean> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch('/api/agent/memory', {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ content }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Memory Modal                                                       */
+/* ------------------------------------------------------------------ */
+
+const MEMORY_MAX_LENGTH = 2000;
+
+function MemoryModal({ initialContent, onSave, onClose }: {
+  initialContent: string;
+  onSave: (content: string) => void;
+  onClose: () => void;
+}) {
+  const [content, setContent] = useState(initialContent);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    setError('');
+    const ok = await saveMemoryApi(content);
+    setSaving(false);
+    if (ok) {
+      onSave(content);
+      onClose();
+    } else {
+      setError('保存に失敗しました。もう一度お試しください。');
+    }
+  }, [content, onSave, onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+      <div
+        className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="memory-modal-title"
+      >
+        <div className="flex items-center justify-between mb-2">
+          <h3 id="memory-modal-title" className="text-base font-semibold text-text-primary">
+            メモリ
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 text-text-muted hover:text-text-primary rounded transition-colors"
+            aria-label="閉じる"
+          >
+            <X className="w-5 h-5" strokeWidth={1.5} />
+          </button>
+        </div>
+        <p className="text-xs text-text-secondary mb-4">
+          フジへの指示をメモしておくと、毎回の入力が楽になります。
+        </p>
+        <textarea
+          value={content}
+          onChange={(e) => {
+            if (e.target.value.length <= MEMORY_MAX_LENGTH) {
+              setContent(e.target.value);
+            }
+          }}
+          placeholder={"例:\n・消費税は軽減税率8%で計算\n・支払条件は月末締め翌月末払い\n・取引先: 株式会社デプロイ 田中様"}
+          rows={10}
+          className="w-full px-3 py-2 text-sm border border-border rounded-card bg-white text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
+          aria-label="メモリの内容"
+        />
+        <div className="flex items-center justify-between mt-2 mb-4">
+          {error && (
+            <p className="text-xs text-red-600">{error}</p>
+          )}
+          <p className="text-xs text-text-muted ml-auto">
+            {content.length} / {MEMORY_MAX_LENGTH.toLocaleString()}
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2 text-sm text-text-secondary border border-border rounded-card hover:bg-base-elevated transition-colors"
+          >
+            キャンセル
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="flex-1 px-4 py-2 text-sm text-white bg-accent rounded-card hover:bg-accent/90 disabled:opacity-50 transition-colors"
+          >
+            {saving ? '保存中...' : '保存'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -1010,6 +1136,10 @@ export default function AiClerkChat() {
   const [showProModal, setShowProModal] = useState(false);
   const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitInfo | null>(null);
 
+  const [showMemoryModal, setShowMemoryModal] = useState(false);
+  const [memoryContent, setMemoryContent] = useState('');
+  const [memoryLoaded, setMemoryLoaded] = useState(false);
+
   const { loading: planLoading } = usePlan();
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -1025,6 +1155,18 @@ export default function AiClerkChat() {
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Load memory from server on mount
+  useEffect(() => {
+    let cancelled = false;
+    loadMemory().then(content => {
+      if (!cancelled) {
+        setMemoryContent(content);
+        setMemoryLoaded(true);
+      }
+    });
+    return () => { cancelled = true; };
   }, []);
 
   // On desktop, show sidebar by default
@@ -1070,6 +1212,17 @@ export default function AiClerkChat() {
   const handleSaveCompanyInfo = useCallback((info: CompanyInfo) => {
     setCompanyInfo(info);
     saveCompanyInfo(info);
+  }, []);
+
+  const handleOpenMemoryModal = useCallback(async () => {
+    // Refresh from server before opening
+    const content = await loadMemory();
+    setMemoryContent(content);
+    setShowMemoryModal(true);
+  }, []);
+
+  const handleSaveMemory = useCallback((content: string) => {
+    setMemoryContent(content);
   }, []);
 
   const generateId = () => `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -1432,6 +1585,13 @@ export default function AiClerkChat() {
           onClose={() => setRateLimitInfo(null)}
         />
       )}
+      {showMemoryModal && (
+        <MemoryModal
+          initialContent={memoryContent}
+          onSave={handleSaveMemory}
+          onClose={() => setShowMemoryModal(false)}
+        />
+      )}
 
       {/* Sidebar */}
       {sidebarOpen && (
@@ -1464,14 +1624,30 @@ export default function AiClerkChat() {
             )}
             <h2 className="text-base font-medium text-text-primary">AI 事務員</h2>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowCompanyModal(true)}
-            className="p-1.5 text-text-muted hover:text-text-primary rounded-lg hover:bg-base-elevated transition-colors"
-            aria-label="会社情報を設定"
-          >
-            <Settings className="w-4.5 h-4.5" strokeWidth={1.5} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={handleOpenMemoryModal}
+              className="relative p-1.5 text-text-muted hover:text-text-primary rounded-lg hover:bg-base-elevated transition-colors"
+              aria-label="メモリを編集"
+            >
+              <BookOpen className="w-4.5 h-4.5" strokeWidth={1.5} />
+              {memoryLoaded && memoryContent.trim().length > 0 && (
+                <span
+                  className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full"
+                  aria-label="メモリが設定されています"
+                />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCompanyModal(true)}
+              className="p-1.5 text-text-muted hover:text-text-primary rounded-lg hover:bg-base-elevated transition-colors"
+              aria-label="会社情報を設定"
+            >
+              <Settings className="w-4.5 h-4.5" strokeWidth={1.5} />
+            </button>
+          </div>
         </div>
 
         {/* Chat area */}

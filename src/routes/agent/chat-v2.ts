@@ -161,6 +161,25 @@ async function loadCompanyInfo(
 }
 
 // ---------------------------------------------------------------------------
+// Workspace memory loader
+// ---------------------------------------------------------------------------
+
+async function loadWorkspaceMemory(
+  workspaceId: string,
+): Promise<string | null> {
+  try {
+    const db = getKnex();
+    const row = await db('workspace_memory')
+      .where({ workspace_id: workspaceId })
+      .first() as { content?: string } | undefined;
+    const content = row?.content?.trim();
+    return content && content.length > 0 ? content : null;
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Conversation persistence (same pattern as clerk.ts)
 // ---------------------------------------------------------------------------
 
@@ -464,8 +483,9 @@ export default async function chatV2Route(fastify: FastifyInstance): Promise<voi
       request.log.warn({ err }, 'cost-guard pre-check failed; proceeding');
     }
 
-    // ── Load company info ───────────────────────────────────────────────
+    // ── Load company info + workspace memory ─────────────────────────────
     const companyInfo = await loadCompanyInfo(workspaceId);
+    const memoryContent = await loadWorkspaceMemory(workspaceId);
 
     // ── Load conversation history ───────────────────────────────────────
     let conversation: { id: string; messages: ConversationMessage[]; isNew: boolean };
@@ -482,6 +502,9 @@ export default async function chatV2Route(fastify: FastifyInstance): Promise<voi
     let systemPrompt = buildSystemPrompt(allToolSchemas);
     if (companyInfo) {
       systemPrompt += `\n\n## あなたが所属する会社の情報\n${JSON.stringify(companyInfo)}`;
+    }
+    if (memoryContent) {
+      systemPrompt += `\n\n## ユーザーからの指示メモ\n${memoryContent}`;
     }
 
     // ── SSE headers ─────────────────────────────────────────────────────

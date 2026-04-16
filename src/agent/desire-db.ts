@@ -42,6 +42,16 @@ export async function ensureAgentTables(): Promise<void> {
     });
   }
 
+  const hasWorkspaceMemory = await db.schema.hasTable('workspace_memory');
+  if (!hasWorkspaceMemory) {
+    await db.schema.createTable('workspace_memory', (table) => {
+      table.text('id').primary();
+      table.text('workspace_id').notNullable().unique();
+      table.text('content').notNullable().defaultTo('');
+      table.text('updated_at').notNullable();
+    });
+  }
+
   agentTablesReady = true;
 }
 
