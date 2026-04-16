@@ -27,6 +27,11 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { supabase } from '../lib/supabase';
 import { usePlan } from '../contexts/PlanContext';
+import ToolCallTrace, {
+  createToolCallTraceState,
+  completeAllSteps,
+  type ToolCallTraceState,
+} from '../components/ToolCallTrace';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -47,6 +52,8 @@ interface ToolCallState {
   status: 'running' | 'ok' | 'error';
   result?: Record<string, unknown>;
   startedAt?: number;
+  /** Multi-step trace animation state */
+  traceState?: ToolCallTraceState;
 }
 
 interface ChatMessage {
@@ -308,30 +315,6 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Elapsed seconds hook                                               */
-/* ------------------------------------------------------------------ */
-
-function useElapsedSeconds(active: boolean, startTime?: number): number {
-  const [elapsed, setElapsed] = useState(0);
-  const startRef = useRef(startTime || Date.now());
-
-  useEffect(() => {
-    if (!active) {
-      setElapsed(0);
-      return;
-    }
-    startRef.current = startTime || Date.now();
-    setElapsed(0);
-    const id = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [active, startTime]);
-
-  return elapsed;
-}
-
-/* ------------------------------------------------------------------ */
 /*  Company Info Modal                                                 */
 /* ------------------------------------------------------------------ */
 
@@ -522,16 +505,32 @@ function RateLimitModal({ resetAt, onClose }: { resetAt: string; onClose: () => 
 }
 
 /* ------------------------------------------------------------------ */
-/*  ToolCallTrace — inline trace animation for tool calls              */
+/*  ToolCallTraceInline — multi-step trace animation wrapper           */
 /* ------------------------------------------------------------------ */
 
-function ToolCallTraceItem({ toolCall }: { toolCall: ToolCallState }) {
-  const elapsed = useElapsedSeconds(
-    toolCall.status === 'running',
-    toolCall.startedAt,
+function ToolCallTraceInline({
+  toolCall,
+  onTraceUpdate,
+}: {
+  toolCall: ToolCallState;
+  onTraceUpdate: (index: number, updated: ToolCallTraceState) => void;
+}) {
+  const handleUpdate = useCallback(
+    (updated: ToolCallTraceState) => onTraceUpdate(toolCall.index, updated),
+    [toolCall.index, onTraceUpdate],
   );
-  const label = TOOL_LABELS[toolCall.tool] || toolCall.tool;
 
+  if (toolCall.traceState) {
+    return (
+      <ToolCallTrace
+        traceState={toolCall.traceState}
+        onTraceUpdate={handleUpdate}
+      />
+    );
+  }
+
+  // Fallback for tool calls without trace state (shouldn't happen normally)
+  const label = TOOL_LABELS[toolCall.tool] || toolCall.tool;
   return (
     <div className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm ${
       toolCall.status === 'running'
@@ -540,7 +539,6 @@ function ToolCallTraceItem({ toolCall }: { toolCall: ToolCallState }) {
           ? 'bg-green-50 border border-green-100'
           : 'bg-red-50 border border-red-100'
     }`}>
-      {/* Status icon */}
       {toolCall.status === 'running' && (
         <Loader2 className="w-4 h-4 text-blue-500 animate-spin flex-shrink-0" strokeWidth={1.5} />
       )}
@@ -550,32 +548,10 @@ function ToolCallTraceItem({ toolCall }: { toolCall: ToolCallState }) {
       {toolCall.status === 'error' && (
         <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" strokeWidth={1.5} />
       )}
-
-      {/* Tool icon */}
       <Wrench className="w-3.5 h-3.5 flex-shrink-0 opacity-50" strokeWidth={1.5} />
-
-      {/* Tool name (Japanese label) */}
-      <span className={`text-xs font-medium ${
-        toolCall.status === 'running'
-          ? 'text-blue-700'
-          : toolCall.status === 'ok'
-            ? 'text-green-700'
-            : 'text-red-700'
-      }`}>
-        {label}
-      </span>
-
-      {/* Status text + elapsed */}
-      {toolCall.status === 'running' && (
-        <span className="text-xs text-blue-500 font-mono tabular-nums ml-auto">
-          {elapsed}s
-        </span>
-      )}
+      <span className="text-xs font-medium text-slate-600">{label}</span>
       {toolCall.status === 'ok' && (
         <span className="text-xs text-green-600 ml-auto">完了</span>
-      )}
-      {toolCall.status === 'error' && (
-        <span className="text-xs text-red-600 ml-auto">エラー</span>
       )}
     </div>
   );
@@ -585,7 +561,11 @@ function ToolCallTraceItem({ toolCall }: { toolCall: ToolCallState }) {
 /*  ChatBubble                                                         */
 /* ------------------------------------------------------------------ */
 
-function ChatBubble({ message, isThinking }: { message: ChatMessage; isThinking?: boolean }) {
+function ChatBubble({ message, isThinking, onTraceUpdate }: {
+  message: ChatMessage;
+  isThinking?: boolean;
+  onTraceUpdate: (msgId: string, toolIndex: number, updated: ToolCallTraceState) => void;
+}) {
   if (message.role === 'user') {
     return (
       <div className="flex justify-end mb-4">
@@ -625,7 +605,13 @@ function ChatBubble({ message, isThinking }: { message: ChatMessage; isThinking?
         {message.toolCalls && message.toolCalls.length > 0 && (
           <div className="space-y-1.5 mb-2">
             {message.toolCalls.map((tc, i) => (
-              <ToolCallTraceItem key={`${tc.index}-${i}`} toolCall={tc} />
+              <ToolCallTraceInline
+                key={`${tc.index}-${i}`}
+                toolCall={tc}
+                onTraceUpdate={(toolIndex, updated) =>
+                  onTraceUpdate(message.id, toolIndex, updated)
+                }
+              />
             ))}
           </div>
         )}
@@ -1099,14 +1085,18 @@ export default function AiClerkChat() {
                 case 'message_start':
                   break;
 
-                case 'tool_start':
+                case 'tool_start': {
+                  const toolName = event.tool as string;
+                  const toolIndex = event.index as number;
+                  const traceState = createToolCallTraceState(toolName, toolIndex);
                   setMessages(prev => prev.map(m => {
                     if (m.id !== assistantId) return m;
                     const newToolCall: ToolCallState = {
-                      tool: event.tool as string,
-                      index: event.index as number,
+                      tool: toolName,
+                      index: toolIndex,
                       status: 'running',
                       startedAt: Date.now(),
+                      traceState,
                     };
                     return {
                       ...m,
@@ -1114,22 +1104,30 @@ export default function AiClerkChat() {
                     };
                   }));
                   break;
+                }
 
-                case 'tool_result':
+                case 'tool_result': {
+                  const resultIndex = event.index as number;
+                  const resultStatus = (event.status as string) === 'ok' ? 'ok' as const : 'error' as const;
+                  const resultData = event.result as Record<string, unknown> | undefined;
                   setMessages(prev => prev.map(m => {
                     if (m.id !== assistantId) return m;
-                    const updatedToolCalls = (m.toolCalls || []).map(tc =>
-                      tc.index === (event.index as number)
-                        ? {
-                            ...tc,
-                            status: (event.status as string) === 'ok' ? 'ok' as const : 'error' as const,
-                            result: event.result as Record<string, unknown> | undefined,
-                          }
-                        : tc
-                    );
+                    const updatedToolCalls = (m.toolCalls || []).map(tc => {
+                      if (tc.index !== resultIndex) return tc;
+                      const updatedTrace = tc.traceState
+                        ? completeAllSteps(tc.traceState, resultStatus, resultData)
+                        : undefined;
+                      return {
+                        ...tc,
+                        status: resultStatus,
+                        result: resultData,
+                        traceState: updatedTrace,
+                      };
+                    });
                     return { ...m, toolCalls: updatedToolCalls };
                   }));
                   break;
+                }
 
                 case 'message':
                   setMessages(prev => prev.map(m => {
@@ -1194,6 +1192,21 @@ export default function AiClerkChat() {
     setInputValue(message);
     handleSend(message);
   }, [isStreaming, handleSend]);
+
+  /** Called by ToolCallTrace animation to update trace step progress */
+  const handleTraceUpdate = useCallback((
+    msgId: string,
+    toolIndex: number,
+    updatedTrace: ToolCallTraceState,
+  ) => {
+    setMessages(prev => prev.map(m => {
+      if (m.id !== msgId) return m;
+      const updatedToolCalls = (m.toolCalls || []).map(tc =>
+        tc.index === toolIndex ? { ...tc, traceState: updatedTrace } : tc
+      );
+      return { ...m, toolCalls: updatedToolCalls };
+    }));
+  }, []);
 
   const handleFileAttach = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -1337,6 +1350,7 @@ export default function AiClerkChat() {
                     !!msg.toolCalls &&
                     msg.toolCalls.some(tc => tc.status === 'running')
                   }
+                  onTraceUpdate={handleTraceUpdate}
                 />
               ))}
               <div ref={messagesEndRef} />

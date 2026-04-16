@@ -70,3 +70,27 @@ export function playCompletionSound(): void {
     // silently ignore
   }
 }
+
+/**
+ * Play a low buzz when an error occurs.
+ * 300Hz sine, 200ms.
+ */
+export function playErrorSound(): void {
+  try {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(300, now);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  } catch {
+    // silently ignore
+  }
+}
