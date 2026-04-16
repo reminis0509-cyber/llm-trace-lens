@@ -78,12 +78,18 @@ const MAX_CONVERSATION_MESSAGES = 50;
 // Request validation
 // ---------------------------------------------------------------------------
 
+const historyMessageSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string(),
+});
+
 const requestSchema = z.object({
   message: z
     .string()
     .min(1, 'メッセージを入力してください')
     .max(2000, 'メッセージは2000文字以内にしてください'),
   conversation_id: z.string().min(1).max(128).optional(),
+  history: z.array(historyMessageSchema).max(50).optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -449,7 +455,7 @@ export default async function chatV2Route(fastify: FastifyInstance): Promise<voi
         error: parsed.error.issues.map((i) => i.message).join('; '),
       });
     }
-    const { message, conversation_id: conversationId } = parsed.data;
+    const { message, conversation_id: conversationId, history: frontendHistory } = parsed.data;
 
     // ── Free plan 5-hour rolling window rate limit ──────────────────────
     const free = await isFreePlan(workspaceId);
@@ -488,6 +494,7 @@ export default async function chatV2Route(fastify: FastifyInstance): Promise<voi
     const memoryContent = await loadWorkspaceMemory(workspaceId);
 
     // ── Load conversation history ───────────────────────────────────────
+    // Prefer DB history, but fall back to frontend-supplied history if DB is empty
     let conversation: { id: string; messages: ConversationMessage[]; isNew: boolean };
     try {
       conversation = await loadOrCreateConversation(conversationId, workspaceId);
@@ -495,7 +502,21 @@ export default async function chatV2Route(fastify: FastifyInstance): Promise<voi
       if (err instanceof ConversationAccessError) {
         return reply.code(403).send({ success: false, error: err.message });
       }
-      throw err;
+      // DB error — use frontend history as fallback
+      request.log.warn({ err }, 'DB conversation load failed; using frontend history');
+      conversation = {
+        id: conversationId || crypto.randomUUID(),
+        messages: [],
+        isNew: true,
+      };
+    }
+
+    // If DB returned empty conversation but frontend has history, use frontend history
+    if (conversation.messages.length === 0 && frontendHistory && frontendHistory.length > 0) {
+      conversation.messages = frontendHistory.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
     }
 
     // ── Build system prompt ─────────────────────────────────────────────

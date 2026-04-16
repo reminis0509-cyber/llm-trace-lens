@@ -1422,9 +1422,15 @@ export default function AiClerkChat() {
     try {
       const headers = await getAuthHeaders();
 
-      // Build request body
+      // Build request body with conversation history for context continuity
+      const history = messages
+        .filter(m => (m.role === 'user' || m.role === 'assistant') && m.content && m.content.length > 0 && !m.isStreaming)
+        .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+        .slice(-20); // Last 20 messages for context
+
       const body: Record<string, unknown> = {
         message: messageToSend,
+        history,
       };
       // Use conversation_id from server if available
       if (conversationId) {
