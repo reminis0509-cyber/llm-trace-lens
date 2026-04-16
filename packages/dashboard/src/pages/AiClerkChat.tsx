@@ -10,6 +10,9 @@ import {
   Paperclip,
   Send,
   Download,
+  Eye,
+  EyeOff,
+  ExternalLink,
   Loader2,
   CheckCircle2,
   AlertCircle,
@@ -571,56 +574,153 @@ function extractEstimateData(result: Record<string, unknown>): EstimatePdfData |
   return data as EstimatePdfData;
 }
 
-function PdfDownloadButton({
+function PdfPreviewCard({
   estimateData,
   issuerInfo,
 }: {
   estimateData: EstimatePdfData;
   issuerInfo: IssuerInfo;
 }) {
-  const [generating, setGenerating] = useState(false);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(true);
+  const [error, setError] = useState(false);
+  const [previewVisible, setPreviewVisible] = useState(true);
+  const blobRef = useRef<Blob | null>(null);
+  const urlRef = useRef<string | null>(null);
 
-  const handleDownload = useCallback(async () => {
-    if (generating) return;
-    setGenerating(true);
-    try {
-      const { generateEstimatePdf } = await import('../lib/pdf/estimate');
-      const blob = await generateEstimatePdf(estimateData, issuerInfo);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `見積書_${estimateData.estimate_number || new Date().toISOString().slice(0, 10)}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch {
-      /* PDF generation failed — silently ignore for now */
-    } finally {
-      setGenerating(false);
-    }
-  }, [estimateData, issuerInfo, generating]);
+  const isMobileView = window.innerWidth < 640;
+
+  // Auto-generate PDF on mount
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { generateEstimatePdf } = await import('../lib/pdf/estimate');
+        const blob = await generateEstimatePdf(estimateData, issuerInfo);
+        if (cancelled) return;
+        blobRef.current = blob;
+        const url = URL.createObjectURL(blob);
+        urlRef.current = url;
+        setBlobUrl(url);
+      } catch {
+        if (!cancelled) setError(true);
+      } finally {
+        if (!cancelled) setGenerating(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (urlRef.current) {
+        URL.revokeObjectURL(urlRef.current);
+        urlRef.current = null;
+      }
+    };
+  }, [estimateData, issuerInfo]);
+
+  const handleDownload = useCallback(() => {
+    if (!blobRef.current) return;
+    const url = URL.createObjectURL(blobRef.current);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `見積書_${estimateData.estimate_number || new Date().toISOString().slice(0, 10)}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [estimateData.estimate_number]);
+
+  const handleOpenInNewTab = useCallback(() => {
+    if (!blobUrl) return;
+    window.open(blobUrl, '_blank');
+  }, [blobUrl]);
+
+  // Loading state
+  if (generating) {
+    return (
+      <div className="rounded-xl border border-border bg-white p-4">
+        <div className="flex items-center gap-2.5 text-sm text-text-secondary">
+          <Loader2 className="w-4 h-4 animate-spin text-accent" strokeWidth={1.5} />
+          PDFを準備中...
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !blobUrl) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+        <div className="flex items-center gap-2 text-sm text-red-700">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+          PDFの生成に失敗しました
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <button
-      type="button"
-      onClick={handleDownload}
-      disabled={generating}
-      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-accent border border-accent/30 rounded-lg bg-white hover:bg-accent/5 disabled:opacity-50 disabled:cursor-wait transition-colors"
-      aria-label="見積書のPDFをダウンロード"
-    >
-      {generating ? (
-        <>
-          <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
-          PDF生成中...
-        </>
-      ) : (
-        <>
+    <div className="rounded-xl border border-border bg-white overflow-hidden">
+      {/* Preview area */}
+      {previewVisible && !isMobileView && (
+        <div className="p-3 pb-0">
+          <iframe
+            src={blobUrl}
+            title="見積書プレビュー"
+            className="w-full rounded-lg border border-border bg-gray-50"
+            style={{ height: '500px' }}
+          />
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <div className="flex items-center gap-2 p-3">
+        {/* Download button (primary) */}
+        <button
+          type="button"
+          onClick={handleDownload}
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-accent rounded-lg hover:bg-accent/90 transition-colors"
+          aria-label="見積書のPDFをダウンロード"
+        >
           <Download className="w-4 h-4" strokeWidth={1.5} />
           PDFをダウンロード
-        </>
-      )}
-    </button>
+        </button>
+
+        {isMobileView ? (
+          /* Mobile: open in new tab */
+          <button
+            type="button"
+            onClick={handleOpenInNewTab}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-secondary border border-border rounded-lg hover:bg-base-elevated transition-colors"
+            aria-label="PDFを別タブで開く"
+          >
+            <ExternalLink className="w-4 h-4" strokeWidth={1.5} />
+            PDFをプレビュー
+          </button>
+        ) : (
+          /* Desktop: toggle preview visibility */
+          <button
+            type="button"
+            onClick={() => setPreviewVisible((v) => !v)}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-secondary border border-border rounded-lg hover:bg-base-elevated transition-colors"
+            aria-label={previewVisible ? 'プレビューを閉じる' : 'プレビューを表示'}
+          >
+            {previewVisible ? (
+              <>
+                <EyeOff className="w-4 h-4" strokeWidth={1.5} />
+                プレビューを閉じる
+              </>
+            ) : (
+              <>
+                <Eye className="w-4 h-4" strokeWidth={1.5} />
+                プレビューを表示
+              </>
+            )}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -699,7 +799,7 @@ function ChatBubble({ message, isThinking, onTraceUpdate, companyInfo }: {
           };
           return (
             <div className="mb-2">
-              <PdfDownloadButton estimateData={estimateData} issuerInfo={issuerInfo} />
+              <PdfPreviewCard estimateData={estimateData} issuerInfo={issuerInfo} />
             </div>
           );
         })()}
