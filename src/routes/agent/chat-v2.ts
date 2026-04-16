@@ -543,6 +543,7 @@ export default async function chatV2Route(fastify: FastifyInstance): Promise<voi
       let finalContent: string | null = null;
       let allAttachments: string[] = [];
       let toolCallIndex = 0;
+      const executedTools = new Set<string>(); // prevent duplicate tool calls
 
       while (round < MAX_TOOL_ROUNDS) {
         if (Date.now() > deadline) {
@@ -590,6 +591,19 @@ export default async function chatV2Route(fastify: FastifyInstance): Promise<voi
 
           const currentIndex = toolCallIndex++;
           const functionName = tc.function.name;
+
+          // Skip duplicate tool calls (LLM sometimes calls the same tool twice)
+          if (executedTools.has(functionName) && !functionName.startsWith('_')) {
+            request.log.warn('Skipping duplicate tool call: %s', functionName);
+            // Send a synthetic tool response so LLM context stays valid
+            llmMessages.push({
+              role: 'assistant',
+              content: `[ツール] ${functionName} は既に実行済みです。`,
+            });
+            continue;
+          }
+          executedTools.add(functionName);
+
           let parsedArgs: Record<string, unknown>;
           try {
             parsedArgs = JSON.parse(tc.function.arguments) as Record<string, unknown>;
