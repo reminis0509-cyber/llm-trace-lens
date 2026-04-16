@@ -40,7 +40,7 @@ const plans: PlanInfo[] = [
     traceOveragePerTenK: 300,
     evalOveragePerThousand: 200,
     features: ['月間 50,000 トレース', 'LLM-as-Judge 品質評価', '90日間のデータ保持', 'リアルタイムアラート'],
-    cta: '無料トライアルを始める',
+    cta: 'AI 事務員を使い始める',
     ctaHref: '/dashboard',
   },
   {

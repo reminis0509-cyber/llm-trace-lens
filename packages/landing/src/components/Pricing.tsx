@@ -51,7 +51,6 @@ const mainPlans = [
     price: '\u00A59,800',
     priceNote: '/ \u6708',
     description: '\u54C1\u8CEA\u7BA1\u7406\u3092\u672C\u683C\u7684\u306B\u59CB\u3081\u308B',
-    badge: '30\u65E5\u9593\u7121\u6599\u30C8\u30E9\u30A4\u30A2\u30EB',
     features: [
       '\u6708\u9593 50,000 \u30C8\u30EC\u30FC\u30B9',
       'LLM-as-Judge \u54C1\u8CEA\u8A55\u4FA1\uFF08\u67081,000\u56DE\uFF09',
@@ -60,8 +59,9 @@ const mainPlans = [
       '\u7121\u5236\u9650\u30B7\u30FC\u30C8',
       '\u30EA\u30A2\u30EB\u30BF\u30A4\u30E0\u30A2\u30E9\u30FC\u30C8\u901A\u77E5',
       '\u30E1\u30FC\u30EB\u30B5\u30DD\u30FC\u30C8\uFF08\u65E5\u672C\u8A9E\uFF09',
+      '\u4ED8\u9332\u30AF\u30A8\u30B9\u30C8\u6559\u6750 (Phase A1 \u516C\u958B\u4E88\u5B9A)',
     ],
-    cta: '\u7121\u6599\u30C8\u30E9\u30A4\u30A2\u30EB\u3092\u59CB\u3081\u308B',
+    cta: 'AI \u4E8B\u52D9\u54E1\u3092\u4F7F\u3044\u59CB\u3081\u308B',
     ctaHref: '/dashboard',
     highlighted: true,
   },
@@ -127,9 +127,9 @@ export default function Pricing() {
             プランを選ぶ
           </h2>
           <p className="text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
-            登録するだけでPro機能を30日間無料で体験できます。
+            Free（月 30 回）から、登録するだけですぐに始められます。
             <br className="hidden md:block" />
-            まずは無料で始めて、AIの品質管理を実感してください。
+            まずは無料で、AIの品質管理を実感してください。
           </p>
         </div>
 
@@ -177,12 +177,6 @@ export default function Pricing() {
                 plan.highlighted ? 'border-accent' : ''
               }`}
             >
-              {plan.badge && (
-                <span className="absolute -top-3 left-4 px-2 py-0.5 bg-accent text-white text-xs rounded font-mono">
-                  {plan.badge}
-                </span>
-              )}
-
               <div className="mb-6">
                 <h3 className="text-lg font-medium text-text-primary mb-1">
                   {plan.name}

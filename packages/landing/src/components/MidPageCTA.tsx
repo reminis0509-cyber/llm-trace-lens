@@ -8,7 +8,7 @@ export default function MidPageCTA() {
               AI事故が起きる前に、ガバナンス体制を整えませんか？
             </h3>
             <p className="text-sm text-text-secondary leading-relaxed">
-              30日間の無料トライアルで、AI通信の完全な可視化と保護を体験できます。
+              無料（Free 30 回/月）から、AI通信の可視化と保護を体験できます。
               <br className="hidden sm:block" />
               クレジットカード不要。
             </p>
@@ -17,7 +17,7 @@ export default function MidPageCTA() {
             href="/dashboard"
             className="w-full sm:w-auto px-6 py-3 bg-accent text-white rounded-card font-medium hover:bg-accent-hover transition-colors duration-120 text-center flex-shrink-0"
           >
-            まずは無料トライアル
+            AI 事務員を使い始める
           </a>
         </div>
       </div>

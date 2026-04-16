@@ -1564,7 +1564,7 @@ export default function AiClerkChat() {
         {trialInfo && !isAdmin && trialInfo.remaining === 0 && (
           <div className="flex-shrink-0 mb-3 flex flex-col items-center gap-2">
             <span className="text-xs text-status-fail">
-              無料トライアル（{trialInfo.limit}回）が終了しました
+              無料お試し（{trialInfo.limit}回）が終了しました
             </span>
             <button
               type="button"

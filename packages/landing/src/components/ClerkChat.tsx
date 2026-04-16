@@ -226,7 +226,7 @@ export default function ClerkChat() {
             trialInfo?: TrialInfo;
           } | null;
           if (errBody?.trialInfo) setTrialInfo(errBody.trialInfo);
-          setError(errBody?.error ?? '無料トライアルが終了しました。');
+          setError(errBody?.error ?? '無料お試しの回数が終了しました。');
           return;
         }
         if (res.status === 403) {
@@ -312,7 +312,7 @@ export default function ClerkChat() {
             {trialInfo.remaining === 0 ? (
               <div className="flex flex-col items-start gap-2">
                 <span className="text-xs text-red-600">
-                  無料トライアル（{trialInfo.limit}回）が終了しました
+                  無料お試し（{trialInfo.limit}回）が終了しました
                 </span>
                 <button
                   type="button"

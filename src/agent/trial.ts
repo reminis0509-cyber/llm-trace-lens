@@ -91,7 +91,7 @@ export async function enforceAgentBilling(workspaceId: string): Promise<BillingR
     return {
       allowed: false,
       trialInfo,
-      error: `無料トライアル（${AGENT_FREE_TRIAL_LIMIT}回）が終了しました。ご利用を継続するには、お支払い方法の登録が必要です。`,
+      error: `無料お試し（${AGENT_FREE_TRIAL_LIMIT}回）が終了しました。ご利用を継続するには、お支払い方法の登録が必要です。`,
     };
   }
 

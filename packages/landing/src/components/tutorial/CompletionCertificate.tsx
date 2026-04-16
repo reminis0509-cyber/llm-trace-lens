@@ -247,31 +247,97 @@ export default function CompletionCertificate({
         )}
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
-        <a
-          href="/dashboard"
-          className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-6 py-3 text-base font-semibold text-white hover:bg-blue-700"
-        >
-          30 日無料でフル機能を試す
-        </a>
+      <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-5 sm:p-6 shadow-sm space-y-4">
+        <header>
+          <p className="text-xs font-semibold tracking-wide text-blue-700 uppercase">
+            次のステップ
+          </p>
+          <h3 className="mt-1 text-lg sm:text-xl font-bold text-slate-900">
+            本物の AI 事務員を、毎日の業務に。
+          </h3>
+          <p className="mt-2 text-sm text-slate-700 leading-relaxed">
+            チュートリアルで触った AI 事務員を、あなたの会社情報で毎日使えます。
+          </p>
+        </header>
+
+        <div className="rounded-lg bg-white border border-blue-100 p-4 sm:p-5 space-y-3">
+          <div className="flex items-baseline justify-between">
+            <span className="text-sm font-semibold text-slate-900">Pro プラン</span>
+            <span className="text-sm text-slate-700">
+              <span className="text-lg font-bold text-slate-900">¥9,800</span>
+              <span className="text-xs text-slate-500"> / 月</span>
+            </span>
+          </div>
+          <ul className="space-y-2 text-sm text-slate-700">
+            {[
+              '見積書 / 請求書 / 納品書 / 発注書 / 送付状 の作成・チェックを無制限',
+              '自律型 AI 事務員（β）で複数タスクを自動化',
+              'Watch Room で AI 実行をチームで可視化',
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-2">
+                <svg
+                  className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span>{item}</span>
+              </li>
+            ))}
+            <li className="flex items-start gap-2 pt-1 border-t border-blue-100">
+              <span
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 flex-shrink-0 mt-0.5"
+                aria-label="付録特典"
+              >
+                付録
+              </span>
+              <span>
+                応用クエスト教材
+                <span className="text-xs text-slate-500">（Phase A1 公開予定）</span>
+                <span className="block text-xs text-slate-600 mt-0.5">
+                  チュートリアルの続編。経費一括処理・月次請求書バッチなど、実務で AI を使いこなすハンズオン 5 本。
+                </span>
+              </span>
+            </li>
+          </ul>
+        </div>
+
+        <div className="flex justify-center">
+          <a
+            href="/dashboard"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-8 py-3 text-base font-semibold text-white hover:bg-blue-700"
+          >
+            AI 事務員を使い始める
+            <span aria-hidden="true">→</span>
+          </a>
+        </div>
+      </div>
+
+      <div className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <a
             href={X_INTENT_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
           >
             修了証を X でシェア
           </a>
           <button
             type="button"
             onClick={handleCopy}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
           >
             {copied ? 'コピーしました' : '稟議書用 URL をコピー'}
           </button>
         </div>
-        <div className="flex justify-center pt-2">
+        <div className="flex justify-center">
           <button
             type="button"
             onClick={onRestart}

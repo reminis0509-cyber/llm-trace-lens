@@ -194,10 +194,10 @@ export default function PiiDetection() {
             href="/dashboard"
             className="inline-flex px-6 py-3 bg-accent text-white rounded-card font-medium hover:bg-accent/90 transition-colors duration-120"
           >
-            30日間無料で試す
+            AI 事務員を使い始める
           </a>
           <p className="text-sm text-text-muted mt-3">
-            全機能を30日間無料で体験できます
+            無料（Free 30 回/月）から始められます
           </p>
         </div>
       </div>

@@ -248,12 +248,57 @@ export function Dashboard() {
             <AiClerkChat />
           )}
           {activeTab === 'learn' && (
-            <div className="max-w-2xl mx-auto py-16 text-center">
-              <GraduationCap className="w-12 h-12 text-text-muted mx-auto mb-4" strokeWidth={1.5} />
-              <h2 className="text-xl font-semibold text-text-primary mb-2">教材</h2>
-              <p className="text-sm text-text-secondary">
-                実用ガイドとハンズオン教材を Phase A1 で公開予定です。
-              </p>
+            <div className="max-w-2xl mx-auto py-12">
+              <div className="text-center mb-8">
+                <GraduationCap className="w-12 h-12 text-text-muted mx-auto mb-4" strokeWidth={1.5} />
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <h2 className="text-xl font-semibold text-text-primary">教材</h2>
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800">
+                    Pro 特典
+                  </span>
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800">
+                    Phase A1 公開予定
+                  </span>
+                </div>
+                <p className="text-sm text-text-secondary">
+                  チュートリアルで触った AI 事務員を使いこなすハンズオン教材を順次公開予定。
+                </p>
+              </div>
+
+              <div className="rounded-card border border-border bg-base-surface p-5 sm:p-6">
+                <h3 className="text-sm font-semibold text-text-primary mb-4">
+                  付録クエスト候補
+                </h3>
+                <ol className="space-y-3">
+                  {[
+                    { title: '経費精算の一括処理', desc: '複数領収書 → 経費明細の自動整形' },
+                    { title: '請求書の月次バッチ生成', desc: '取引先リスト → 一斉請求書' },
+                    { title: '見積書の相場感を磨く', desc: '業種別相場 + チェック機能の活用' },
+                    { title: 'Watch Room でチームの AI 利用を可視化', desc: '' },
+                    { title: '自律型 AI 事務員β を業務に組み込む', desc: '複雑指示の書き方' },
+                  ].map((q, i) => (
+                    <li key={q.title} className="flex items-start gap-3">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-base-elevated text-xs font-mono font-semibold text-text-primary flex-shrink-0">
+                        {i + 1}
+                      </span>
+                      <div>
+                        <p className="text-sm font-medium text-text-primary">{q.title}</p>
+                        {q.desc && (
+                          <p className="text-xs text-text-secondary mt-0.5">{q.desc}</p>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+                <div className="mt-5 pt-4 border-t border-border space-y-1">
+                  <p className="text-xs text-text-secondary">
+                    各クエストは 10-15 分、ハンズオン + 実務 Tips で構成予定。
+                  </p>
+                  <p className="text-xs text-text-secondary">
+                    全クリアで「FujiTrace AI 事務員 応用修了」証を発行します。
+                  </p>
+                </div>
+              </div>
             </div>
           )}
           {activeTab === 'team' && (

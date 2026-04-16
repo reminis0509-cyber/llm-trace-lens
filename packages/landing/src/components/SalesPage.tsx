@@ -99,9 +99,9 @@ const pricingPlans = [
 const partnershipSteps = [
   {
     step: 1,
-    title: '無料トライアル',
+    title: '無料で試す',
     description:
-      'まずは御社の環境でFujiTraceをお試しください。Pro相当の全機能を30日間無料でご利用いただけます。',
+      'まずは御社の環境でFujiTraceをお試しください。Free（月 30 回）から登録のみですぐに利用開始できます。',
   },
   {
     step: 2,
@@ -326,7 +326,7 @@ export default function SalesPage() {
             プランもご用意しています。詳しくはお問い合わせください。
           </p>
           <p className="text-sm text-text-secondary mt-2">
-            現在、Pro相当の全機能を30日間無料でお試しいただけます。
+            Free（月 30 回）から、登録のみでご利用いただけます。
           </p>
         </div>
 
@@ -380,9 +380,9 @@ export default function SalesPage() {
             <a
               href="/dashboard"
               className="inline-flex items-center justify-center px-6 py-2.5 text-sm font-medium text-white bg-accent hover:bg-accent/90 rounded-lg transition-colors duration-120"
-              aria-label="無料トライアルを始める"
+              aria-label="AI 事務員を使い始める"
             >
-              無料トライアルを始める
+              AI 事務員を使い始める
             </a>
           </div>
         </div>

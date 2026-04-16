@@ -300,7 +300,7 @@ export default function ForEngineersPage() {
                 href="/dashboard"
                 className="w-full sm:w-auto px-8 py-4 bg-accent text-white rounded-card text-base font-semibold hover:bg-accent/90 transition-colors duration-120 text-center"
               >
-                30日間無料で試す
+                AI 事務員を使い始める
               </a>
               <a
                 href="/"
@@ -707,14 +707,14 @@ export default function ForEngineersPage() {
               今すぐ導入を始める
             </h2>
             <p className="text-lg text-text-secondary mb-8 max-w-xl mx-auto">
-              30日間全機能無料。クレジットカード不要。1行のコード変更で導入できます。
+              Free（月 30 回）から。クレジットカード不要。1行のコード変更で導入できます。
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <a
                 href="/dashboard"
                 className="w-full sm:w-auto px-8 py-4 bg-accent text-white rounded-card text-base font-semibold hover:bg-accent/90 transition-colors duration-120 text-center"
               >
-                30日間無料で試す
+                AI 事務員を使い始める
               </a>
               <a
                 href="mailto:contact@fujitrace.com"

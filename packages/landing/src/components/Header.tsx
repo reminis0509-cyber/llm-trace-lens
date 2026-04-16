@@ -220,7 +220,7 @@ export default function Header() {
                 href="/dashboard"
                 className="px-4 py-2 bg-accent text-white rounded-card text-sm font-semibold hover:bg-accent-hover transition-colors duration-120"
               >
-                30日間無料で試す
+                AI 事務員を使い始める
               </a>
             </div>
 
@@ -324,7 +324,7 @@ export default function Header() {
                 className="px-4 py-3 bg-accent text-white rounded-card text-sm font-semibold text-center hover:bg-accent-hover transition-colors duration-120"
                 onClick={() => setIsMenuOpen(false)}
               >
-                30日間無料で試す
+                AI 事務員を使い始める
               </a>
             </div>
           </nav>
