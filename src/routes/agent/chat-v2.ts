@@ -195,8 +195,8 @@ async function loadOrCreateConversation(
       .first()) as ConversationRow | undefined;
 
     if (!row) {
-      const newId = crypto.randomUUID();
-      return { id: newId, messages: [], isNew: true };
+      // Conversation ID from frontend but not in DB yet — create with that ID
+      return { id: conversationId, messages: [], isNew: true };
     }
 
     if (row.workspace_id !== workspaceId) {
