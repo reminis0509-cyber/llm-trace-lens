@@ -83,7 +83,7 @@ const requestSchema = z.object({
     .string()
     .min(1, 'メッセージを入力してください')
     .max(2000, 'メッセージは2000文字以内にしてください'),
-  conversation_id: z.string().uuid().optional(),
+  conversation_id: z.string().min(1).max(128).optional(),
 });
 
 // ---------------------------------------------------------------------------
