@@ -19,6 +19,7 @@ import {
   Wrench,
   Settings,
   FileText,
+  FileDown,
   Plus,
   MessageSquare,
   Menu,
@@ -943,6 +944,60 @@ function ApprovalBar({ onApprove, onCustomSend }: {
 }
 
 /* ------------------------------------------------------------------ */
+/*  PDF export button for assistant messages                           */
+/* ------------------------------------------------------------------ */
+
+function PdfExportButton({ content, companyName }: { content: string; companyName?: string }) {
+  const [generating, setGenerating] = useState(false);
+
+  const handleExport = useCallback(async () => {
+    if (generating) return;
+    setGenerating(true);
+    try {
+      const { generateMarkdownPdf } = await import('../lib/pdf/markdown-pdf');
+      const blob = await generateMarkdownPdf(content, {
+        companyName: companyName || undefined,
+      });
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `フジ_レポート_${dateStr}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('[PdfExportButton] PDF generation failed:', err);
+    } finally {
+      setGenerating(false);
+    }
+  }, [content, companyName, generating]);
+
+  return (
+    <button
+      type="button"
+      onClick={handleExport}
+      disabled={generating}
+      className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-text-muted hover:text-accent rounded-md hover:bg-accent/5 disabled:opacity-50 transition-colors"
+      aria-label="PDFで出力"
+    >
+      {generating ? (
+        <>
+          <Loader2 className="w-3 h-3 animate-spin" strokeWidth={1.5} />
+          <span>PDF生成中...</span>
+        </>
+      ) : (
+        <>
+          <FileDown className="w-3 h-3" strokeWidth={1.5} />
+          <span>PDFで出力</span>
+        </>
+      )}
+    </button>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  ChatBubble                                                         */
 /* ------------------------------------------------------------------ */
 
@@ -1074,11 +1129,19 @@ function ChatBubble({ message, isThinking, onTraceUpdate, companyInfo, isLastAss
           </div>
         )}
 
-        {/* Timestamp */}
+        {/* Timestamp + PDF export */}
         {!message.isStreaming && message.content && (
-          <p className="text-[10px] text-text-muted mt-1">
-            {message.timestamp.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
-          </p>
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-[10px] text-text-muted">
+              {message.timestamp.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+            {message.content.length > 50 && (
+              <PdfExportButton
+                content={message.content}
+                companyName={companyInfo.companyName}
+              />
+            )}
+          </div>
         )}
 
         {/* Approval bar for confirmation messages */}
