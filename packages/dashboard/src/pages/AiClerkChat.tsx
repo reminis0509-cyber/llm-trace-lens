@@ -32,6 +32,10 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { EstimatePdfData } from '../lib/pdf/estimate';
+import type { InvoicePdfData } from '../lib/pdf/invoice';
+import type { PurchaseOrderPdfData } from '../lib/pdf/purchase-order';
+import type { DeliveryNotePdfData } from '../lib/pdf/delivery-note';
+import type { CoverLetterPdfData } from '../lib/pdf/cover-letter';
 import type { IssuerInfo } from '../lib/pdf/base';
 import { supabase } from '../lib/supabase';
 import { usePlan } from '../contexts/PlanContext';
@@ -691,40 +695,183 @@ function ToolCallTraceInline({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Estimate PDF extraction + download button                          */
+/*  Document PDF extraction + download (all 5 types)                   */
 /* ------------------------------------------------------------------ */
 
-function extractEstimateData(result: Record<string, unknown>): EstimatePdfData | null {
+type DocumentType = 'estimate' | 'invoice' | 'purchase-order' | 'delivery-note' | 'cover-letter';
+
+interface DocumentPdfData {
+  type: DocumentType;
+  data: EstimatePdfData | InvoicePdfData | PurchaseOrderPdfData | DeliveryNotePdfData | CoverLetterPdfData;
+}
+
+const DOCUMENT_LABELS: Record<DocumentType, string> = {
+  'estimate': '見積書',
+  'invoice': '請求書',
+  'purchase-order': '発注書',
+  'delivery-note': '納品書',
+  'cover-letter': '送付状',
+};
+
+/** Normalize items array — ensure each item has required PdfLineItem fields. */
+function normalizeItems(items: unknown[]): { name: string; quantity: number; unit_price: number; subtotal: number }[] {
+  return items.map((item: unknown) => {
+    const it = item as Record<string, unknown>;
+    return {
+      name: String(it.name || it.description || ''),
+      quantity: Number(it.quantity) || 1,
+      unit_price: Number(it.unit_price) || 0,
+      subtotal: Number(it.subtotal) || (Number(it.quantity || 1) * Number(it.unit_price || 0)),
+    };
+  });
+}
+
+/** Try to find structured data for a specific document key at common paths. */
+function findDataAtKey(result: Record<string, unknown>, key: string): Record<string, unknown> | null {
+  const r = result;
+  const fromData = (r?.data as Record<string, unknown>)?.[key];
+  if (fromData && typeof fromData === 'object') return fromData as Record<string, unknown>;
+  const fromRoot = r?.[key];
+  if (fromRoot && typeof fromRoot === 'object') return fromRoot as Record<string, unknown>;
+  return null;
+}
+
+/**
+ * Detect the tool name from the result or tool call metadata to infer document type.
+ */
+function inferTypeFromToolName(toolName: string): DocumentType | null {
+  if (toolName.includes('estimate')) return 'estimate';
+  if (toolName.includes('invoice')) return 'invoice';
+  if (toolName.includes('purchase_order')) return 'purchase-order';
+  if (toolName.includes('delivery_note')) return 'delivery-note';
+  if (toolName.includes('cover_letter')) return 'cover-letter';
+  return null;
+}
+
+function extractDocumentData(result: Record<string, unknown>, toolName?: string): DocumentPdfData | null {
   try {
-    // Try multiple paths where estimate data might live
-    const r = result as Record<string, unknown>;
-    const data =
-      (r?.data as Record<string, unknown>)?.estimate ||
-      r?.estimate ||
-      // Sometimes the whole result IS the estimate (no wrapper)
-      (r?.items && r?.client ? r : null);
-    if (!data || typeof data !== 'object') return null;
-    const est = data as EstimatePdfData;
-    // Normalize items: ensure they have the required fields
-    if (est.items && Array.isArray(est.items)) {
-      est.items = est.items.map((item: Record<string, unknown>) => ({
-        name: String(item.name || item.description || ''),
-        quantity: Number(item.quantity) || 1,
-        unit_price: Number(item.unit_price) || 0,
-        subtotal: Number(item.subtotal) || (Number(item.quantity || 1) * Number(item.unit_price || 0)),
-      }));
+    // 1. Try estimate
+    const est = findDataAtKey(result, 'estimate') ||
+      (result?.items && result?.client ? result : null);
+    if (est) {
+      const data = est as EstimatePdfData;
+      if (data.items && Array.isArray(data.items)) {
+        data.items = normalizeItems(data.items);
+      }
+      return { type: 'estimate', data };
     }
-    return est;
+
+    // 2. Try invoice
+    const inv = findDataAtKey(result, 'invoice');
+    if (inv) {
+      const data = inv as InvoicePdfData;
+      if (data.items && Array.isArray(data.items)) {
+        data.items = normalizeItems(data.items);
+      }
+      return { type: 'invoice', data };
+    }
+
+    // 3. Try purchase order
+    const po = findDataAtKey(result, 'purchase_order') || findDataAtKey(result, 'purchaseOrder');
+    if (po) {
+      const data = po as PurchaseOrderPdfData;
+      if (data.items && Array.isArray(data.items)) {
+        data.items = normalizeItems(data.items);
+      }
+      return { type: 'purchase-order', data };
+    }
+
+    // 4. Try delivery note
+    const dn = findDataAtKey(result, 'delivery_note') || findDataAtKey(result, 'deliveryNote');
+    if (dn) {
+      const data = dn as DeliveryNotePdfData;
+      if (data.items && Array.isArray(data.items)) {
+        data.items = normalizeItems(data.items);
+      }
+      return { type: 'delivery-note', data };
+    }
+
+    // 5. Try cover letter
+    const cl = findDataAtKey(result, 'cover_letter') || findDataAtKey(result, 'coverLetter');
+    if (cl) {
+      return { type: 'cover-letter', data: cl as CoverLetterPdfData };
+    }
+
+    // 6. If none matched by key, try inferring from tool name + generic data
+    if (toolName) {
+      const inferred = inferTypeFromToolName(toolName);
+      if (inferred) {
+        // The data might be at a generic path
+        const genericData = (result?.data as Record<string, unknown>) || result;
+        if (genericData && typeof genericData === 'object') {
+          // Only use if it has meaningful fields (items, client, subject, body)
+          const gd = genericData as Record<string, unknown>;
+          if (gd.items || gd.client || gd.subject || gd.body || gd.enclosures) {
+            if (inferred === 'cover-letter') {
+              return { type: 'cover-letter', data: gd as CoverLetterPdfData };
+            }
+            if (Array.isArray(gd.items)) {
+              (gd as Record<string, unknown>).items = normalizeItems(gd.items as unknown[]);
+            }
+            return { type: inferred, data: gd as EstimatePdfData };
+          }
+        }
+      }
+    }
+
+    return null;
   } catch {
     return null;
   }
 }
 
+/** Generate PDF blob for any document type. */
+async function generateDocumentPdf(
+  docType: DocumentType,
+  data: DocumentPdfData['data'],
+  issuer: IssuerInfo,
+): Promise<Blob> {
+  switch (docType) {
+    case 'estimate': {
+      const { generateEstimatePdf } = await import('../lib/pdf/estimate');
+      return generateEstimatePdf(data as EstimatePdfData, issuer);
+    }
+    case 'invoice': {
+      const { generateInvoicePdf } = await import('../lib/pdf/invoice');
+      return generateInvoicePdf(data as InvoicePdfData, issuer);
+    }
+    case 'purchase-order': {
+      const { generatePurchaseOrderPdf } = await import('../lib/pdf/purchase-order');
+      return generatePurchaseOrderPdf(data as PurchaseOrderPdfData, issuer);
+    }
+    case 'delivery-note': {
+      const { generateDeliveryNotePdf } = await import('../lib/pdf/delivery-note');
+      return generateDeliveryNotePdf(data as DeliveryNotePdfData, issuer);
+    }
+    case 'cover-letter': {
+      const { generateCoverLetterPdf } = await import('../lib/pdf/cover-letter');
+      return generateCoverLetterPdf(data as CoverLetterPdfData, issuer);
+    }
+  }
+}
+
+/** Get a suitable filename prefix for the document number. */
+function getDocumentNumber(docType: DocumentType, data: DocumentPdfData['data']): string {
+  const d = data as Record<string, unknown>;
+  switch (docType) {
+    case 'estimate': return String(d.estimate_number || '');
+    case 'invoice': return String(d.invoice_number || '');
+    case 'purchase-order': return String(d.order_number || '');
+    case 'delivery-note': return String(d.delivery_number || '');
+    case 'cover-letter': return '';
+  }
+}
+
 function PdfPreviewCard({
-  estimateData,
+  documentData,
   issuerInfo,
 }: {
-  estimateData: EstimatePdfData;
+  documentData: DocumentPdfData;
   issuerInfo: IssuerInfo;
 }) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
@@ -735,6 +882,7 @@ function PdfPreviewCard({
   const urlRef = useRef<string | null>(null);
 
   const isMobileView = window.innerWidth < 640;
+  const docLabel = DOCUMENT_LABELS[documentData.type];
 
   // Auto-generate PDF on mount
   useEffect(() => {
@@ -742,15 +890,14 @@ function PdfPreviewCard({
 
     (async () => {
       try {
-        const { generateEstimatePdf } = await import('../lib/pdf/estimate');
-        const blob = await generateEstimatePdf(estimateData, issuerInfo);
+        const blob = await generateDocumentPdf(documentData.type, documentData.data, issuerInfo);
         if (cancelled) return;
         blobRef.current = blob;
         const url = URL.createObjectURL(blob);
         urlRef.current = url;
         setBlobUrl(url);
       } catch (err) {
-        console.error('[PdfPreviewCard] PDF generation failed:', err, { estimateData, issuerInfo });
+        console.error('[PdfPreviewCard] PDF generation failed:', err, { documentData, issuerInfo });
         if (!cancelled) setError(true);
       } finally {
         if (!cancelled) setGenerating(false);
@@ -764,19 +911,21 @@ function PdfPreviewCard({
         urlRef.current = null;
       }
     };
-  }, [estimateData, issuerInfo]);
+  }, [documentData, issuerInfo]);
 
   const handleDownload = useCallback(() => {
     if (!blobRef.current) return;
     const url = URL.createObjectURL(blobRef.current);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `見積書_${estimateData.estimate_number || new Date().toISOString().slice(0, 10)}.pdf`;
+    const docNum = getDocumentNumber(documentData.type, documentData.data);
+    const suffix = docNum || new Date().toISOString().slice(0, 10);
+    a.download = `${docLabel}_${suffix}.pdf`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [estimateData.estimate_number]);
+  }, [documentData, docLabel]);
 
   const handleOpenInNewTab = useCallback(() => {
     if (!blobUrl) return;
@@ -814,7 +963,7 @@ function PdfPreviewCard({
         <div className="p-3 pb-0">
           <iframe
             src={blobUrl}
-            title="見積書プレビュー"
+            title={`${docLabel}プレビュー`}
             className="w-full rounded-lg border border-border bg-gray-50"
             style={{ height: '500px' }}
           />
@@ -828,7 +977,7 @@ function PdfPreviewCard({
           type="button"
           onClick={handleDownload}
           className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-accent rounded-lg hover:bg-accent/90 transition-colors"
-          aria-label="見積書のPDFをダウンロード"
+          aria-label={`${docLabel}のPDFをダウンロード`}
         >
           <Download className="w-4 h-4" strokeWidth={1.5} />
           PDFをダウンロード
@@ -1061,11 +1210,11 @@ function ChatBubble({ message, isThinking, onTraceUpdate, companyInfo, isLastAss
           </div>
         )}
 
-        {/* PDF download button — shown when a tool_result contains estimate data */}
-        {message.toolCalls && message.toolCalls.some(tc => tc.status === 'ok' && tc.result && extractEstimateData(tc.result)) && (() => {
-          const completedTool = message.toolCalls!.find(tc => tc.status === 'ok' && tc.result && extractEstimateData(tc.result));
-          const estimateData = completedTool?.result ? extractEstimateData(completedTool.result) : null;
-          if (!estimateData) return null;
+        {/* PDF download button — shown when a tool_result contains structured document data */}
+        {message.toolCalls && message.toolCalls.some(tc => tc.status === 'ok' && tc.result && extractDocumentData(tc.result, tc.tool)) && (() => {
+          const completedTool = message.toolCalls!.find(tc => tc.status === 'ok' && tc.result && extractDocumentData(tc.result, tc.tool));
+          const docData = completedTool?.result ? extractDocumentData(completedTool.result, completedTool.tool) : null;
+          if (!docData) return null;
           const issuerInfo: IssuerInfo = {
             companyName: companyInfo.companyName || undefined,
             address: companyInfo.address || undefined,
@@ -1076,7 +1225,7 @@ function ChatBubble({ message, isThinking, onTraceUpdate, companyInfo, isLastAss
           };
           return (
             <div className="mb-2">
-              <PdfPreviewCard estimateData={estimateData} issuerInfo={issuerInfo} />
+              <PdfPreviewCard documentData={docData} issuerInfo={issuerInfo} />
             </div>
           );
         })()}
