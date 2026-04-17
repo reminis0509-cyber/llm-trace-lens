@@ -7,9 +7,28 @@ let audioCtx: AudioContext | null = null;
 
 function getAudioContext(): AudioContext {
   if (!audioCtx) {
-    audioCtx = new AudioContext();
+    audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+  }
+  // Resume if suspended (mobile browsers require user gesture)
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {});
   }
   return audioCtx;
+}
+
+/**
+ * Prime the AudioContext on user interaction (call on button click).
+ * This ensures subsequent programmatic sounds work on mobile.
+ */
+export function primeAudio(): void {
+  try {
+    const ctx = getAudioContext();
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+  } catch {
+    // silently ignore
+  }
 }
 
 /**

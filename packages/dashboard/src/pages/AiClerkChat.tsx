@@ -44,6 +44,7 @@ import ToolCallTrace, {
   completeAllSteps,
   type ToolCallTraceState,
 } from '../components/ToolCallTrace';
+import { primeAudio } from '../utils/stepSound';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -1578,6 +1579,9 @@ export default function AiClerkChat() {
     const text = (overrideMessage || inputValue).trim();
     if (!text || isStreaming) return;
 
+    // Prime audio context on user interaction (needed for mobile browsers)
+    primeAudio();
+
     // Check company info before first message
     if (messages.length === 0 && !hasCompanyInfo(companyInfo)) {
       setShowCompanyModal(true);
@@ -2040,7 +2044,7 @@ export default function AiClerkChat() {
                     onTraceUpdate={handleTraceUpdate}
                     companyInfo={companyInfo}
                     isLastAssistant={isLastAssistant}
-                    isConfirmation={isLastAssistant && isConfirmationMessage(msg.content)}
+                    isConfirmation={isLastAssistant && isConfirmationMessage(msg.content) && !(msg.toolCalls && msg.toolCalls.length > 0)}
                     onApprove={() => handleSend('承認します。この内容で進めてください。')}
                     onCustomSend={(text) => handleSend(text)}
                   />
