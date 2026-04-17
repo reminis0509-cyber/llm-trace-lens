@@ -164,6 +164,138 @@ const BEGINNER_QUESTS: Quest[] = [
   },
 ];
 
+const INTERMEDIATE_QUESTS: Quest[] = [
+  {
+    id: 'intermediate-1',
+    level: 'intermediate',
+    number: 6,
+    title: '見積書の妥当性をチェックさせる',
+    description: '作成した見積書をフジに検証させ、金額ミスや記載漏れを指摘してもらいます',
+    objective: 'AIをレビュアーとして活用する方法を学ぶ',
+    hint: '見積書を作成。宛先: 株式会社テスト 山田様、品目: システム開発 1式 800,000円、納期: 来月末',
+    estimatedTime: '3分',
+    steps: [
+      {
+        instruction: 'まず見積書を作成しましょう（意図的に支払条件を空欄にしてみてください）',
+        hint: '見積書を作成。宛先: 株式会社テスト 山田様、品目: システム開発 1式 800,000円、納期: 来月末',
+        checkType: 'send_message',
+      },
+      {
+        instruction: '作成した見積書の内容をフジにチェックさせましょう',
+        hint: 'この見積書に問題がないかチェックしてください。支払条件が抜けていませんか？',
+        checkType: 'send_message',
+      },
+      {
+        instruction: 'フジの指摘を確認し、修正指示を出してみましょう',
+        hint: '支払条件を「納品後30日以内」に修正して再作成してください',
+        checkType: 'send_message',
+      },
+    ],
+  },
+  {
+    id: 'intermediate-2',
+    level: 'intermediate',
+    number: 7,
+    title: '競合調査レポートを作成する',
+    description: 'フジに業界調査を依頼し、出典付きのレポートをPDFで出力します',
+    objective: 'AIをリサーチャーとして活用する方法を学ぶ',
+    hint: '日本のSaaS業界の主要5社について、売上規模・主力製品・特徴を比較分析してレポートを作成してください',
+    estimatedTime: '5分',
+    steps: [
+      {
+        instruction: 'フジに業界の調査レポートを依頼しましょう',
+        hint: '日本のSaaS業界の主要5社について、売上規模・主力製品・特徴を比較分析してレポートを作成してください',
+        checkType: 'send_message',
+      },
+      {
+        instruction: 'レポートに出典が記載されているか確認しましょう',
+        checkType: 'receive_response',
+      },
+      {
+        instruction: 'PDFで出力ボタンでレポートをダウンロードしましょう',
+        checkType: 'pdf_generated',
+      },
+    ],
+  },
+  {
+    id: 'intermediate-3',
+    level: 'intermediate',
+    number: 8,
+    title: '月次報告書のたたき台を作る',
+    description: '売上や経費のデータをフジに渡して、月次報告書を生成させます',
+    objective: 'AIにデータを渡して文書化するスキルを身につける',
+    hint: '4月の月次報告書を作成してください。売上: 350万円（前月比+15%）、経費: 180万円（人件費120万、広告費30万、その他30万）、新規顧客: 5社、解約: 1社',
+    estimatedTime: '5分',
+    steps: [
+      {
+        instruction: '月次の数字をフジに伝えて報告書を依頼しましょう',
+        hint: '4月の月次報告書を作成してください。売上: 350万円（前月比+15%）、経費: 180万円（人件費120万、広告費30万、その他30万）、新規顧客: 5社、解約: 1社',
+        checkType: 'send_message',
+      },
+      {
+        instruction: '報告書の内容を確認し、分析コメントが含まれているか確認しましょう',
+        checkType: 'receive_response',
+      },
+      {
+        instruction: 'PDFで出力してダウンロードしましょう',
+        checkType: 'pdf_generated',
+      },
+    ],
+  },
+  {
+    id: 'intermediate-4',
+    level: 'intermediate',
+    number: 9,
+    title: 'メール文面を3パターン作らせる',
+    description: '同じ内容のメールを丁寧・標準・カジュアルの3パターンで作成させます',
+    objective: 'AIに条件分岐の出力をさせるスキルを身につける',
+    hint: '新規取引先への挨拶メールを3パターン作成してください。パターン1: 非常に丁寧（大企業向け）、パターン2: 標準的なビジネス、パターン3: カジュアル（スタートアップ向け）。内容は自己紹介と今後の協業への期待です。',
+    estimatedTime: '3分',
+    steps: [
+      {
+        instruction: 'フジに3パターンのメールを一度に依頼しましょう',
+        hint: '新規取引先への挨拶メールを3パターン作成してください。パターン1: 非常に丁寧（大企業向け）、パターン2: 標準的なビジネス、パターン3: カジュアル（スタートアップ向け）。内容は自己紹介と今後の協業への期待です。',
+        checkType: 'send_message',
+      },
+      {
+        instruction: '3パターンの違いを比較しましょう。トーンや表現がどう変わるか確認してください',
+        checkType: 'receive_response',
+      },
+      {
+        instruction: '最も使いたいパターンをPDFで出力しましょう',
+        checkType: 'pdf_generated',
+      },
+    ],
+  },
+  {
+    id: 'intermediate-5',
+    level: 'intermediate',
+    number: 10,
+    title: '会議の議事録を整理させる',
+    description: '走り書きの会議メモをフジに渡して、構造化された議事録に変換させます',
+    objective: 'AIに非構造データを構造化させるスキルを身につける',
+    hint: '以下の会議メモを議事録として整理してください。\n\n4/17 定例ミーティング 参加: 田中、佐藤、鈴木\n・売上は目標達成 前月比15%増\n・新規案件 A社のシステム開発 来週提案\n・佐藤さんが見積書作成担当\n・鈴木さんは競合調査\n・次回は来週金曜 同じ時間\n・経費精算の締め切り 今月25日 忘れずに',
+    estimatedTime: '5分',
+    steps: [
+      {
+        instruction: '走り書きの会議メモをフジに送りましょう',
+        hint: '以下の会議メモを議事録として整理してください。\n\n4/17 定例ミーティング 参加: 田中、佐藤、鈴木\n・売上は目標達成 前月比15%増\n・新規案件 A社のシステム開発 来週提案\n・佐藤さんが見積書作成担当\n・鈴木さんは競合調査\n・次回は来週金曜 同じ時間\n・経費精算の締め切り 今月25日 忘れずに',
+        checkType: 'send_message',
+      },
+      {
+        instruction: '決定事項・TODO・次回予定が整理されているか確認しましょう',
+        checkType: 'receive_response',
+      },
+      {
+        instruction: '議事録をPDFで出力して保存しましょう',
+        checkType: 'pdf_generated',
+      },
+    ],
+  },
+];
+
+const ALL_QUESTS: Quest[] = [...BEGINNER_QUESTS, ...INTERMEDIATE_QUESTS];
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -190,12 +322,28 @@ function saveProgress(progress: QuestProgress): void {
 
 type QuestStatus = 'completed' | 'available' | 'locked';
 
-function getQuestStatus(quest: Quest, progress: QuestProgress, quests: Quest[]): QuestStatus {
+function getQuestStatus(quest: Quest, progress: QuestProgress): QuestStatus {
   if (progress.completedQuests.includes(quest.id)) return 'completed';
-  const idx = quests.findIndex((q) => q.id === quest.id);
-  if (idx === 0) return 'available';
-  const prevQuest = quests[idx - 1];
-  if (prevQuest && progress.completedQuests.includes(prevQuest.id)) return 'available';
+
+  if (quest.level === 'beginner') {
+    const idx = BEGINNER_QUESTS.findIndex((q) => q.id === quest.id);
+    if (idx === 0) return 'available';
+    const prevQuest = BEGINNER_QUESTS[idx - 1];
+    if (prevQuest && progress.completedQuests.includes(prevQuest.id)) return 'available';
+    return 'locked';
+  }
+
+  if (quest.level === 'intermediate') {
+    // All beginner quests must be completed first
+    const allBeginnersDone = BEGINNER_QUESTS.every((q) => progress.completedQuests.includes(q.id));
+    if (!allBeginnersDone) return 'locked';
+    const idx = INTERMEDIATE_QUESTS.findIndex((q) => q.id === quest.id);
+    if (idx === 0) return 'available';
+    const prevQuest = INTERMEDIATE_QUESTS[idx - 1];
+    if (prevQuest && progress.completedQuests.includes(prevQuest.id)) return 'available';
+    return 'locked';
+  }
+
   return 'locked';
 }
 
@@ -226,7 +374,7 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
   const [toast, setToast] = useState<string | null>(null);
 
   const selectedQuest = useMemo(
-    () => (selectedQuestId ? BEGINNER_QUESTS.find((q) => q.id === selectedQuestId) ?? null : null),
+    () => (selectedQuestId ? ALL_QUESTS.find((q) => q.id === selectedQuestId) ?? null : null),
     [selectedQuestId],
   );
 
@@ -239,7 +387,7 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
   const toggleStep = useCallback(
     (questId: string, stepIndex: number) => {
       setProgress((prev) => {
-        const quest = BEGINNER_QUESTS.find((q) => q.id === questId);
+        const quest = ALL_QUESTS.find((q) => q.id === questId);
         if (!quest) return prev;
 
         const steps = prev.currentSteps[questId]
@@ -303,7 +451,7 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
   // Detail view
   // -----------------------------------------------------------------------
   if (selectedQuest) {
-    const status = getQuestStatus(selectedQuest, progress, BEGINNER_QUESTS);
+    const status = getQuestStatus(selectedQuest, progress);
     const stepStates = progress.currentSteps[selectedQuest.id] ?? new Array<boolean>(selectedQuest.steps.length).fill(false);
     const allStepsCompleted = stepStates.length === selectedQuest.steps.length && stepStates.every(Boolean);
 
@@ -327,6 +475,13 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-mono text-text-muted">Quest {selectedQuest.number}</span>
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+              selectedQuest.level === 'beginner'
+                ? 'bg-blue-100 text-blue-800'
+                : 'bg-purple-100 text-purple-800'
+            }`}>
+              {selectedQuest.level === 'beginner' ? '初級' : '中級'}
+            </span>
             <span className="flex items-center gap-1 text-xs text-text-muted">
               <Clock className="w-3 h-3" strokeWidth={1.5} />
               {selectedQuest.estimatedTime}
@@ -433,9 +588,13 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
   // -----------------------------------------------------------------------
   // List view
   // -----------------------------------------------------------------------
-  const completedCount = progress.completedQuests.filter((id) =>
+  const beginnerCompletedCount = progress.completedQuests.filter((id) =>
     BEGINNER_QUESTS.some((q) => q.id === id),
   ).length;
+  const intermediateCompletedCount = progress.completedQuests.filter((id) =>
+    INTERMEDIATE_QUESTS.some((q) => q.id === id),
+  ).length;
+  const totalCompleted = beginnerCompletedCount + intermediateCompletedCount;
 
   return (
     <div className="max-w-2xl mx-auto py-8">
@@ -444,101 +603,151 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
 
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-2 mb-1">
-          <h2 className="text-xl font-semibold text-text-primary">応用クエスト</h2>
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-800">
-            初級
-          </span>
-        </div>
+        <h2 className="text-xl font-semibold text-text-primary">応用クエスト</h2>
         <p className="text-sm text-text-secondary mt-1">
           チュートリアルの次のステップ。本物のAIが動きます。
         </p>
-        {completedCount > 0 && (
+        {totalCompleted > 0 && (
           <p className="text-xs text-text-muted mt-2">
-            {completedCount} / {BEGINNER_QUESTS.length} 完了
+            {totalCompleted} / {ALL_QUESTS.length} 完了
           </p>
         )}
       </div>
 
-      {/* Quest cards */}
-      <div className="space-y-3">
-        {BEGINNER_QUESTS.map((quest) => {
-          const status = getQuestStatus(quest, progress, BEGINNER_QUESTS);
-          const isClickable = status === 'completed' || status === 'available';
-
-          return (
-            <button
+      {/* Beginner section */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-3">
+          <h3 className="text-sm font-semibold text-text-primary">初級</h3>
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-800">
+            {beginnerCompletedCount} / {BEGINNER_QUESTS.length}
+          </span>
+        </div>
+        <div className="space-y-3">
+          {BEGINNER_QUESTS.map((quest) => (
+            <QuestCard
               key={quest.id}
-              type="button"
-              onClick={() => isClickable && setSelectedQuestId(quest.id)}
-              disabled={!isClickable}
-              className={`w-full text-left rounded-card border transition-colors duration-120 ${
-                status === 'locked'
-                  ? 'border-border bg-base-surface opacity-60 cursor-not-allowed'
-                  : status === 'completed'
-                    ? 'border-emerald-200 bg-emerald-50/50 hover:border-emerald-300 cursor-pointer'
-                    : 'border-border bg-base-surface hover:border-accent/40 cursor-pointer'
-              }`}
-              aria-label={`Quest ${quest.number}: ${quest.title}`}
-              aria-disabled={!isClickable}
-            >
-              <div className="flex items-center gap-4 px-5 py-4">
-                {/* Status indicator */}
-                <div className="flex-shrink-0">
-                  {status === 'completed' && (
-                    <div
-                      className="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center"
-                      aria-label="完了"
-                    >
-                      <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
-                    </div>
-                  )}
-                  {status === 'available' && (
-                    <div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center">
-                      <span className="text-xs font-semibold text-white">{quest.number}</span>
-                    </div>
-                  )}
-                  {status === 'locked' && (
-                    <div
-                      className="w-7 h-7 rounded-full bg-base-elevated flex items-center justify-center"
-                      aria-label="ロック中"
-                    >
-                      <Lock className="w-3.5 h-3.5 text-text-muted" strokeWidth={1.5} />
-                    </div>
-                  )}
-                </div>
+              quest={quest}
+              progress={progress}
+              onSelect={setSelectedQuestId}
+            />
+          ))}
+        </div>
+      </div>
 
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-medium ${status === 'locked' ? 'text-text-muted' : 'text-text-primary'}`}>
-                    {quest.title}
-                  </p>
-                  <p className="text-xs text-text-muted mt-0.5">{quest.description}</p>
-                </div>
-
-                {/* Time estimate */}
-                <div className="flex-shrink-0 flex items-center gap-1 text-xs text-text-muted">
-                  <Clock className="w-3 h-3" strokeWidth={1.5} />
-                  {quest.estimatedTime}
-                </div>
-
-                {/* Chevron for clickable items */}
-                {isClickable && (
-                  <ChevronRight className="w-4 h-4 text-text-muted flex-shrink-0" strokeWidth={1.5} />
-                )}
-              </div>
-            </button>
-          );
-        })}
+      {/* Intermediate section */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-3">
+          <h3 className="text-sm font-semibold text-text-primary">中級</h3>
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-800">
+            {intermediateCompletedCount} / {INTERMEDIATE_QUESTS.length}
+          </span>
+        </div>
+        <div className="space-y-3">
+          {INTERMEDIATE_QUESTS.map((quest) => (
+            <QuestCard
+              key={quest.id}
+              quest={quest}
+              progress={progress}
+              onSelect={setSelectedQuestId}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Footer */}
       <div className="mt-8 text-center">
         <p className="text-xs text-text-muted">
-          中級・上級クエストは今後公開予定
+          上級クエストは今後公開予定
         </p>
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// QuestCard sub-component
+// ---------------------------------------------------------------------------
+
+interface QuestCardProps {
+  quest: Quest;
+  progress: QuestProgress;
+  onSelect: (id: string) => void;
+}
+
+function QuestCard({ quest, progress, onSelect }: QuestCardProps) {
+  const status = getQuestStatus(quest, progress);
+  const isClickable = status === 'completed' || status === 'available';
+  const levelBadge = quest.level === 'beginner'
+    ? 'bg-blue-100 text-blue-800'
+    : 'bg-purple-100 text-purple-800';
+  const levelLabel = quest.level === 'beginner' ? '初級' : '中級';
+
+  return (
+    <button
+      type="button"
+      onClick={() => isClickable && onSelect(quest.id)}
+      disabled={!isClickable}
+      className={`w-full text-left rounded-card border transition-colors duration-120 ${
+        status === 'locked'
+          ? 'border-border bg-base-surface opacity-60 cursor-not-allowed'
+          : status === 'completed'
+            ? 'border-emerald-200 bg-emerald-50/50 hover:border-emerald-300 cursor-pointer'
+            : 'border-border bg-base-surface hover:border-accent/40 cursor-pointer'
+      }`}
+      aria-label={`Quest ${quest.number}: ${quest.title}`}
+      aria-disabled={!isClickable}
+    >
+      <div className="flex items-center gap-4 px-5 py-4">
+        {/* Status indicator */}
+        <div className="flex-shrink-0">
+          {status === 'completed' && (
+            <div
+              className="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center"
+              aria-label="完了"
+            >
+              <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
+            </div>
+          )}
+          {status === 'available' && (
+            <div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center">
+              <span className="text-xs font-semibold text-white">{quest.number}</span>
+            </div>
+          )}
+          {status === 'locked' && (
+            <div
+              className="w-7 h-7 rounded-full bg-base-elevated flex items-center justify-center"
+              aria-label="ロック中"
+            >
+              <Lock className="w-3.5 h-3.5 text-text-muted" strokeWidth={1.5} />
+            </div>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <p className={`text-sm font-medium ${status === 'locked' ? 'text-text-muted' : 'text-text-primary'}`}>
+              {quest.title}
+            </p>
+            <span className={`inline-flex items-center px-1 py-0.5 rounded text-[9px] font-semibold ${levelBadge}`}>
+              {levelLabel}
+            </span>
+          </div>
+          <p className="text-xs text-text-muted mt-0.5">{quest.description}</p>
+        </div>
+
+        {/* Time estimate */}
+        <div className="flex-shrink-0 flex items-center gap-1 text-xs text-text-muted">
+          <Clock className="w-3 h-3" strokeWidth={1.5} />
+          {quest.estimatedTime}
+        </div>
+
+        {/* Chevron for clickable items */}
+        {isClickable && (
+          <ChevronRight className="w-4 h-4 text-text-muted flex-shrink-0" strokeWidth={1.5} />
+        )}
+      </div>
+    </button>
   );
 }
 
