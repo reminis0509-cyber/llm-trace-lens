@@ -35,7 +35,7 @@ async function getApp() {
     });
 
     await app.register(cors, {
-      origin: true,
+      origin: (process.env.CORS_ALLOWED_ORIGINS || 'https://www.fujitrace.jp,https://fujitrace.jp').split(',').map(o => o.trim()),
       credentials: true,
     });
 

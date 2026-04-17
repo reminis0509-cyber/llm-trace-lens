@@ -459,8 +459,8 @@ const DEFAULT_WORKSPACE_ID = 'default';
  */
 export async function getWorkspaceFromApiKey(apiKey: string): Promise<string | null> {
   if (!isKVAvailable()) {
-    // In local development without KV, use default workspace
-    return DEFAULT_WORKSPACE_ID;
+    // KV unavailable — return null instead of default to prevent cross-contamination
+    return null;
   }
 
   try {

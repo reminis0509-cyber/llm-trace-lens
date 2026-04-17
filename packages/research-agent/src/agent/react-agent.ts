@@ -22,6 +22,9 @@ import { webSearch, type SearchResult } from './web-search';
 
 const FUJITRACE_PROXY_URL =
   import.meta.env.VITE_FUJITRACE_PROXY_URL || 'http://localhost:3000';
+// SECURITY WARNING: VITE_ prefixed vars are embedded in client bundles.
+// This package MUST NOT be deployed as a frontend app.
+// All LLM calls should route through the backend proxy in production.
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || '';
 
 const MODEL = 'gpt-4o-mini';

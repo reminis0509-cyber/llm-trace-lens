@@ -33,6 +33,12 @@ npm-debug.log*
 coverage/
 .vercel
 
+# Security: private keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
 # Claude Code local settings
 .claude/
 
