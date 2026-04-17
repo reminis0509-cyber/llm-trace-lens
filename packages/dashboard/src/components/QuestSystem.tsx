@@ -294,7 +294,158 @@ const INTERMEDIATE_QUESTS: Quest[] = [
   },
 ];
 
-const ALL_QUESTS: Quest[] = [...BEGINNER_QUESTS, ...INTERMEDIATE_QUESTS];
+const ADVANCED_QUESTS: Quest[] = [
+  {
+    id: 'advanced-1',
+    level: 'advanced',
+    number: 11,
+    title: '見積書→請求書→納品書の一気通貫',
+    description: '1つの案件で見積書から納品書まで全書類を一つの会話で作成します',
+    objective: '業務フロー全体をAIで回すスキルを身につける',
+    hint: '株式会社ABC 田中様宛に、Webアプリ開発の見積書を作成してください。要件定義 200,000円、デザイン 300,000円、開発 500,000円、テスト 100,000円。納期は3ヶ月後、支払条件は納品後30日以内。',
+    estimatedTime: '8分',
+    steps: [
+      {
+        instruction: '案件の見積書を作成しましょう',
+        hint: '株式会社ABC 田中様宛に、Webアプリ開発の見積書を作成してください。要件定義 200,000円、デザイン 300,000円、開発 500,000円、テスト 100,000円。納期は3ヶ月後、支払条件は納品後30日以内。',
+        checkType: 'send_message',
+      },
+      {
+        instruction: '承認後、同じ会話で請求書の作成を依頼しましょう',
+        hint: 'この案件の請求書も作成してください。請求番号はINV-2026-001で。',
+        checkType: 'send_message',
+      },
+      {
+        instruction: '最後に納品書を作成して、3点セットを完成させましょう',
+        hint: '納品書も作成してください。納品日は本日です。',
+        checkType: 'send_message',
+      },
+      {
+        instruction: '全書類をPDFで出力しましょう',
+        checkType: 'pdf_generated',
+      },
+    ],
+  },
+  {
+    id: 'advanced-2',
+    level: 'advanced',
+    number: 12,
+    title: '取引条件を比較検討させる',
+    description: '2社の見積条件をフジに渡して比較分析と推奨を出させます',
+    objective: 'AIに意思決定支援をさせるスキルを身につける',
+    hint: '以下の2社の見積を比較分析してください。\n\nA社: システム開発 800万円、納期4ヶ月、保守月額5万円、実績10年\nB社: システム開発 600万円、納期6ヶ月、保守月額8万円、実績3年\n\n3年間の総コスト、リスク、推奨理由を含めてレポートにしてください。',
+    estimatedTime: '5分',
+    steps: [
+      {
+        instruction: '2社の見積条件をフジに伝えて比較を依頼しましょう',
+        hint: '以下の2社の見積を比較分析してください。\n\nA社: システム開発 800万円、納期4ヶ月、保守月額5万円、実績10年\nB社: システム開発 600万円、納期6ヶ月、保守月額8万円、実績3年\n\n3年間の総コスト、リスク、推奨理由を含めてレポートにしてください。',
+        checkType: 'send_message',
+      },
+      {
+        instruction: '比較表と推奨理由が含まれているか確認しましょう',
+        checkType: 'receive_response',
+      },
+      {
+        instruction: 'PDFで出力して意思決定の資料にしましょう',
+        checkType: 'pdf_generated',
+      },
+    ],
+  },
+  {
+    id: 'advanced-3',
+    level: 'advanced',
+    number: 13,
+    title: '事業計画のたたき台を作らせる',
+    description: '市場規模や売上目標を伝えて事業計画書のドラフトを生成させます',
+    objective: 'AIに経営文書を作らせるスキルを身につける',
+    hint: '以下の情報で事業計画書のたたき台を作成してください。\n\n事業名: AIコンサルティング事業\n市場規模: 国内AI市場 2兆円（2025年）\n初年度売上目標: 3,000万円\nターゲット: 従業員50-200名の中小企業\n主力サービス: AI導入支援（月額30万円）\nコスト構造: 人件費60%、マーケティング20%、その他20%\n差別化: 日本語特化、導入後サポート込み',
+    estimatedTime: '8分',
+    steps: [
+      {
+        instruction: '事業の概要と目標をフジに伝えましょう',
+        hint: '以下の情報で事業計画書のたたき台を作成してください。\n\n事業名: AIコンサルティング事業\n市場規模: 国内AI市場 2兆円（2025年）\n初年度売上目標: 3,000万円\nターゲット: 従業員50-200名の中小企業\n主力サービス: AI導入支援（月額30万円）\nコスト構造: 人件費60%、マーケティング20%、その他20%\n差別化: 日本語特化、導入後サポート込み',
+        checkType: 'send_message',
+      },
+      {
+        instruction: 'エグゼクティブサマリー、市場分析、収支計画が含まれているか確認しましょう',
+        checkType: 'receive_response',
+      },
+      {
+        instruction: '必要に応じて修正指示を出しましょう',
+        hint: '収支計画に四半期ごとの目標を追加してください',
+        checkType: 'send_message',
+      },
+      {
+        instruction: 'PDFで出力して保存しましょう',
+        checkType: 'pdf_generated',
+      },
+    ],
+  },
+  {
+    id: 'advanced-4',
+    level: 'advanced',
+    number: 14,
+    title: 'コンプライアンスチェックを実行する',
+    description: '契約書や発注書の法的要件をフジに検証させます',
+    objective: 'AIに法務リスクを洗い出させるスキルを身につける',
+    hint: '以下の発注書の内容にコンプライアンス上の問題がないかチェックしてください。\n\n発注先: 個人事業主 佐藤太郎\n品目: Webサイトデザイン\n金額: 45万円\n納期: 1ヶ月\n支払条件: 納品後60日以内\n\n下請法やフリーランス新法の観点から問題点を指摘してください。',
+    estimatedTime: '5分',
+    steps: [
+      {
+        instruction: '発注書の内容をフジに検証させましょう',
+        hint: '以下の発注書の内容にコンプライアンス上の問題がないかチェックしてください。\n\n発注先: 個人事業主 佐藤太郎\n品目: Webサイトデザイン\n金額: 45万円\n納期: 1ヶ月\n支払条件: 納品後60日以内\n\n下請法やフリーランス新法の観点から問題点を指摘してください。',
+        checkType: 'send_message',
+      },
+      {
+        instruction: '指摘された問題点を確認しましょう（支払期日60日は下請法違反の可能性等）',
+        checkType: 'receive_response',
+      },
+      {
+        instruction: '修正した条件で再作成を依頼しましょう',
+        hint: '支払条件を納品後30日以内に修正して、発注書を再作成してください',
+        checkType: 'send_message',
+      },
+    ],
+  },
+  {
+    id: 'advanced-5',
+    level: 'advanced',
+    number: 15,
+    title: '複数書類を連携して業務を完結させる',
+    description: 'メモリ設定から書類作成、報告書まで1セッションで業務を完結させます',
+    objective: 'AIを事務パートナーとして使いこなす総合演習',
+    hint: 'メモリに以下を保存:\n・主要取引先: 株式会社グローバルテック 鈴木部長\n・消費税: 10%\n・支払条件: 月末締め翌月末払い\n・自社の強み: AI導入実績50社以上',
+    estimatedTime: '10分',
+    steps: [
+      {
+        instruction: 'メモリに取引先情報を登録しましょう',
+        hint: 'メモリに以下を保存:\n・主要取引先: 株式会社グローバルテック 鈴木部長\n・消費税: 10%\n・支払条件: 月末締め翌月末払い\n・自社の強み: AI導入実績50社以上',
+        checkType: 'send_message',
+      },
+      {
+        instruction: '新しい会話で見積書を作成しましょう（メモリの情報が反映されるはず）',
+        hint: '株式会社グローバルテックに、AI導入コンサルティング 月額30万円×6ヶ月の見積書を作成してください',
+        checkType: 'send_message',
+      },
+      {
+        instruction: '同じ会話で送付状も作成しましょう',
+        hint: 'この見積書を送付する送付状を作成してください',
+        checkType: 'send_message',
+      },
+      {
+        instruction: '最後に、この案件の提案概要をまとめたレポートを作成しましょう',
+        hint: '株式会社グローバルテックへのAI導入提案の概要レポートを作成してください。提案内容、期待効果、スケジュールを含めてください。',
+        checkType: 'send_message',
+      },
+      {
+        instruction: '全ての成果物をPDFで出力して完了です',
+        checkType: 'pdf_generated',
+      },
+    ],
+  },
+];
+
+const ALL_QUESTS: Quest[] = [...BEGINNER_QUESTS, ...INTERMEDIATE_QUESTS, ...ADVANCED_QUESTS];
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -340,6 +491,17 @@ function getQuestStatus(quest: Quest, progress: QuestProgress): QuestStatus {
     const idx = INTERMEDIATE_QUESTS.findIndex((q) => q.id === quest.id);
     if (idx === 0) return 'available';
     const prevQuest = INTERMEDIATE_QUESTS[idx - 1];
+    if (prevQuest && progress.completedQuests.includes(prevQuest.id)) return 'available';
+    return 'locked';
+  }
+
+  if (quest.level === 'advanced') {
+    // All intermediate quests must be completed first
+    const allIntermediatesDone = INTERMEDIATE_QUESTS.every((q) => progress.completedQuests.includes(q.id));
+    if (!allIntermediatesDone) return 'locked';
+    const idx = ADVANCED_QUESTS.findIndex((q) => q.id === quest.id);
+    if (idx === 0) return 'available';
+    const prevQuest = ADVANCED_QUESTS[idx - 1];
     if (prevQuest && progress.completedQuests.includes(prevQuest.id)) return 'available';
     return 'locked';
   }
@@ -478,9 +640,11 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
             <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${
               selectedQuest.level === 'beginner'
                 ? 'bg-blue-100 text-blue-800'
-                : 'bg-purple-100 text-purple-800'
+                : selectedQuest.level === 'intermediate'
+                  ? 'bg-purple-100 text-purple-800'
+                  : 'bg-amber-100 text-amber-800'
             }`}>
-              {selectedQuest.level === 'beginner' ? '初級' : '中級'}
+              {selectedQuest.level === 'beginner' ? '初級' : selectedQuest.level === 'intermediate' ? '中級' : '上級'}
             </span>
             <span className="flex items-center gap-1 text-xs text-text-muted">
               <Clock className="w-3 h-3" strokeWidth={1.5} />
@@ -594,7 +758,10 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
   const intermediateCompletedCount = progress.completedQuests.filter((id) =>
     INTERMEDIATE_QUESTS.some((q) => q.id === id),
   ).length;
-  const totalCompleted = beginnerCompletedCount + intermediateCompletedCount;
+  const advancedCompletedCount = progress.completedQuests.filter((id) =>
+    ADVANCED_QUESTS.some((q) => q.id === id),
+  ).length;
+  const totalCompleted = beginnerCompletedCount + intermediateCompletedCount + advancedCompletedCount;
 
   return (
     <div className="max-w-2xl mx-auto py-8">
@@ -654,11 +821,24 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="mt-8 text-center">
-        <p className="text-xs text-text-muted">
-          上級クエストは今後公開予定
-        </p>
+      {/* Advanced section */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-3">
+          <h3 className="text-sm font-semibold text-text-primary">上級</h3>
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800">
+            {advancedCompletedCount} / {ADVANCED_QUESTS.length}
+          </span>
+        </div>
+        <div className="space-y-3">
+          {ADVANCED_QUESTS.map((quest) => (
+            <QuestCard
+              key={quest.id}
+              quest={quest}
+              progress={progress}
+              onSelect={setSelectedQuestId}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -679,8 +859,10 @@ function QuestCard({ quest, progress, onSelect }: QuestCardProps) {
   const isClickable = status === 'completed' || status === 'available';
   const levelBadge = quest.level === 'beginner'
     ? 'bg-blue-100 text-blue-800'
-    : 'bg-purple-100 text-purple-800';
-  const levelLabel = quest.level === 'beginner' ? '初級' : '中級';
+    : quest.level === 'intermediate'
+      ? 'bg-purple-100 text-purple-800'
+      : 'bg-amber-100 text-amber-800';
+  const levelLabel = quest.level === 'beginner' ? '初級' : quest.level === 'intermediate' ? '中級' : '上級';
 
   return (
     <button
