@@ -4,14 +4,12 @@ export default function CTA() {
       <div className="section-container">
         <div className="surface-card p-6 sm:p-8 lg:p-12 text-center">
           <h2 className="text-2xl sm:text-display-sm font-semibold text-text-primary mb-4">
-            書類業務、AIに任せませんか。
+            AI事務員、雇いませんか。
           </h2>
           <p className="text-lg text-text-secondary mb-4 max-w-2xl mx-auto leading-relaxed">
-            見積書・請求書・納品書をAIが作成・チェック。
+            チュートリアルで体験し、クエストで鍛え、実務で使いこなす。
             <br className="hidden md:block" />
-            金額ミスも記載漏れも自動検出。
-            <br className="hidden md:block" />
-            無料で今すぐ始められます。
+            社員がAIを使える会社に、今日からなれます。
           </p>
           <div className="flex flex-wrap justify-center gap-4 mb-8 text-sm text-text-muted">
             <span className="flex items-center gap-1.5">

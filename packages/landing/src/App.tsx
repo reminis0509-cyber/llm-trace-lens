@@ -26,6 +26,7 @@ import PiiDetection from './components/PiiDetection';
 import LiveTraceFeed from './components/LiveTraceFeed';
 import MidPageCTA from './components/MidPageCTA';
 import PricingSimulator from './components/PricingSimulator';
+import EducationShowcase from './components/EducationShowcase';
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -36,15 +37,8 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Instagram型URL構造: メインドメインではルートをダッシュボード（ログイン画面）にリダイレクト
-  // about.fujitrace.jp と localhost / 127.0.0.1（開発）ではLPをそのまま表示
-  const hostname = window.location.hostname;
-  const isAboutSubdomain = hostname.startsWith('about.');
-  const isLocalDev = hostname === 'localhost' || hostname.startsWith('127.0.0.1');
-  if (currentPath === '/' && !isAboutSubdomain && !isLocalDev) {
-    window.location.href = '/dashboard/';
-    return null;
-  }
+  // fujitrace.jp でもLPを表示する（初見訪問者にサービス価値を伝えるため）
+  // ログインは Header のボタンから /dashboard/ へアクセス
 
   let pageContent: React.ReactNode;
 
@@ -74,55 +68,58 @@ export default function App() {
   } else {
     pageContent = (
       <>
-        {/* 1. Hero */}
+        {/* 1. Hero — 教育訴求 */}
         <Hero />
         <div className="section-divider" />
 
-        {/* 1.5 デモ見積書フォーム */}
+        {/* 2. デモ見積書フォーム — 即体験 */}
         <EstimateDemo />
         <div className="section-divider" />
 
-        {/* 2. 課題 */}
+        {/* 3. 教育ショーケース — チュートリアル/クエスト/AI事務員 */}
+        <EducationShowcase />
+        <div className="section-divider" />
+
+        {/* 4. 課題 — AIが使えない壁 */}
         <Problems />
         <div className="section-divider" />
 
-        {/* 3. 解決策 */}
+        {/* 5. 解決策 — 体験→鍛錬→実務 */}
         <Solution />
         <div className="section-divider" />
 
-        {/* 4. 中間CTA */}
+        {/* 6. 中間CTA */}
         <MidPageCTA />
         <div className="section-divider" />
 
-        {/* 5. 機密情報検知 */}
-        <PiiDetection />
-        <div className="section-divider" />
-
-        {/* 6. ライブトレースフィード */}
-        <LiveTraceFeed />
-        <div className="section-divider" />
-
-        {/* 7. 製品画面デモ */}
-        <DemoShowcase />
-        <div className="section-divider" />
-
-        {/* 8. 機能一覧 */}
+        {/* 7. 機能一覧 */}
         <Features />
         <div className="section-divider" />
 
+        {/* 8. 製品画面デモ */}
+        <DemoShowcase />
+        <div className="section-divider" />
 
-        {/* 9. 料金 */}
+        {/* 9. 機密情報検知 */}
+        <PiiDetection />
+        <div className="section-divider" />
+
+        {/* 10. ライブトレースフィード */}
+        <LiveTraceFeed />
+        <div className="section-divider" />
+
+        {/* 11. 料金 */}
         <Pricing />
         <div className="section-divider" />
 
-        {/* 9.5 料金シミュレーション */}
+        {/* 12. 料金シミュレーション */}
         <PricingSimulator />
         <div className="section-divider" />
 
-        {/* 10. パートナー */}
+        {/* 13. パートナー */}
         <Partners />
 
-        {/* 11. 最終CTA */}
+        {/* 14. 最終CTA */}
         <CTA />
       </>
     );

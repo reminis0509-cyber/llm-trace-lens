@@ -18,18 +18,18 @@ export default function Hero() {
 
           {/* Main headline */}
           <h1 className="text-[2rem] sm:text-display-sm lg:text-display font-semibold text-text-primary mb-6 leading-[1.2]">
-            見積書・請求書・納品書を
+            AI事務員、
             <br className="hidden sm:block" />
-            AIが作成・チェック。
+            雇いませんか。
           </h1>
 
           {/* Subheadline */}
           <p className="text-lg text-text-secondary max-w-2xl mx-auto mb-8 leading-relaxed">
-            AI事務員が業務書類を自動生成し、
+            チュートリアルで体験し、クエストで鍛え、実務で使いこなす。
             <br className="hidden md:block" />
-            金額ミスも記載漏れもリアルタイムで検出。
+            見積書・請求書・納品書の作成からチェックまで、
             <br className="hidden md:block" />
-            あなたの書類業務を、3秒に変えます。
+            社員がAIを使いこなせるようになるプラットフォーム。
           </p>
 
           {/* Trust badges */}
@@ -77,9 +77,9 @@ export default function Hero() {
           {/* Stats */}
           <div className="flex flex-wrap justify-center gap-12 mb-12">
             {[
+              { value: '4章', label: 'チュートリアル' },
+              { value: '15問', label: '応用クエスト' },
               { value: '5種', label: '対応書類' },
-              { value: '0円', label: '月額料金' },
-              { value: '3秒', label: 'AI生成時間' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-3xl font-mono tabular-nums text-accent mb-1">{stat.value}</div>

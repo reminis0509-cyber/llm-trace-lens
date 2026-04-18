@@ -1,19 +1,23 @@
 const problems = [
   {
-    title: 'AIの誤情報で、顧客の信頼が一瞬で崩れる',
-    description: 'AIが自信満々に生成した誤情報が顧客対応に使われれば、企業ブランドの毀損と訴訟リスクに直結します。気づいたときには手遅れです。',
+    title: 'AIを導入したいが、社員が使いこなせない',
+    description:
+      'ツールを契約しても、社員がプロンプトを書けず放置される。研修を開いても定着しない。導入コストだけが積み上がります。',
   },
   {
-    title: '情報漏洩は、経営者の責任問題になる',
-    description: 'マイナンバーや顧客情報がAIの出力に含まれてしまう。一度の漏洩が行政処分・損害賠償・経営責任の追及につながります。',
+    title: 'AIの出力ミスが、実害につながる',
+    description:
+      '見積書の金額ミス、請求書の記載漏れ。AIが自信満々に生成した誤情報がそのまま顧客に届けば、信頼の毀損と損害賠償リスクに直結します。',
   },
   {
-    title: 'AI投資の説明責任を果たせない',
-    description: 'どの部署が、どのAIに、いくら使っているか把握できない。取締役会や監査法人にAI投資の妥当性を説明できますか？',
+    title: 'どのAIツールを選べばいいかわからない',
+    description:
+      'ChatGPT、Gemini、Claude...選択肢が多すぎて判断できない。試しに使っても、業務にどう活かせるか見えてこない。',
   },
   {
-    title: 'AIの判断過程がブラックボックスのまま',
-    description: 'AIエージェントの意思決定を説明できない。問題発生時に取引先や規制当局への説明責任を果たせません。',
+    title: 'AI投資の効果を説明できない',
+    description:
+      '「AIで何が変わったか」を数字で示せない。経営会議でAI投資の妥当性を問われたとき、根拠ある回答ができますか？',
   },
 ];
 
@@ -27,14 +31,14 @@ export default function Problems() {
             課題
           </span>
           <h2 className="text-2xl sm:text-display-sm font-semibold text-text-primary mb-4">
-            AI活用を阻む、
+            AI導入、
             <br className="sm:hidden" />
-            経営リスクの正体
+            こんな壁にぶつかっていませんか？
           </h2>
           <p className="text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
-            生成AIの導入を検討されている経営者の方へ。
+            ツールを入れただけでは、AIは使いこなせません。
             <br className="hidden md:block" />
-            以下のリスクが、AI戦略の推進を妨げていませんか？
+            社員が安全に、確実に使えるようになるまでの仕組みが必要です。
           </p>
         </div>
 
