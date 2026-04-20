@@ -4,14 +4,16 @@
  * modules can reuse the same look and feel.
  * Lazy-loaded to keep initial bundle small.
  */
-import { Document, Page, Text, pdf } from '@react-pdf/renderer';
+import { Document, Page, Text, View, pdf } from '@react-pdf/renderer';
 import {
   registerJapaneseFonts,
   sharedStyles,
   PdfHeader,
+  PdfSubject,
   PdfItemsTable,
   PdfTotalsBlock,
   PdfFooter,
+  PdfPageFooter,
   type IssuerInfo,
   type PdfLineItem,
 } from './base.js';
@@ -40,12 +42,16 @@ interface EstimatePdfProps {
   issuer: IssuerInfo;
 }
 
-export function EstimatePdfDocument({ data, issuer }: EstimatePdfProps) {
+/**
+ * Page content for estimates — exported separately so bundle.tsx can compose
+ * multiple documents into one PDF.
+ */
+export function EstimatePages({ data, issuer }: EstimatePdfProps): React.ReactNode {
   return (
-    <Document>
-      <Page size="A4" style={sharedStyles.page}>
-        <Text style={sharedStyles.title}>見 積 書</Text>
+    <Page size="A4" style={sharedStyles.page}>
+      <Text style={sharedStyles.title}>見　積　書</Text>
 
+      <View style={sharedStyles.bodyFrame}>
         <PdfHeader
           numberLabel="見積番号"
           meta={{
@@ -59,7 +65,7 @@ export function EstimatePdfDocument({ data, issuer }: EstimatePdfProps) {
           issuer={issuer}
         />
 
-        {data.subject && <Text style={sharedStyles.subject}>件名: {data.subject}</Text>}
+        <PdfSubject subject={data.subject} />
 
         <PdfItemsTable items={data.items ?? []} />
 
@@ -76,7 +82,17 @@ export function EstimatePdfDocument({ data, issuer }: EstimatePdfProps) {
             { label: '備考', value: data.notes },
           ]}
         />
-      </Page>
+      </View>
+
+      <PdfPageFooter />
+    </Page>
+  );
+}
+
+export function EstimatePdfDocument({ data, issuer }: EstimatePdfProps) {
+  return (
+    <Document>
+      <EstimatePages data={data} issuer={issuer} />
     </Document>
   );
 }

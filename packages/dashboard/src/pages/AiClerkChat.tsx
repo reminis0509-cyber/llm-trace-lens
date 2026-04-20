@@ -1022,6 +1022,75 @@ function PdfPreviewCard({
 }
 
 /* ------------------------------------------------------------------ */
+/*  Bundle download — combines multiple docs into one PDF              */
+/* ------------------------------------------------------------------ */
+
+function BundleDownloadButton({
+  docs,
+  issuerInfo,
+}: {
+  docs: DocumentPdfData[];
+  issuerInfo: IssuerInfo;
+}) {
+  const [generating, setGenerating] = useState(false);
+
+  const handleDownload = useCallback(async () => {
+    if (generating || docs.length === 0) return;
+    setGenerating(true);
+    try {
+      const { generateBundlePdf } = await import('../lib/pdf/bundle');
+      // DocumentPdfData and BundleEntry have the same runtime shape;
+      // the cast tells TS the discriminated-union narrowing is preserved.
+      const entries = docs.map((d) => ({ type: d.type, data: d.data })) as Parameters<typeof generateBundlePdf>[0];
+      const blob = await generateBundlePdf(entries, issuerInfo);
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const companySlug = (issuerInfo.companyName || '書類セット').replace(/[\\/:*?"<>|]/g, '');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${companySlug}_書類セット_${dateStr}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('[BundleDownloadButton] Bundle PDF generation failed:', err);
+    } finally {
+      setGenerating(false);
+    }
+  }, [docs, issuerInfo, generating]);
+
+  const labelList = docs.map((d) => DOCUMENT_LABELS[d.type]).join('・');
+
+  return (
+    <div className="rounded-xl border border-accent/30 bg-accent/5 p-3 flex items-center justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <div className="text-xs text-text-muted mb-0.5">{docs.length}件の書類</div>
+        <div className="text-sm text-text-primary truncate">{labelList}</div>
+      </div>
+      <button
+        onClick={handleDownload}
+        disabled={generating}
+        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50 transition-colors whitespace-nowrap"
+        aria-label="まとめてPDFダウンロード"
+      >
+        {generating ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
+            生成中...
+          </>
+        ) : (
+          <>
+            <FileDown className="w-4 h-4" strokeWidth={1.5} />
+            まとめてDL
+          </>
+        )}
+      </button>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Confirmation detection                                             */
 /* ------------------------------------------------------------------ */
 
@@ -1211,11 +1280,15 @@ function ChatBubble({ message, isThinking, onTraceUpdate, companyInfo, isLastAss
           </div>
         )}
 
-        {/* PDF download button — shown when a tool_result contains structured document data */}
-        {message.toolCalls && message.toolCalls.some(tc => tc.status === 'ok' && tc.result && extractDocumentData(tc.result, tc.tool)) && (() => {
-          const completedTool = message.toolCalls!.find(tc => tc.status === 'ok' && tc.result && extractDocumentData(tc.result, tc.tool));
-          const docData = completedTool?.result ? extractDocumentData(completedTool.result, completedTool.tool) : null;
-          if (!docData) return null;
+        {/* PDF download — render every document the tool calls produced.
+            When a single message contains 2+ documents, also show a bundle
+            DL button so the user can grab the whole packet in one click. */}
+        {message.toolCalls && (() => {
+          const docs: DocumentPdfData[] = message.toolCalls
+            .filter(tc => tc.status === 'ok' && tc.result)
+            .map(tc => extractDocumentData(tc.result!, tc.tool))
+            .filter((d): d is DocumentPdfData => d !== null);
+          if (docs.length === 0) return null;
           const issuerInfo: IssuerInfo = {
             companyName: companyInfo.companyName || undefined,
             address: companyInfo.address || undefined,
@@ -1225,8 +1298,13 @@ function ChatBubble({ message, isThinking, onTraceUpdate, companyInfo, isLastAss
             invoiceNumber: companyInfo.invoiceNumber || undefined,
           };
           return (
-            <div className="mb-2">
-              <PdfPreviewCard documentData={docData} issuerInfo={issuerInfo} />
+            <div className="mb-2 space-y-2">
+              {docs.length >= 2 && (
+                <BundleDownloadButton docs={docs} issuerInfo={issuerInfo} />
+              )}
+              {docs.map((docData, i) => (
+                <PdfPreviewCard key={i} documentData={docData} issuerInfo={issuerInfo} />
+              ))}
             </div>
           );
         })()}

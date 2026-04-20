@@ -8,9 +8,11 @@ import {
   registerJapaneseFonts,
   sharedStyles,
   PdfHeader,
+  PdfSubject,
   PdfItemsTable,
   PdfTotalsBlock,
   PdfFooter,
+  PdfPageFooter,
   type IssuerInfo,
   type PdfLineItem,
 } from './base.js';
@@ -37,12 +39,16 @@ interface DeliveryNotePdfProps {
   issuer: IssuerInfo;
 }
 
-export function DeliveryNotePdfDocument({ data, issuer }: DeliveryNotePdfProps) {
+/**
+ * Page content for delivery notes — exported separately so bundle.tsx can compose
+ * multiple documents into one PDF.
+ */
+export function DeliveryNotePages({ data, issuer }: DeliveryNotePdfProps): React.ReactNode {
   return (
-    <Document>
-      <Page size="A4" style={sharedStyles.page}>
-        <Text style={sharedStyles.title}>納 品 書</Text>
+    <Page size="A4" style={sharedStyles.page}>
+      <Text style={sharedStyles.title}>納　品　書</Text>
 
+      <View style={sharedStyles.bodyFrame}>
         <PdfHeader
           numberLabel="納品番号"
           meta={{
@@ -56,7 +62,7 @@ export function DeliveryNotePdfDocument({ data, issuer }: DeliveryNotePdfProps) 
           issuer={issuer}
         />
 
-        {data.subject && <Text style={sharedStyles.subject}>件名: {data.subject}</Text>}
+        <PdfSubject subject={data.subject} />
 
         <PdfItemsTable items={data.items ?? []} />
 
@@ -69,17 +75,23 @@ export function DeliveryNotePdfDocument({ data, issuer }: DeliveryNotePdfProps) 
         <PdfFooter
           items={[
             { label: '備考', value: data.notes },
+            {
+              label: 'ご担当',
+              value: data.client?.contact_person ? `${data.client.contact_person} 様` : undefined,
+            },
           ]}
         />
+      </View>
 
-        {data.client?.contact_person && (
-          <View style={{ marginTop: 4 }}>
-            <Text style={{ fontSize: 8, color: '#666' }}>
-              ご担当: {data.client.contact_person} 様
-            </Text>
-          </View>
-        )}
-      </Page>
+      <PdfPageFooter />
+    </Page>
+  );
+}
+
+export function DeliveryNotePdfDocument({ data, issuer }: DeliveryNotePdfProps) {
+  return (
+    <Document>
+      <DeliveryNotePages data={data} issuer={issuer} />
     </Document>
   );
 }
