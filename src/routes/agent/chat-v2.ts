@@ -587,7 +587,12 @@ export default async function chatV2Route(fastify: FastifyInstance): Promise<voi
       let finalContent: string | null = null;
       let allAttachments: string[] = [];
       let toolCallIndex = 0;
-      const executedTools = new Set<string>(); // prevent duplicate tool calls
+      // Track full call signatures (name + arguments JSON) so the same tool
+      // can be invoked multiple times with different arguments — required for
+      // multi-document workflows like "make invoice + delivery + cover letter
+      // in one turn". Only an identical re-call with identical args is
+      // suppressed (the original LLM-hallucination case this guard targets).
+      const executedCalls = new Set<string>();
 
       while (round < MAX_TOOL_ROUNDS) {
         if (Date.now() > deadline) {
@@ -636,17 +641,20 @@ export default async function chatV2Route(fastify: FastifyInstance): Promise<voi
           const currentIndex = toolCallIndex++;
           const functionName = tc.function.name;
 
-          // Skip duplicate tool calls (LLM sometimes calls the same tool twice)
-          if (executedTools.has(functionName) && !functionName.startsWith('_')) {
+          // Skip only IDENTICAL re-calls (same name AND same arguments).
+          // Different-arg invocations of the same tool are legitimate
+          // (e.g. office_task_execute called for invoice, then again for
+          // delivery note within the same turn).
+          const callSignature = `${functionName}::${tc.function.arguments}`;
+          if (executedCalls.has(callSignature) && !functionName.startsWith('_')) {
             request.log.warn('Skipping duplicate tool call: %s', functionName);
-            // Send a synthetic tool response so LLM context stays valid
             llmMessages.push({
               role: 'assistant',
-              content: `[ツール] ${functionName} は既に実行済みです。`,
+              content: `[ツール] ${functionName} は既に同じ引数で実行済みです。`,
             });
             continue;
           }
-          executedTools.add(functionName);
+          executedCalls.add(callSignature);
 
           let parsedArgs: Record<string, unknown>;
           try {
