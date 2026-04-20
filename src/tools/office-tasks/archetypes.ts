@@ -76,6 +76,10 @@ const documentCreate: ArchetypeDefinition = {
     { name: 'document', label: '作成文書', type: 'text', required: true },
     { name: 'summary', label: '概要', type: 'string', required: true },
     { name: 'warnings', label: '注意事項', type: 'array', required: false },
+    // Structured payload for PDF rendering — optional but expected for
+    // 見積書/請求書/納品書/発注書/送付状. Schema documented in the prompt
+    // template (src/prompts/tools/office-task/document-create.md).
+    { name: 'structured', label: '構造化データ', type: 'array', required: false },
   ],
   validationRules: [
     { field: 'title', rule: 'required', message: 'タイトルは必須です' },

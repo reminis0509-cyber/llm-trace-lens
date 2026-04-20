@@ -857,12 +857,17 @@ function extractDocumentData(result: Record<string, unknown>, toolName?: string)
 
     // 6. office_task_execute path: result.data.{task_id, result, structured_result}
     // Tool name will be the task_id like 'accounting.invoice_create'.
+    // The document-create prompt template returns:
+    //   { document: "markdown...", summary, warnings, calculations,
+    //     structured: { client, items, ...PDF-shaped fields } }
+    // We prefer `structured_result.structured` when present (the dedicated
+    // PDF payload), then fall back to the parent for legacy outputs.
     const dataField = result?.data as Record<string, unknown> | undefined;
     if (dataField && typeof dataField === 'object') {
       const taskId = (dataField.task_id as string | undefined) ?? toolName;
       const inferred = taskId ? inferTypeFromToolName(taskId) : null;
       if (inferred) {
-        // Prefer structured_result if backend produced it
+        // 6a. Prefer structured_result if backend produced it
         let parsed: Record<string, unknown> | null = null;
         if (dataField.structured_result && typeof dataField.structured_result === 'object') {
           parsed = dataField.structured_result as Record<string, unknown>;
@@ -870,6 +875,17 @@ function extractDocumentData(result: Record<string, unknown>, toolName?: string)
           parsed = extractJsonFromMarkdown(dataField.result);
         }
         if (parsed) {
+          // 6b. If the parsed object has a `structured` sub-object (the
+          // dedicated PDF payload from document-create.md), use it directly.
+          const sub = parsed.structured;
+          if (sub && typeof sub === 'object' && !Array.isArray(sub)) {
+            const subData = coerceToDocumentData(sub as Record<string, unknown>);
+            if (Array.isArray(subData.items)) {
+              subData.items = normalizeItems(subData.items as unknown[]);
+            }
+            return { type: inferred, data: subData as EstimatePdfData };
+          }
+          // 6c. Otherwise treat the whole parsed object as the document
           const coerced = coerceToDocumentData(parsed);
           if (Array.isArray(coerced.items)) {
             coerced.items = normalizeItems(coerced.items as unknown[]);
