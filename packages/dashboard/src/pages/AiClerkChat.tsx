@@ -739,14 +739,71 @@ function findDataAtKey(result: Record<string, unknown>, key: string): Record<str
 
 /**
  * Detect the tool name from the result or tool call metadata to infer document type.
+ * Handles both underscore tool names (`estimate_create`) and dotted catalog
+ * task_ids (`accounting.invoice_create`, `accounting.delivery_note_create`).
  */
 function inferTypeFromToolName(toolName: string): DocumentType | null {
+  // Cover letter must come BEFORE invoice — `cover_letter` would otherwise
+  // not match anything but a stray `letter` substring should not collide.
+  if (/cover[._]letter/.test(toolName)) return 'cover-letter';
+  if (/delivery[._]note/.test(toolName)) return 'delivery-note';
+  if (/purchase[._]order/.test(toolName)) return 'purchase-order';
   if (toolName.includes('estimate')) return 'estimate';
   if (toolName.includes('invoice')) return 'invoice';
-  if (toolName.includes('purchase_order')) return 'purchase-order';
-  if (toolName.includes('delivery_note')) return 'delivery-note';
-  if (toolName.includes('cover_letter')) return 'cover-letter';
   return null;
+}
+
+/**
+ * The office_task_execute backend returns markdown text with the structured
+ * document JSON wrapped in a ```json fenced block. Extract it.
+ */
+function extractJsonFromMarkdown(text: string): Record<string, unknown> | null {
+  if (typeof text !== 'string') return null;
+  // Try ```json ... ``` fenced block first
+  const fenceMatch = text.match(/```json\s*([\s\S]*?)```/);
+  if (fenceMatch) {
+    try {
+      return JSON.parse(fenceMatch[1]) as Record<string, unknown>;
+    } catch {
+      // fall through
+    }
+  }
+  // Try a generic ``` ... ``` block
+  const genericFence = text.match(/```\s*([\s\S]*?)```/);
+  if (genericFence) {
+    try {
+      return JSON.parse(genericFence[1]) as Record<string, unknown>;
+    } catch {
+      // fall through
+    }
+  }
+  // Try to parse the whole text as JSON
+  const trimmed = text.trim();
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      return JSON.parse(trimmed) as Record<string, unknown>;
+    } catch {
+      // fall through
+    }
+  }
+  return null;
+}
+
+/**
+ * Coerce a freeform parsed object into a document-shaped record.
+ * Handles common alias keys the LLM might emit (e.g. `recipient` → `client`).
+ */
+function coerceToDocumentData(raw: Record<string, unknown>): Record<string, unknown> {
+  const r = { ...raw };
+  // If wrapped under a `document` key as plain text, unwrap if it's an object
+  if (r.document && typeof r.document === 'object') {
+    Object.assign(r, r.document as Record<string, unknown>);
+  }
+  // Recipient alias
+  if (!r.client && r.recipient && typeof r.recipient === 'object') {
+    r.client = r.recipient;
+  }
+  return r;
 }
 
 function extractDocumentData(result: Record<string, unknown>, toolName?: string): DocumentPdfData | null {
@@ -798,14 +855,36 @@ function extractDocumentData(result: Record<string, unknown>, toolName?: string)
       return { type: 'cover-letter', data: cl as CoverLetterPdfData };
     }
 
-    // 6. If none matched by key, try inferring from tool name + generic data
+    // 6. office_task_execute path: result.data.{task_id, result, structured_result}
+    // Tool name will be the task_id like 'accounting.invoice_create'.
+    const dataField = result?.data as Record<string, unknown> | undefined;
+    if (dataField && typeof dataField === 'object') {
+      const taskId = (dataField.task_id as string | undefined) ?? toolName;
+      const inferred = taskId ? inferTypeFromToolName(taskId) : null;
+      if (inferred) {
+        // Prefer structured_result if backend produced it
+        let parsed: Record<string, unknown> | null = null;
+        if (dataField.structured_result && typeof dataField.structured_result === 'object') {
+          parsed = dataField.structured_result as Record<string, unknown>;
+        } else if (typeof dataField.result === 'string') {
+          parsed = extractJsonFromMarkdown(dataField.result);
+        }
+        if (parsed) {
+          const coerced = coerceToDocumentData(parsed);
+          if (Array.isArray(coerced.items)) {
+            coerced.items = normalizeItems(coerced.items as unknown[]);
+          }
+          return { type: inferred, data: coerced as EstimatePdfData };
+        }
+      }
+    }
+
+    // 7. Last resort: tool name inference + generic top-level/data fields
     if (toolName) {
       const inferred = inferTypeFromToolName(toolName);
       if (inferred) {
-        // The data might be at a generic path
         const genericData = (result?.data as Record<string, unknown>) || result;
         if (genericData && typeof genericData === 'object') {
-          // Only use if it has meaningful fields (items, client, subject, body)
           const gd = genericData as Record<string, unknown>;
           if (gd.items || gd.client || gd.subject || gd.body || gd.enclosures) {
             if (inferred === 'cover-letter') {
