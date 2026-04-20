@@ -18,7 +18,7 @@ export default function Hero() {
 
           {/* Main headline */}
           <h1 className="text-[2rem] sm:text-display-sm lg:text-display font-semibold text-text-primary mb-6 leading-[1.2]">
-            AI事務員、
+            AI社員、
             <br className="hidden sm:block" />
             雇いませんか。
           </h1>

@@ -3,7 +3,7 @@
  * プラン情報の取得・変更・使用量確認
  */
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { PLANS, type PlanType, getPlanNameJa, getEffectiveLimits } from '../plans/index.js';
+import { PLANS, PLAN_ORDER, type PlanType, getPlanNameJa, getEffectiveLimits, isValidPlanType } from '../plans/index.js';
 import { getWorkspacePlan, updateWorkspacePlan } from '../plans/storage.js';
 import { getUsageStats, getDailyUsageStats, getUsageStatsForMonth, getNextJSTMidnight, getNextMonthStart } from '../plans/usage.js';
 import { cleanupExpiredTraces } from '../plans/retention.js';
@@ -46,13 +46,18 @@ export default async function planRoutes(fastify: FastifyInstance) {
    */
   fastify.get('/api/plans', async () => {
     return {
-      plans: Object.values(PLANS).map(plan => ({
-        type: plan.type,
-        name: plan.name,
-        nameJa: plan.nameJa,
-        priceMonthly: plan.priceMonthly,
-        limits: plan.limits,
-      })),
+      // PLAN_ORDER で固定順 (free → pro → team → max → enterprise)
+      plans: PLAN_ORDER.map(type => {
+        const plan = PLANS[type];
+        return {
+          type: plan.type,
+          name: plan.name,
+          nameJa: plan.nameJa,
+          priceMonthly: plan.priceMonthly,
+          customQuote: plan.customQuote,
+          limits: plan.limits,
+        };
+      }),
     };
   });
 
@@ -175,10 +180,10 @@ export default async function planRoutes(fastify: FastifyInstance) {
       });
     }
 
-    if (!['free', 'pro', 'enterprise'].includes(body.planType)) {
+    if (!isValidPlanType(body.planType)) {
       return reply.code(400).send({
         error: 'Bad Request',
-        message: 'planType は free, pro, enterprise のいずれかを指定してください',
+        message: 'planType は free, pro, team, max, enterprise のいずれかを指定してください',
       });
     }
 

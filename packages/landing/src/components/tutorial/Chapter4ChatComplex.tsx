@@ -152,7 +152,7 @@ export default function Chapter4ChatComplex({ onComplete, onMascot }: Chapter4Ch
         <div className="flex gap-2">
           <img
             src="/tutorial/dachshund-idle.gif"
-            alt="AI事務員"
+            alt="AI社員"
             className="w-6 h-6 rounded-full flex-shrink-0 mt-1"
           />
           <div className="flex-1 space-y-3">

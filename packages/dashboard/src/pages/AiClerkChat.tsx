@@ -2118,7 +2118,7 @@ export default function AiClerkChat() {
                 <Menu className="w-4.5 h-4.5" strokeWidth={1.5} />
               </button>
             )}
-            <h2 className="text-base font-medium text-text-primary">AI 事務員</h2>
+            <h2 className="text-base font-medium text-text-primary">AI 社員</h2>
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -2278,7 +2278,7 @@ export default function AiClerkChat() {
                   placeholder="メッセージを入力..."
                   disabled={isStreaming}
                   rows={1}
-                  aria-label="AI事務員への指示"
+                  aria-label="AI社員への指示"
                   className="flex-1 resize-none border-0 bg-transparent text-sm text-text-primary placeholder-text-muted focus:outline-none disabled:opacity-50"
                   style={{ minHeight: '24px', maxHeight: '160px' }}
                 />

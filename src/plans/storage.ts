@@ -3,7 +3,7 @@
  * ワークスペースのプラン情報の永続化
  */
 import { kv } from '@vercel/kv';
-import type { WorkspacePlan, PlanType } from './index.js';
+import { isValidPlanType, type WorkspacePlan, type PlanType } from './index.js';
 
 function isKVAvailable(): boolean {
   const hasUrl = !!(process.env.KV_REST_API_URL || process.env.KV_URL);
@@ -29,7 +29,7 @@ export async function getWorkspacePlan(workspaceId: string): Promise<WorkspacePl
   if (!isKVAvailable()) {
     // 環境変数でデフォルトプランを指定可能
     const envPlan = process.env.DEFAULT_PLAN as PlanType | undefined;
-    if (envPlan && ['free', 'pro', 'enterprise'].includes(envPlan)) {
+    if (envPlan && isValidPlanType(envPlan)) {
       return { ...defaultPlan, planType: envPlan };
     }
     return defaultPlan;
@@ -72,6 +72,7 @@ export async function updateWorkspacePlan(
     expiresAt?: string;
     customLimits?: WorkspacePlan['customLimits'];
     trialStartedAt?: string;
+    seats?: number;
   }
 ): Promise<WorkspacePlan> {
   const existing = await getWorkspacePlan(workspaceId);
@@ -83,6 +84,7 @@ export async function updateWorkspacePlan(
     subscriptionId: options?.subscriptionId || existing.subscriptionId,
     expiresAt: options?.expiresAt,
     customLimits: options?.customLimits,
+    seats: options?.seats ?? (planType === 'team' ? existing.seats : undefined),
     trialStartedAt: options?.trialStartedAt || existing.trialStartedAt,
   };
 

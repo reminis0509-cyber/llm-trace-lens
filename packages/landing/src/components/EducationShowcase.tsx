@@ -67,7 +67,7 @@ const steps = [
   {
     number: '03',
     title: '実務で使いこなす',
-    subtitle: '5種の書類 / AI事務員',
+    subtitle: '5種の書類 / AI社員',
     description:
       '見積書・請求書・納品書・発注書・送付状をAIが作成・チェック。金額ミスや記載漏れもリアルタイムで検出。社員にやらせれば、即戦力に。',
     mockup: (

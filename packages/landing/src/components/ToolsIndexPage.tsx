@@ -16,7 +16,7 @@ interface ToolCard {
 const TOOLS: ToolCard[] = [
   {
     id: 'clerk',
-    title: 'AI事務員',
+    title: 'AI社員',
     description:
       '自然言語で事務作業を依頼できるAIアシスタント。見積書作成・チェック、請求書、ビジネスメールなど、130以上の事務作業に対応します。',
     href: '/tools/clerk',

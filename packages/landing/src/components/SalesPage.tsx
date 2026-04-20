@@ -379,9 +379,9 @@ export default function SalesPage() {
             <a
               href="/dashboard"
               className="inline-flex items-center justify-center px-6 py-2.5 text-sm font-medium text-white bg-accent hover:bg-accent/90 rounded-lg transition-colors duration-120"
-              aria-label="AI 事務員を使い始める"
+              aria-label="AI 社員を使い始める"
             >
-              AI 事務員を使い始める
+              AI 社員を使い始める
             </a>
           </div>
         </div>

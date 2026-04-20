@@ -36,7 +36,7 @@ export default function BlogPage() {
   useSeo({
     title: 'フジトレニュース | AI × バックオフィスの最前線',
     description:
-      'フジトレニュースは、AI事務員・見積書・請求書の作成、バックオフィス業務の効率化に関する最新情報をお届けするFujiTrace公式メディアです。',
+      'フジトレニュースは、AI社員・見積書・請求書の作成、バックオフィス業務の効率化に関する最新情報をお届けするFujiTrace公式メディアです。',
     url: 'https://fujitrace.jp/blog',
   });
 

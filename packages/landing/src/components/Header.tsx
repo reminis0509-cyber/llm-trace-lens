@@ -26,7 +26,7 @@ const navItems: NavItem[] = [
 
 const aiMenuEntries: AiMenuEntry[] = [
   {
-    label: 'AI事務員',
+    label: 'AI社員',
     href: '/tools/clerk',
     description: '自然言語で事務作業を依頼できるAIアシスタント',
     isNew: true,

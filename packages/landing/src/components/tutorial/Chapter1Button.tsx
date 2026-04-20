@@ -18,10 +18,10 @@ const STEPS: TutorialStep[] = [
 const PREFILL = {
   clientName: '株式会社サンプル商事',
   honorific: '御中',
-  subject: 'AI 事務員導入コンサルティング',
+  subject: 'AI 社員導入コンサルティング',
   issueDate: '2026-04-15',
   expiryDate: '2026-05-15',
-  itemName: 'AI 事務員初期構築',
+  itemName: 'AI 社員初期構築',
   quantity: '1',
   unitPrice: '¥300,000',
   amount: '¥300,000',
@@ -32,7 +32,7 @@ const PREFILL = {
 };
 
 const PDF_SUMMARY =
-  '宛先: 株式会社サンプル商事\n件名: AI 事務員導入コンサルティング\n合計: ¥330,000（税込）';
+  '宛先: 株式会社サンプル商事\n件名: AI 社員導入コンサルティング\n合計: ¥330,000（税込）';
 
 function ReadOnlyField({
   label,
@@ -85,7 +85,7 @@ export default function Chapter1Button({ onComplete, onMascot }: Chapter1ButtonP
           ボタン一つで見積書を作る
         </h2>
         <p className="mt-2 text-sm text-slate-600">
-          取引先・品目・金額はすでに入っています。下のボタンを押すと AI 事務員が見積書 PDF を生成します。
+          取引先・品目・金額はすでに入っています。下のボタンを押すと AI 社員が見積書 PDF を生成します。
         </p>
       </header>
 

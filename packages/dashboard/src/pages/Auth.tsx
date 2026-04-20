@@ -76,7 +76,7 @@ export function Auth() {
         {/* Tutorial CTA — lets visitors experience the AI clerk before signing up */}
         <div className="mb-6">
           <p className="text-xs text-text-muted text-center mb-2">
-            登録前に AI 事務員を 30 秒で試せます
+            登録前に AI 社員を 30 秒で試せます
           </p>
           <a
             href="/tutorial"

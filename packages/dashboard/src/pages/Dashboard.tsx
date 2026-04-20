@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Key, Settings as SettingsIcon, LogOut, Menu, X, Shield, Bot, Radio, HelpCircle, GraduationCap, Users as UsersIcon } from 'lucide-react';
+import { Key, Settings as SettingsIcon, LogOut, Menu, X, Shield, Bot, Radio, HelpCircle, GraduationCap, Users as UsersIcon, Sun, ListChecks, Plug } from 'lucide-react';
 import { Settings } from './Settings';
 import { ApiKeys } from './ApiKeys';
 import { AdminDashboard } from './AdminDashboard';
@@ -12,15 +12,32 @@ import { shouldShowOnboarding, requestOnboardingReplay } from '../components/onb
 import { useAuth } from '../contexts/AuthContext';
 import { useRole } from '../contexts/RoleContext';
 import { WatchPane } from '../components/watch/WatchPane';
+import { MorningBriefing } from './MorningBriefing';
+import { TaskBoard } from './TaskBoard';
+import { ConnectorSettings } from './ConnectorSettings';
 
-// Tab structure (2026-04-14): 5-tab regime — left-to-right = visit frequency.
-// ai-clerk → watch → learn → team → settings (+ admin at far right when applicable)
-type Tab = 'ai-clerk' | 'watch' | 'learn' | 'team' | 'settings' | 'admin';
+// Tab structure (2026-04-20, AI Employee v1): left-to-right = 線化フロー。
+// briefing (朝の見渡し) → ai-clerk (依頼) → tasks (進捗) → watch (監視) →
+// learn (鍛錬) → team (社内共有) → settings (+ admin at far right).
+// Exported as DashboardEntryTab so App.tsx can route by path without
+// importing the internal Tab alias.
+export type DashboardEntryTab =
+  | 'briefing'
+  | 'ai-clerk'
+  | 'tasks'
+  | 'watch'
+  | 'learn'
+  | 'team'
+  | 'settings'
+  | 'admin';
+type Tab = DashboardEntryTab;
 
 type TabItem = { id: Tab; label: string; icon: React.ReactNode };
 
 const mainTabs: TabItem[] = [
-  { id: 'ai-clerk', label: 'AI事務員', icon: <Bot className="w-4 h-4" strokeWidth={1.5} /> },
+  { id: 'briefing', label: 'ブリーフィング', icon: <Sun className="w-4 h-4" strokeWidth={1.5} /> },
+  { id: 'ai-clerk', label: 'AI社員', icon: <Bot className="w-4 h-4" strokeWidth={1.5} /> },
+  { id: 'tasks', label: 'タスク', icon: <ListChecks className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'watch', label: 'トレース', icon: <Radio className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'learn', label: '教材', icon: <GraduationCap className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'team', label: 'チーム', icon: <UsersIcon className="w-4 h-4" strokeWidth={1.5} /> },
@@ -31,23 +48,40 @@ const adminTab: TabItem = {
   id: 'admin', label: '管理', icon: <Shield className="w-4 h-4" strokeWidth={1.5} />,
 };
 
-function getInitialTab(): Tab {
+function getInitialTab(override?: Tab): Tab {
+  if (override) return override;
   const hash = window.location.hash.replace('#', '');
   // Backward compat for previous tab IDs — redirect to new homes.
   if (hash === 'traces' || hash === 'stats') return 'watch';
   if (hash === 'apikeys') return 'settings';
-  const validTabs: Tab[] = ['ai-clerk', 'watch', 'learn', 'team', 'settings', 'admin'];
+  const validTabs: Tab[] = ['briefing', 'ai-clerk', 'tasks', 'watch', 'learn', 'team', 'settings', 'admin'];
   if (validTabs.includes(hash as Tab)) return hash as Tab;
   return 'ai-clerk';
 }
 
-type SettingsSubView = 'apikeys' | 'general';
+type SettingsSubView = 'apikeys' | 'general' | 'connectors';
 
-export function Dashboard() {
-  const [activeTab, setActiveTab] = useState<Tab>(getInitialTab);
+/**
+ * Entry-level view selector. When the user is on
+ * /dashboard/settings/connectors the dashboard renders the connector
+ * settings page in place of the tab body. All other routes use the tab
+ * structure.
+ */
+export type DashboardEntry =
+  | { kind: 'tab'; tab?: DashboardEntryTab }
+  | { kind: 'connectors' };
+
+interface DashboardProps {
+  entry?: DashboardEntry;
+}
+
+export function Dashboard({ entry = { kind: 'tab' } }: DashboardProps) {
+  const initialTab = entry.kind === 'tab' ? entry.tab : 'settings';
+  const initialSubView: SettingsSubView = entry.kind === 'connectors' ? 'connectors' : 'apikeys';
+  const [activeTab, setActiveTab] = useState<Tab>(() => getInitialTab(initialTab));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [settingsSubView, setSettingsSubView] = useState<SettingsSubView>('apikeys');
+  const [settingsSubView, setSettingsSubView] = useState<SettingsSubView>(initialSubView);
   const { user, signOut } = useAuth();
   const { workspaceId, isSystemAdmin } = useRole();
 
@@ -245,8 +279,14 @@ export function Dashboard() {
       ) : (
       <main className="p-6 sm:p-10">
         <ErrorBoundary>
+          {activeTab === 'briefing' && (
+            <MorningBriefing />
+          )}
           {activeTab === 'ai-clerk' && (
             <AiClerkChat />
+          )}
+          {activeTab === 'tasks' && (
+            <TaskBoard />
           )}
           {activeTab === 'learn' && (
             <QuestSystem onSwitchToClerk={() => setActiveTab('ai-clerk')} />
@@ -264,6 +304,7 @@ export function Dashboard() {
                 <ApiKeys onBack={() => setActiveTab('ai-clerk')} />
               )}
               {settingsSubView === 'general' && <Settings />}
+              {settingsSubView === 'connectors' && <ConnectorSettings />}
             </div>
           )}
           {activeTab === 'admin' && isSystemAdmin && <AdminDashboard />}
@@ -292,6 +333,7 @@ function SettingsSubViewPills({ current, onChange }: SettingsPillsProps) {
   const items: { id: SettingsSubView; label: string; icon: React.ReactNode }[] = [
     { id: 'apikeys', label: 'APIキー', icon: <Key className="w-3.5 h-3.5" strokeWidth={1.5} /> },
     { id: 'general', label: '一般', icon: <SettingsIcon className="w-3.5 h-3.5" strokeWidth={1.5} /> },
+    { id: 'connectors', label: 'コネクタ', icon: <Plug className="w-3.5 h-3.5" strokeWidth={1.5} /> },
   ];
   return (
     <div className="inline-flex items-center gap-1 p-1 bg-base-elevated rounded-card border border-border">

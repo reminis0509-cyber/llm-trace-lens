@@ -13,6 +13,7 @@ import { budgetGuardMiddleware } from './middleware/budget-guard.js';
 import { inputValidationMiddleware } from './middleware/input-validation.js';
 import { planGuardMiddleware } from './middleware/plan-guard.js';
 import { startRetentionScheduler, stopRetentionScheduler } from './plans/retention.js';
+import { assertTokenCryptoReady } from './lib/token-crypto.js';
 import planRoutes from './routes/plans.js';
 import { settingsRoutes } from './routes/settings.js';
 import { webhookSettingsRoutes } from './routes/webhook-settings.js';
@@ -36,6 +37,8 @@ import researchRoutes from './routes/research.js';
 import chatbotPlatformRoutes from './routes/chatbot-platform.js';
 import toolsRoutes from './routes/tools/index.js';
 import agentRoutes from './routes/agent/index.js';
+import oauthRoutes from './routes/oauth.js';
+import workspaceRoutes from './routes/workspace.js';
 import { startExchangeRateScheduler, stopExchangeRateScheduler } from './chatbot/exchange-rate.js';
 import { closeKnex } from './storage/knex-client.js';
 
@@ -216,6 +219,12 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
   // Register AI 事務員 agent routes
   await agentRoutes(fastify);
 
+  // Register AI Employee OAuth connector routes (Google Calendar / Gmail)
+  await oauthRoutes(fastify);
+
+  // Register AI Employee workspace routes (briefing / tasks / memory)
+  await workspaceRoutes(fastify);
+
   // Register main routes
   await registerRoutes(fastify);
 
@@ -271,6 +280,11 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
 }
 
 export async function start() {
+  // AI社員OAuth用のトークン暗号化鍵を起動時に検証 (QA Finding S-01, 2026-04-20).
+  // TOKEN_ENCRYPTION_KEY 未設定時は即時エラーで停止し、初回 OAuth callback まで
+  // 障害が隠れる事態を防ぐ。fail-fast は spec 要件 (fallback禁止)。
+  assertTokenCryptoReady();
+
   const fastify = await build();
 
   // Load webhook config at startup

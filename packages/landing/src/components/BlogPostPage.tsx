@@ -373,7 +373,7 @@ export default function BlogPostPage({ slug }: BlogPostPageProps) {
             <div className="flex flex-col md:flex-row md:items-center gap-6">
               <div className="flex-1">
                 <p className="text-xs font-semibold text-accent mb-2 tracking-wide uppercase">
-                  FujiTrace AI事務員
+                  FujiTrace AI社員
                 </p>
                 <p className="text-lg font-bold text-text-primary mb-2">
                   書類業務、AIに任せませんか。

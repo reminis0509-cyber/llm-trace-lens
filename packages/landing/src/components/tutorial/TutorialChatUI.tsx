@@ -36,7 +36,7 @@ export default function TutorialChatUI({
   suggestions = [],
   isTyping = false,
   disabled = false,
-  placeholder = 'AI事務員に指示を出す...',
+  placeholder = 'AI社員に指示を出す...',
 }: TutorialChatUIProps) {
   const [value, setValue] = useState('');
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -110,7 +110,7 @@ export default function TutorialChatUI({
               {m.role === 'assistant' && (
                 <img
                   src="/tutorial/dachshund-idle.gif"
-                  alt="AI事務員"
+                  alt="AI社員"
                   className="w-6 h-6 rounded-full flex-shrink-0 mt-1"
                 />
               )}
@@ -135,7 +135,7 @@ export default function TutorialChatUI({
             <div className="flex justify-start gap-2">
               <img
                 src="/tutorial/dachshund-idle.gif"
-                alt="AI事務員"
+                alt="AI社員"
                 className="w-6 h-6 rounded-full flex-shrink-0 mt-1"
               />
               <div className="rounded-2xl rounded-bl-md bg-slate-100 px-4 py-3">

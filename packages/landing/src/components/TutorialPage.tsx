@@ -28,7 +28,7 @@ interface MascotMessage {
 const INITIAL_MASCOT: MascotMessage = {
   state: 'idle',
   message:
-    'やあ。\nボクはフジ。\n日本企業のAI事務員だよ。\n\nまずは…\n見積書を作るところを\n見せるね。',
+    'やあ。\nボクはフジ。\n日本企業のAI社員だよ。\n\nまずは…\n見積書を作るところを\n見せるね。',
   hint: '下のフォームを見てから、\n「AIで見積書を生成する」を\n押してみてね。',
 };
 
@@ -105,9 +105,9 @@ function ResumePrompt({ progress, onResume, onRestart }: ResumePromptProps) {
 
 export default function TutorialPage() {
   useSeo({
-    title: 'AI 事務員 基礎チュートリアル | FujiTrace',
+    title: 'AI 社員 基礎チュートリアル | FujiTrace',
     description:
-      '4 章構成の学習プログラムで、見積書・請求書・発注書・送付状・納品書を AI 事務員と一緒に体験。修了証 PNG を発行できます。',
+      '4 章構成の学習プログラムで、見積書・請求書・発注書・送付状・納品書を AI 社員と一緒に体験。修了証 PNG を発行できます。',
     url: 'https://fujitrace.jp/tutorial',
   });
 
@@ -280,7 +280,7 @@ export default function TutorialPage() {
             無料チュートリアル — 4 章構成
           </p>
           <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">
-            AI 事務員 基礎チュートリアル
+            AI 社員 基礎チュートリアル
           </h1>
           <p className="text-sm text-slate-600 max-w-2xl mx-auto sm:mx-0">
             4 章を通して、ボタン操作・チャット・反復練習・複雑指示までを学びます。修了後は修了証 PNG を発行できます。

@@ -4,7 +4,7 @@ export default function CTA() {
       <div className="section-container">
         <div className="surface-card p-6 sm:p-8 lg:p-12 text-center">
           <h2 className="text-2xl sm:text-display-sm font-semibold text-text-primary mb-4">
-            AI事務員、雇いませんか。
+            AI社員、雇いませんか。
           </h2>
           <p className="text-lg text-text-secondary mb-4 max-w-2xl mx-auto leading-relaxed">
             チュートリアルで体験し、クエストで鍛え、実務で使いこなす。

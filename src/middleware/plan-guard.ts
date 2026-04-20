@@ -13,7 +13,7 @@ import {
   incrementDailyTraceCount,
   getNextJSTMidnight,
 } from '../plans/usage.js';
-import { getEffectiveLimits, getPlanNameJa } from '../plans/index.js';
+import { getEffectiveLimits, getPlanNameJa, getRecommendedUpgrade, PLANS } from '../plans/index.js';
 
 /**
  * プラン制限チェック対象のパス
@@ -75,6 +75,7 @@ export async function planGuardMiddleware(
           reply.header('X-Usage-Traces-Today', dailyUsage.traceCount.toString());
           reply.header('X-Limit-Traces-Daily', downgradedLimits.dailyTraces.toString());
 
+          const downgradeUpgrade = getRecommendedUpgrade(downgradedPlan.planType);
           return reply.code(429).send({
             error: 'Plan Limit Exceeded',
             message: `トライアル期間が終了し、${planName}プランに移行しました。1日のトレース上限（${downgradedLimits.dailyTraces}件）に達しています。日本時間の深夜0時にリセットされます。プランをアップグレードしてください。`,
@@ -86,7 +87,12 @@ export async function planGuardMiddleware(
               resetsAt,
             },
             plan: { type: downgradedPlan.planType, name: planName },
-            upgrade: { recommended: 'pro', priceMonthly: 9800 },
+            upgrade: downgradeUpgrade
+              ? {
+                  recommended: downgradeUpgrade,
+                  priceMonthly: PLANS[downgradeUpgrade].priceMonthly,
+                }
+              : undefined,
           });
         }
 
@@ -121,6 +127,7 @@ export async function planGuardMiddleware(
         reply.header('X-Usage-Traces-Today', newCount.toString());
         reply.header('X-Limit-Traces-Daily', limits.dailyTraces.toString());
 
+        const freeUpgrade = getRecommendedUpgrade(plan.planType);
         return reply.code(429).send({
           error: 'Plan Limit Exceeded',
           message: `${planName}プランの1日のトレース上限（${limits.dailyTraces}件）に達しました。日本時間の深夜0時にリセットされます。プランをアップグレードしてください。`,
@@ -135,7 +142,12 @@ export async function planGuardMiddleware(
             type: plan.planType,
             name: planName,
           },
-          upgrade: { recommended: 'pro', priceMonthly: 9800 },
+          upgrade: freeUpgrade
+            ? {
+                recommended: freeUpgrade,
+                priceMonthly: PLANS[freeUpgrade].priceMonthly,
+              }
+            : undefined,
         });
       }
 
@@ -152,7 +164,7 @@ export async function planGuardMiddleware(
       return;
     }
 
-    // === Pro/Enterprise プラン: 月次制限 (atomic increment-then-check) ===
+    // === Pro/Team/Max/Enterprise プラン: 月次制限 (atomic increment-then-check) ===
     // Increment FIRST to prevent race conditions where concurrent requests
     // all read the same count and bypass the limit.
     const newCount = await incrementTraceCount(workspaceId);
@@ -165,6 +177,7 @@ export async function planGuardMiddleware(
       reply.header('X-Usage-Traces', newCount.toString());
       reply.header('X-Limit-Traces', limits.monthlyTraces.toString());
 
+      const monthlyUpgrade = getRecommendedUpgrade(plan.planType);
       return reply.code(429).send({
         error: 'Plan Limit Exceeded',
         message: `${planName}プランの月間トレース上限（${limits.monthlyTraces.toLocaleString()}件）に達しました。プランをアップグレードしてください。`,
@@ -178,8 +191,13 @@ export async function planGuardMiddleware(
           type: plan.planType,
           name: planName,
         },
-        upgrade: plan.planType === 'pro'
-          ? { recommended: 'enterprise', priceMonthly: null }
+        upgrade: monthlyUpgrade
+          ? {
+              recommended: monthlyUpgrade,
+              priceMonthly: PLANS[monthlyUpgrade].customQuote
+                ? null
+                : PLANS[monthlyUpgrade].priceMonthly,
+            }
           : undefined,
       });
     }

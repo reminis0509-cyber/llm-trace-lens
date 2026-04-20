@@ -591,7 +591,7 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
     async (hint: string) => {
       const ok = await copyToClipboard(hint);
       if (ok) {
-        showToast('ヒントをコピーしました。AI事務員に貼り付けて送信してください。');
+        showToast('ヒントをコピーしました。AI社員に貼り付けて送信してください。');
       }
       onSwitchToClerk();
     },
@@ -695,10 +695,10 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
                           type="button"
                           onClick={() => handleCopyAndSwitch(step.hint!)}
                           className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-accent hover:text-accent/80 border border-accent/30 hover:border-accent/50 rounded-card transition-colors duration-120"
-                          aria-label="ヒントをコピーしてAI事務員に移動"
+                          aria-label="ヒントをコピーしてAI社員に移動"
                         >
                           <Copy className="w-3 h-3" strokeWidth={1.5} />
-                          コピーしてAI事務員に送る
+                          コピーしてAI社員に送る
                           <ChevronRight className="w-3 h-3" strokeWidth={1.5} />
                         </button>
                       )}

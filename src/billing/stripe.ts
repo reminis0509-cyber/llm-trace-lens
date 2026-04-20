@@ -36,6 +36,20 @@ export function isStripeConfigured(): boolean {
 }
 
 /**
+ * プラン別の Price ID 環境変数マッピング
+ *
+ * ¥0 の Free と 個別見積の Enterprise は Stripe Subscription を持たないため除外.
+ * Team は seat 課金 (quantity=seats で同じ Price を使用).
+ */
+const SUBSCRIBABLE_PRICE_ENV_VARS = {
+  pro: 'STRIPE_PRO_PRICE_ID',
+  team: 'STRIPE_TEAM_PRICE_ID',
+  max: 'STRIPE_MAX_PRICE_ID',
+} as const satisfies Record<'pro' | 'team' | 'max', string>;
+
+export type SubscribablePlanId = keyof typeof SUBSCRIBABLE_PRICE_ENV_VARS;
+
+/**
  * Pro プランの Price ID を取得
  */
 export function getProPriceId(): string {
@@ -44,6 +58,15 @@ export function getProPriceId(): string {
     throw new Error('STRIPE_PRO_PRICE_ID が設定されていません');
   }
   return priceId;
+}
+
+/**
+ * 指定プランの Stripe Subscription Price ID を取得
+ * Free / Enterprise は Subscription を持たないため null を返す
+ */
+export function getSubscriptionPriceId(planId: SubscribablePlanId): string | undefined {
+  const envName = SUBSCRIBABLE_PRICE_ENV_VARS[planId];
+  return process.env[envName] || undefined;
 }
 
 /**
@@ -63,9 +86,11 @@ export function getWebhookSecret(): string {
 
 /**
  * 従量課金対応プラン識別子
- * PlanType とは別に、将来の Enterprise サブティアにも対応可能にする
+ *
+ * Free は overage 発生前に block されるため対象外.
+ * Enterprise は個別契約で overage 単価を決定するため, 環境変数はオプショナル.
  */
-export type MeteredPlanId = 'pro' | 'standard' | 'plus' | 'premium';
+export type MeteredPlanId = 'pro' | 'team' | 'max' | 'enterprise';
 
 export interface MeteredPriceIds {
   traceOveragePriceId: string | undefined;
@@ -74,23 +99,29 @@ export interface MeteredPriceIds {
 
 /**
  * 環境変数名のマッピング（プラン別）
+ *
+ * 超過単価 (2026-04-20 承認):
+ *   Pro        : trace ¥300/10K, eval ¥200/1K
+ *   Team       : trace ¥300/10K, eval ¥200/1K
+ *   Max        : trace ¥200/10K, eval ¥150/1K
+ *   Enterprise : trace ¥100/10K, eval ¥100/1K (個別契約ベース)
  */
 const METERED_ENV_VARS: Record<MeteredPlanId, { trace: string; eval: string }> = {
   pro: {
     trace: 'STRIPE_TRACE_OVERAGE_PRO_PRICE_ID',
     eval: 'STRIPE_EVAL_OVERAGE_PRO_PRICE_ID',
   },
-  standard: {
-    trace: 'STRIPE_TRACE_OVERAGE_STANDARD_PRICE_ID',
-    eval: 'STRIPE_EVAL_OVERAGE_STANDARD_PRICE_ID',
+  team: {
+    trace: 'STRIPE_TRACE_OVERAGE_TEAM_PRICE_ID',
+    eval: 'STRIPE_EVAL_OVERAGE_TEAM_PRICE_ID',
   },
-  plus: {
-    trace: 'STRIPE_TRACE_OVERAGE_PLUS_PRICE_ID',
-    eval: 'STRIPE_EVAL_OVERAGE_PLUS_PRICE_ID',
+  max: {
+    trace: 'STRIPE_TRACE_OVERAGE_MAX_PRICE_ID',
+    eval: 'STRIPE_EVAL_OVERAGE_MAX_PRICE_ID',
   },
-  premium: {
-    trace: 'STRIPE_TRACE_OVERAGE_PREMIUM_PRICE_ID',
-    eval: 'STRIPE_EVAL_OVERAGE_PREMIUM_PRICE_ID',
+  enterprise: {
+    trace: 'STRIPE_TRACE_OVERAGE_ENTERPRISE_PRICE_ID',
+    eval: 'STRIPE_EVAL_OVERAGE_ENTERPRISE_PRICE_ID',
   },
 };
 

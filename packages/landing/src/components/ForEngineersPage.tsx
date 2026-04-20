@@ -300,7 +300,7 @@ export default function ForEngineersPage() {
                 href="/dashboard"
                 className="w-full sm:w-auto px-8 py-4 bg-accent text-white rounded-card text-base font-semibold hover:bg-accent/90 transition-colors duration-120 text-center"
               >
-                AI 事務員を使い始める
+                AI 社員を使い始める
               </a>
               <a
                 href="/"
@@ -714,7 +714,7 @@ export default function ForEngineersPage() {
                 href="/dashboard"
                 className="w-full sm:w-auto px-8 py-4 bg-accent text-white rounded-card text-base font-semibold hover:bg-accent/90 transition-colors duration-120 text-center"
               >
-                AI 事務員を使い始める
+                AI 社員を使い始める
               </a>
               <a
                 href="mailto:contact@fujitrace.com"

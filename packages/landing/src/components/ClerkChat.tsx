@@ -230,7 +230,7 @@ export default function ClerkChat() {
           return;
         }
         if (res.status === 403) {
-          setError('AI事務員はProプランの機能です。');
+          setError('AI社員はProプランの機能です。');
           return;
         }
         const errBody = await res.json().catch(() => null) as {
@@ -293,7 +293,7 @@ export default function ClerkChat() {
       {/* Header */}
       <div className="pb-4 border-b border-gray-200 mb-4">
         <h1 className="text-xl font-bold text-gray-900">
-          FujiTrace AI 事務員
+          FujiTrace AI 社員
         </h1>
         <p className="text-sm text-gray-500 mt-1">
           自然言語で事務作業を依頼できます

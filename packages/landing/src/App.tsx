@@ -76,7 +76,7 @@ export default function App() {
         <EstimateDemo />
         <div className="section-divider" />
 
-        {/* 3. 教育ショーケース — チュートリアル/クエスト/AI事務員 */}
+        {/* 3. 教育ショーケース — チュートリアル/クエスト/AI社員 */}
         <EducationShowcase />
         <div className="section-divider" />
 

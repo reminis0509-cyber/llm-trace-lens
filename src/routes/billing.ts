@@ -4,7 +4,16 @@
  */
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import type Stripe from 'stripe';
-import { getStripe, isStripeConfigured, getProPriceId, getWebhookSecret, getMeteredPriceIds } from '../billing/stripe.js';
+import {
+  getStripe,
+  isStripeConfigured,
+  getProPriceId,
+  getSubscriptionPriceId,
+  getWebhookSecret,
+  getMeteredPriceIds,
+  type SubscribablePlanId,
+} from '../billing/stripe.js';
+import { TEAM_MIN_SEATS, PLANS, type PlanType } from '../plans/index.js';
 import {
   getStripeCustomerId,
   setStripeCustomerId,
@@ -15,6 +24,17 @@ import {
 } from '../billing/storage.js';
 import { resolveWorkspaceId } from './tools/_shared.js';
 import { updateWorkspacePlan, getWorkspacePlan } from '../plans/storage.js';
+
+/**
+ * Stripe Checkout / Webhook で扱えるプラン識別子
+ * Free は ¥0 のため Subscription を作らない.
+ * Enterprise は個別見積 (営業経由) のため Checkout フロー対象外.
+ */
+const CHECKOUTABLE_PLANS: readonly SubscribablePlanId[] = ['pro', 'team', 'max'];
+
+function isCheckoutablePlan(planType: string): planType is SubscribablePlanId {
+  return (CHECKOUTABLE_PLANS as readonly string[]).includes(planType);
+}
 
 export default async function billingRoutes(fastify: FastifyInstance): Promise<void> {
   /**
@@ -44,9 +64,19 @@ export default async function billingRoutes(fastify: FastifyInstance): Promise<v
 
   /**
    * POST /api/billing/checkout
-   * Stripe Checkout Session を作成（Free → Pro アップグレード）
+   * Stripe Checkout Session を作成.
+   *
+   * Body:
+   *   planType?: 'pro' | 'team' | 'max'  (既定: 'pro')
+   *   seats?: number                      (team のみ使用, 未指定時は TEAM_MIN_SEATS)
+   *
+   * Free / Enterprise は Checkout 対象外:
+   *   - Free は ¥0 のため Subscription を作らない
+   *   - Enterprise は営業経由 (お問い合わせ) で契約
    */
-  fastify.post('/api/billing/checkout', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post<{
+    Body?: { planType?: string; seats?: number };
+  }>('/api/billing/checkout', async (request: FastifyRequest, reply: FastifyReply) => {
     if (!isStripeConfigured()) {
       return reply.code(400).send({ error: 'Stripe が設定されていません' });
     }
@@ -54,13 +84,48 @@ export default async function billingRoutes(fastify: FastifyInstance): Promise<v
     const workspaceId = request.workspace?.workspaceId || 'default';
     const userEmail = request.user?.email;
 
-    // 既にProプランの場合はエラー
+    // Body parse (デフォルト: pro)
+    const body = (request.body as { planType?: string; seats?: number } | undefined) ?? {};
+    const requestedPlan: string = body.planType ?? 'pro';
+
+    if (!isCheckoutablePlan(requestedPlan)) {
+      return reply.code(400).send({
+        error: 'planType は pro, team, max のいずれかを指定してください (enterprise はお問い合わせください)',
+      });
+    }
+    const planId: SubscribablePlanId = requestedPlan;
+
+    // Team の seats バリデーション
+    let seats = TEAM_MIN_SEATS;
+    if (planId === 'team') {
+      const requestedSeats = typeof body.seats === 'number' ? Math.floor(body.seats) : TEAM_MIN_SEATS;
+      if (requestedSeats < TEAM_MIN_SEATS) {
+        return reply.code(400).send({
+          error: `Team プランの最低席数は ${TEAM_MIN_SEATS} 席です`,
+        });
+      }
+      seats = requestedSeats;
+    }
+
+    // 既に同じプランの場合はエラー
     const currentPlan = await getWorkspacePlan(workspaceId);
-    if (currentPlan.planType === 'pro') {
-      return reply.code(400).send({ error: '既にProプランを利用中です' });
+    if (currentPlan.planType === planId) {
+      return reply.code(400).send({
+        error: `既に${PLANS[planId].nameJa}プランを利用中です`,
+      });
     }
     if (currentPlan.planType === 'enterprise') {
-      return reply.code(400).send({ error: 'Enterpriseプランの変更はお問い合わせください' });
+      return reply.code(400).send({
+        error: 'Enterpriseプランの変更はお問い合わせください',
+      });
+    }
+
+    // Price ID 取得
+    const priceId = planId === 'pro' ? getProPriceId() : getSubscriptionPriceId(planId);
+    if (!priceId) {
+      return reply.code(503).send({
+        error: `${PLANS[planId].nameJa}プランの Stripe Price ID が未設定です (env: STRIPE_${planId.toUpperCase()}_PRICE_ID)`,
+      });
     }
 
     try {
@@ -84,13 +149,14 @@ export default async function billingRoutes(fastify: FastifyInstance): Promise<v
       // Checkout Session 作成（固定料金 + 従量課金アイテム）
       const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
         {
-          price: getProPriceId(),
-          quantity: 1,
+          price: priceId,
+          // Team は seat 課金 (quantity = seats)
+          quantity: planId === 'team' ? seats : 1,
         },
       ];
 
       // 従量課金の Price が設定されていれば追加（metered items は quantity 不要）
-      const meteredPrices = getMeteredPriceIds('pro');
+      const meteredPrices = getMeteredPriceIds(planId);
       if (meteredPrices.traceOveragePriceId) {
         lineItems.push({ price: meteredPrices.traceOveragePriceId });
       }
@@ -106,10 +172,14 @@ export default async function billingRoutes(fastify: FastifyInstance): Promise<v
         cancel_url: `${baseUrl}/?tab=plan&checkout=cancel`,
         metadata: {
           workspaceId,
+          planType: planId,
+          ...(planId === 'team' ? { seats: String(seats) } : {}),
         },
         subscription_data: {
           metadata: {
             workspaceId,
+            planType: planId,
+            ...(planId === 'team' ? { seats: String(seats) } : {}),
           },
         },
       });
@@ -117,6 +187,8 @@ export default async function billingRoutes(fastify: FastifyInstance): Promise<v
       return reply.send({
         checkoutUrl: session.url,
         sessionId: session.id,
+        planType: planId,
+        ...(planId === 'team' ? { seats } : {}),
       });
     } catch (error) {
       console.error('[Billing] Checkout Session作成失敗:', error);
@@ -254,20 +326,32 @@ export default async function billingRoutes(fastify: FastifyInstance): Promise<v
           const workspaceId = session.metadata?.workspaceId;
           const customerId = session.customer as string;
           const subscriptionId = session.subscription as string;
+          // metadata.planType を優先. 未指定は後方互換で 'pro' とみなす.
+          const metaPlanType = session.metadata?.planType;
+          const planType: PlanType = isCheckoutablePlan(metaPlanType ?? '')
+            ? (metaPlanType as PlanType)
+            : 'pro';
+          // Team の seats は metadata 文字列で保存している
+          const metaSeats = session.metadata?.seats;
+          const seats = metaSeats ? Number.parseInt(metaSeats, 10) : undefined;
 
           if (workspaceId && session.mode === 'subscription') {
             // Customer マッピング保存
             await setStripeCustomerId(workspaceId, customerId);
 
-            // プランをProに自動切替
-            await updateWorkspacePlan(workspaceId, 'pro', {
+            // プランを checkout で指定されたものに自動切替
+            await updateWorkspacePlan(workspaceId, planType, {
               subscriptionId,
+              ...(planType === 'team' && Number.isFinite(seats) ? { seats } : {}),
             });
 
             // ステータス保存
             await setSubscriptionStatus(workspaceId, 'active', subscriptionId);
 
-            fastify.log.info({ workspaceId, subscriptionId }, 'Checkout completed (subscription)');
+            fastify.log.info(
+              { workspaceId, subscriptionId, planType, seats },
+              'Checkout completed (subscription)',
+            );
           }
 
           // Handle setup mode sessions (payment method collection for agent per-use)
@@ -302,8 +386,17 @@ export default async function billingRoutes(fastify: FastifyInstance): Promise<v
             await setSubscriptionStatus(workspaceId, status, subscription.id);
 
             if (status === 'active') {
-              await updateWorkspacePlan(workspaceId, 'pro', {
+              // subscription.metadata から planType を復元. 旧データ (planType 未設定) は pro とみなす.
+              const metaPlanType = subscription.metadata?.planType;
+              const planType: PlanType = isCheckoutablePlan(metaPlanType ?? '')
+                ? (metaPlanType as PlanType)
+                : 'pro';
+              const metaSeats = subscription.metadata?.seats;
+              const seats = metaSeats ? Number.parseInt(metaSeats, 10) : undefined;
+
+              await updateWorkspacePlan(workspaceId, planType, {
                 subscriptionId: subscription.id,
+                ...(planType === 'team' && Number.isFinite(seats) ? { seats } : {}),
               });
             }
 

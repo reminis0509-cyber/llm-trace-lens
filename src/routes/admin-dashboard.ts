@@ -11,7 +11,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { listWorkspaces, getWorkspace } from '../kv/client.js';
 import { getWorkspacePlan, updateWorkspacePlan } from '../plans/storage.js';
 import { getUsageStats, getDailyUsageStats } from '../plans/usage.js';
-import { PLANS, type PlanType, getEffectiveLimits } from '../plans/index.js';
+import { PLANS, type PlanType, getEffectiveLimits, isValidPlanType, TEAM_MIN_SEATS } from '../plans/index.js';
 import { getKnex } from '../storage/knex-client.js';
 import { kv } from '@vercel/kv';
 import { getWorkspaceKey } from '../storage/models.js';
@@ -231,9 +231,18 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
 
         planDistribution[plan.planType] = (planDistribution[plan.planType] || 0) + 1;
 
+        // Team プランは席数課金なので seats × 単価で集計 (QA Finding C-02, 2026-04-20).
+        // seats 未設定時は最低席数 (TEAM_MIN_SEATS) を下限として計上。
+        // Enterprise は個別契約で実金額が customLimits/subscription 側で管理される前提、
+        // ここでは下限 (priceMonthly = ENTERPRISE_MIN_PRICE_MONTHLY) で集計。
         const planDef = PLANS[plan.planType];
         if (planDef.priceMonthly) {
-          mrr += planDef.priceMonthly;
+          if (plan.planType === 'team') {
+            const seats = Math.max(plan.seats ?? TEAM_MIN_SEATS, TEAM_MIN_SEATS);
+            mrr += planDef.priceMonthly * seats;
+          } else {
+            mrr += planDef.priceMonthly;
+          }
         }
 
         totalTraces += usage.traceCount;
@@ -596,9 +605,9 @@ export default async function adminDashboardRoutes(fastify: FastifyInstance): Pr
     const { id } = request.params;
     const { planType, expiresAt, subscriptionId, customLimits } = request.body;
 
-    if (!planType || !['free', 'pro', 'enterprise'].includes(planType)) {
+    if (!isValidPlanType(planType)) {
       return reply.code(400).send({
-        error: 'planType は free, pro, enterprise のいずれかを指定してください',
+        error: 'planType は free, pro, team, max, enterprise のいずれかを指定してください',
       });
     }
 

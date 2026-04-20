@@ -66,15 +66,12 @@ async function findSubscriptionItemId(
 
 /**
  * PlanType を MeteredPlanId に変換する
- * free / enterprise はメータード課金の対象外のため null を返す
+ * free は overage 発生前に block されるため対象外 → null
+ * 有料プラン (pro/team/max/enterprise) は全て overage 報告対象
  */
 function toMeteredPlanId(planType: PlanType): MeteredPlanId | null {
-  if (planType === 'pro') return 'pro';
-  // 将来の Enterprise サブティア対応用
-  // if (planType === 'standard') return 'standard';
-  // if (planType === 'plus') return 'plus';
-  // if (planType === 'premium') return 'premium';
-  return null;
+  if (planType === 'free') return null;
+  return planType;
 }
 
 /**

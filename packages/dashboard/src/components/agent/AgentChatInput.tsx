@@ -19,7 +19,7 @@ const SUGGESTIONS: string[] = [
 export default function AgentChatInput({
   onSend,
   disabled = false,
-  placeholder = 'AI事務員に作業を依頼してください…',
+  placeholder = 'AI社員に作業を依頼してください…',
 }: AgentChatInputProps) {
   const [value, setValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -61,7 +61,7 @@ export default function AgentChatInput({
           placeholder={placeholder}
           disabled={disabled}
           rows={1}
-          aria-label="AI事務員への指示"
+          aria-label="AI社員への指示"
           className="flex-1 resize-none border-0 bg-transparent text-sm text-text-primary placeholder-text-muted focus:outline-none disabled:opacity-50"
           style={{ minHeight: '24px', maxHeight: '200px' }}
         />

@@ -2,7 +2,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { RoleProvider } from './contexts/RoleContext';
 import { PlanProvider } from './contexts/PlanContext';
 import { Auth } from './pages/Auth';
-import { Dashboard } from './pages/Dashboard';
+import { Dashboard, DashboardEntry } from './pages/Dashboard';
 import { InviteAccept } from './pages/InviteAccept';
 import { AdminRoute } from './pages/AdminRoute';
 import { WatchRoom } from './pages/WatchRoom';
@@ -13,6 +13,27 @@ function isAdminPath(path: string): boolean {
 
 function isWatchRoomPath(path: string): boolean {
   return path.startsWith('/dashboard/watch') || path.startsWith('/watch');
+}
+
+/**
+ * Resolve the in-dashboard entry view from the URL path. See AI Employee v1
+ * (2026-04-20) for the route additions: /dashboard/briefing,
+ * /dashboard/tasks, /dashboard/settings/connectors.
+ */
+function resolveDashboardEntry(path: string): DashboardEntry {
+  if (path.startsWith('/dashboard/briefing') || path.startsWith('/briefing')) {
+    return { kind: 'tab', tab: 'briefing' };
+  }
+  if (path.startsWith('/dashboard/tasks') || path.startsWith('/tasks')) {
+    return { kind: 'tab', tab: 'tasks' };
+  }
+  if (
+    path.startsWith('/dashboard/settings/connectors') ||
+    path.startsWith('/settings/connectors')
+  ) {
+    return { kind: 'connectors' };
+  }
+  return { kind: 'tab' };
 }
 
 function isWatchDemoRequest(path: string, search: string): boolean {
@@ -111,10 +132,12 @@ function AppContent() {
     );
   }
 
+  const entry = resolveDashboardEntry(path);
+
   return (
     <RoleProvider initialWorkspaceId={workspaceId}>
       <PlanProvider>
-        <Dashboard />
+        <Dashboard entry={entry} />
       </PlanProvider>
     </RoleProvider>
   );
