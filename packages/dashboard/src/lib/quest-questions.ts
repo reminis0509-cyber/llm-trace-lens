@@ -496,18 +496,18 @@ export const QUESTS: readonly Quest[] = [
     ],
   },
 
-  // ── Wide Research (2) — 画面出力でOK、入力により出力が分岐 ──
+  // ── Wide Research (2) — 画面プレビュー + 報告書 PDF、入力により出力が分岐 ──
   {
     id: 'res-1',
     category: 'research',
     number: 15,
     title: 'SaaS 業界の 2026 年動向',
-    description: '複数ソースを横断して、出典付きの業界レポートを生成（画面表示）。',
+    description: '複数ソースを横断して、出典付きの業界報告書を生成（画面プレビュー + PDF 保存可）。',
     objective: 'Wide Research の所要時間と質感を体感',
     difficulty: 2,
     estimatedTime: '5分',
     sampleAnswer:
-      '入力テーマにより出力構成が変化します。例えば「SaaS 業界動向」を指定した場合: 市場規模 / 主要プレイヤー / 競争軸の変化 / 日本市場の差別化要因 / 中小企業示唆 の 5 セクション + 出典 10 件。画面上の構造化レポートとして表示（紙化不要）。',
+      '入力テーマにより出力構成が変化します。例えば「SaaS 業界動向」を指定した場合: 市場規模 / 主要プレイヤー / 競争軸の変化 / 日本市場の差別化要因 / 中小企業示唆 の 5 セクション + 出典 10 件。画面上の構造化プレビューに加えて、JTC 体裁の業界調査報告書（文書番号・発行日・調査概要・出典一覧・「以上」付き）を PDF で保存可能。上司への配布・稟議添付を前提とした体裁です。',
     steps: [
       {
         instruction: 'ツール > Wide Research に切り替え',
@@ -522,6 +522,10 @@ export const QUESTS: readonly Quest[] = [
         instruction: '出典 URL が複数ついているか確認',
         checkType: 'receive_response',
       },
+      {
+        instruction: '「業界調査報告書」PDF をダウンロードして上司配布用に保存',
+        checkType: 'download',
+      },
     ],
   },
   {
@@ -529,12 +533,12 @@ export const QUESTS: readonly Quest[] = [
     category: 'research',
     number: 16,
     title: '競合 3 社の比較レポート',
-    description: '指名した 3 社の機能・料金・強みを横並び比較（画面表示）。',
+    description: '指名した 3 社の機能・料金・強みを横並び比較（画面プレビュー + 報告書 PDF 保存可）。',
     objective: '比較軸を指定してリサーチを誘導',
     difficulty: 3,
     estimatedTime: '6分',
     sampleAnswer:
-      '入力で指名した 3 社についての比較レポートを画面表示。機能マトリクス / 料金比較 / 強み弱み / 自社との差別化ポイント提案。紙化は不要（画面の構造化表示）。',
+      '入力で指名した 3 社についての比較レポートを画面プレビューで表示（機能マトリクス / 料金比較 / 強み弱み / 自社との差別化ポイント提案）。併せて JTC 体裁の「競合比較調査報告書」を PDF で保存可能。文書番号・発行日・調査対象・出典一覧付きで、稟議資料として即添付できる。',
     steps: [
       {
         instruction: '比較対象を指名してリサーチ',
@@ -544,6 +548,10 @@ export const QUESTS: readonly Quest[] = [
       {
         instruction: '比較表の形式で整っているか確認',
         checkType: 'receive_response',
+      },
+      {
+        instruction: '「競合比較調査報告書」PDF をダウンロードして稟議添付用に保存',
+        checkType: 'download',
       },
     ],
   },

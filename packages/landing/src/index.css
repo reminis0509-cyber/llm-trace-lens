@@ -138,7 +138,7 @@ body {
   color: #1a1a1a;
 }
 
-/* PowerPoint-like slide canvas (Chapter 4). 16:9 fixed aspect. */
+/* PowerPoint-like slide canvas (Chapter 4 legacy). 16:9 fixed aspect. */
 .jtc-slide {
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -149,6 +149,44 @@ body {
   flex-direction: column;
   font-family: 'Noto Sans JP', sans-serif;
   color: #1a1a1a;
+}
+
+/* PowerPoint-like slide canvas (Chapter 4 v2 — 営業資料は華やかに).
+   Deep navy + gold accent + white text. 3-color palette only.           */
+.jtc-slide-v2 {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, #0f2847 0%, #14314f 55%, #1e3a5f 100%);
+  border: 1px solid #2b4566;
+  padding: 22px 28px;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Noto Sans JP', sans-serif;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  /* Ensure the navy background prints */
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.jtc-slide-v2-accent-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 64px;
+  height: 3px;
+  background: #c9a96e;
+}
+
+.jtc-slide-v2-dots {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  color: rgba(201, 169, 110, 0.35);
+  pointer-events: none;
 }
 
 /* Slide deck: hide the "print-only" remaining slides in preview. */
@@ -167,6 +205,12 @@ body {
   @page {
     size: A4;
     margin: 14mm 12mm;
+  }
+
+  /* Force background colors to print (navy slide deck needs this) */
+  html, body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   body * {
@@ -212,6 +256,13 @@ body {
   .jtc-slide-page:last-child {
     page-break-after: auto;
     break-after: auto;
+  }
+
+  /* Navy slide deck — ensure background gradient + accents print */
+  .jtc-slide-v2,
+  .jtc-slide-v2 * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* In print, show the hidden slides so the full deck prints. */

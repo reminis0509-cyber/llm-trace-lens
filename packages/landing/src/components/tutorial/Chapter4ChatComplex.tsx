@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import TutorialChatUI, { type ChatMessage } from './TutorialChatUI';
 import TutorialStepProgress, { type TutorialStep } from './TutorialStepProgress';
 import JtcDocumentViewer from './JtcDocumentViewer';
@@ -28,6 +28,15 @@ const SUGGESTIONS = [
 /* ───── Slide model — FujiTrace 自身の営業資料 ───────────────────── */
 
 type SlideLayout = 'cover' | 'section' | 'bullets' | 'cta';
+type SlideIcon =
+  | 'building'
+  | 'layers'
+  | 'check'
+  | 'shield'
+  | 'coin'
+  | 'calendar'
+  | 'spark'
+  | 'flag';
 
 interface Slide {
   index: number;
@@ -37,6 +46,10 @@ interface Slide {
   eyebrow?: string;
   bullets?: string[];
   footerRight?: string;
+  /** Optional accent icon shown near the title. */
+  icon?: SlideIcon;
+  /** Optional highlight term shown as a gold chip in the corner. */
+  highlight?: string;
 }
 
 const DECK_TITLE = 'FujiTrace — 日本企業のためのAI社員プラットフォーム';
@@ -48,96 +61,113 @@ const SLIDES: Slide[] = [
     title: DECK_TITLE,
     subtitle: '中小企業のバックオフィスに、24時間働くAI社員を。',
     footerRight: '合同会社 Reminis  /  2026',
+    highlight: 'Proposal',
   },
   {
     index: 2,
     layout: 'bullets',
     eyebrow: '01  課題',
     title: '机上業務に追われる、日本の中小企業',
+    icon: 'building',
     bullets: [
       '見積書・請求書・議事録の作成に月 60 時間以上',
       '属人化した Excel 集計とリサーチ業務',
       '「DX したいが人が足りない」という現場の声',
     ],
+    highlight: 'Pain',
   },
   {
     index: 3,
     layout: 'bullets',
     eyebrow: '02  ソリューション',
     title: 'AI社員が 3 カテゴリの仕事を代行',
+    icon: 'spark',
     bullets: [
       '書類作成: 見積書 / 請求書 / 納品書 / 発注書 / 送付状',
       '分析・調査: Excel 分析 / 議事録 / Wide Research',
       '業務連携: Calendar / Gmail / Slack / freee 他',
     ],
+    highlight: 'Solution',
   },
   {
     index: 4,
     layout: 'bullets',
     eyebrow: '03  主要機能 (1/3)',
     title: '書類作成 — 正式体裁で即出力',
+    icon: 'check',
     bullets: [
       '5 種類の基本書類を和文ビジネス様式で生成',
       '金額・税率・振込先をAIが自動検証',
       '議事録は印刷を前提とした JTC 体裁',
     ],
+    highlight: 'Docs',
   },
   {
     index: 5,
     layout: 'bullets',
     eyebrow: '03  主要機能 (2/3)',
     title: '分析・調査 — 現場の時間を取り戻す',
+    icon: 'layers',
     bullets: [
       'Excel を読ませて月次推移を言語化',
       'スライドを 1 行の指示から 10 枚構成で生成',
       'Wide Research で業界動向を出典付きでレポート化',
     ],
+    highlight: 'Insight',
   },
   {
     index: 6,
     layout: 'bullets',
     eyebrow: '03  主要機能 (3/3)',
     title: '業務連携 — 9 つのコネクタ',
+    icon: 'layers',
     bullets: [
       'Google Calendar / Gmail / Drive',
       'Slack / Microsoft Teams',
       'freee / マネーフォワード / Sansan / Notion',
     ],
+    highlight: 'Connect',
   },
   {
     index: 7,
     layout: 'bullets',
     eyebrow: '04  差別化',
     title: '日本企業のための設計',
+    icon: 'shield',
     bullets: [
       '国内リージョン保管 — 顧客データは海外に出ない',
       '商慣習適合 — 月末締め / 御中 / 捺印欄',
       '承認後実行 — 自動化しつつも判断は人が握る',
     ],
+    highlight: 'Japan',
   },
   {
     index: 8,
     layout: 'bullets',
     eyebrow: '05  料金',
     title: '無料から始められる 5 プラン',
+    icon: 'coin',
     bullets: [
       'Free: ¥0 / 月 — 個人の試用',
       'Pro: ¥3,000 / 月 — 中小企業の定番',
       'Max: ¥15,000 / 月 — チーム共有 / 利用回数無制限',
       'Enterprise: 年契約 — 商習慣・監査対応',
     ],
+    highlight: 'Pricing',
   },
   {
     index: 9,
     layout: 'bullets',
     eyebrow: '06  導入',
     title: '最短 1 日で使い始められる',
+    icon: 'calendar',
     bullets: [
       'Day 0: アカウント作成（無料）',
       'Day 1: 4 章チュートリアル完了',
       'Day 7: 定着支援ミーティング',
       'Day 30: 月次クロージングを AI 社員に任せる',
     ],
+    highlight: 'Onboard',
   },
   {
     index: 10,
@@ -145,103 +175,231 @@ const SLIDES: Slide[] = [
     title: 'AI社員、雇いませんか。',
     subtitle: 'まずは無料で、月曜朝のブリーフィングから。',
     footerRight: 'fujitrace.jp',
+    icon: 'flag',
+    highlight: 'Next Step',
   },
 ];
 
+/* ─── Inline icon set (avoids lucide-react dependency) ──────────── */
+
+interface IconProps {
+  className?: string;
+}
+
+function SlideIconSvg({ name, className }: { name: SlideIcon; className?: string }) {
+  const common = {
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.6,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true,
+    className,
+  };
+  switch (name) {
+    case 'building':
+      return (
+        <svg {...common}>
+          <rect x="4" y="3" width="16" height="18" rx="1" />
+          <path d="M8 7h2M8 11h2M8 15h2M14 7h2M14 11h2M14 15h2" />
+        </svg>
+      );
+    case 'layers':
+      return (
+        <svg {...common}>
+          <path d="M12 3 3 8l9 5 9-5-9-5Z" />
+          <path d="m3 13 9 5 9-5" />
+          <path d="m3 18 9 5 9-5" />
+        </svg>
+      );
+    case 'check':
+      return (
+        <svg {...common}>
+          <path d="M5 12l4 4L19 7" />
+        </svg>
+      );
+    case 'shield':
+      return (
+        <svg {...common}>
+          <path d="M12 3 5 6v6c0 4.5 3 8 7 9 4-1 7-4.5 7-9V6l-7-3Z" />
+          <path d="m9 12 2 2 4-4" />
+        </svg>
+      );
+    case 'coin':
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="8" />
+          <path d="M12 7v10M9 9.5c0-1 1-2 3-2s3 1 3 2-1 1.5-3 2-3 1-3 2 1 2 3 2 3-1 3-2" />
+        </svg>
+      );
+    case 'calendar':
+      return (
+        <svg {...common}>
+          <rect x="3" y="5" width="18" height="16" rx="1.5" />
+          <path d="M3 10h18M8 3v4M16 3v4" />
+        </svg>
+      );
+    case 'spark':
+      return (
+        <svg {...common}>
+          <path d="M12 3v5M12 16v5M3 12h5M16 12h5M6 6l3 3M15 15l3 3M6 18l3-3M15 9l3-3" />
+        </svg>
+      );
+    case 'flag':
+      return (
+        <svg {...common}>
+          <path d="M5 3v18" />
+          <path d="M5 4h11l-2 4 2 4H5" />
+        </svg>
+      );
+  }
+}
+
+function CornerDots({ className }: IconProps) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 40 40"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      {[0, 1, 2, 3, 4].map((row) =>
+        [0, 1, 2, 3, 4].map((col) => (
+          <circle key={`${row}-${col}`} cx={4 + col * 8} cy={4 + row * 8} r="1" />
+        )),
+      )}
+    </svg>
+  );
+}
+
 /* ─── Slide visual components ────────────────────────────────────── */
 
-function SlideHeader({ eyebrow, index }: { eyebrow?: string; index: number }) {
+function SlideShell({
+  slide,
+  children,
+}: {
+  slide: Slide;
+  children: ReactNode;
+}) {
   return (
-    <div className="flex items-baseline justify-between text-[10px] text-[#666] font-mono tabular-nums">
-      <span className="uppercase tracking-[0.2em]">{eyebrow ?? 'FujiTrace'}</span>
-      <span>{String(index).padStart(2, '0')} / 10</span>
+    <div className="jtc-slide-v2 relative flex flex-col">
+      {/* Gold accent line — top-left */}
+      <div className="jtc-slide-v2-accent-line" aria-hidden="true" />
+      {/* Dot pattern — top-right */}
+      <CornerDots className="jtc-slide-v2-dots" />
+
+      {/* Header: eyebrow + index */}
+      <div className="flex items-baseline justify-between text-[10px] font-mono tabular-nums text-[#d9c79a]">
+        <span className="uppercase tracking-[0.3em]">
+          {slide.eyebrow ?? (slide.layout === 'cover' ? 'Cover' : 'FujiTrace')}
+        </span>
+        <span className="text-[#9fb1c4]">
+          {String(slide.index).padStart(2, '0')} / 10
+        </span>
+      </div>
+
+      {children}
+
+      {/* Footer */}
+      <div className="mt-auto pt-3 border-t border-[#2b4566] flex items-baseline justify-between text-[9px] text-[#9fb1c4]">
+        <span className="tracking-wider">FujiTrace — AI 社員プラットフォーム</span>
+        <span className="font-mono">{slide.footerRight ?? '合同会社 Reminis'}</span>
+      </div>
     </div>
   );
 }
 
-function SlideFooter({ right }: { right?: string }) {
+function HighlightChip({ label }: { label: string }) {
   return (
-    <div className="mt-auto pt-3 border-t border-[#1a1a1a] flex items-baseline justify-between text-[9px] text-[#666]">
-      <span>FujiTrace — AI 社員プラットフォーム</span>
-      <span className="font-mono">{right ?? '合同会社 Reminis'}</span>
-    </div>
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 border border-[#c9a96e] text-[9px] font-mono uppercase tracking-[0.25em] text-[#c9a96e]">
+      {label}
+    </span>
   );
 }
 
 function CoverSlide({ slide }: { slide: Slide }) {
   return (
-    <>
-      <SlideHeader eyebrow="COVER" index={slide.index} />
+    <SlideShell slide={slide}>
       <div className="flex-1 flex flex-col justify-center items-center text-center px-4">
-        <div className="w-12 h-1 bg-[#1d3557] mb-5" aria-hidden="true" />
-        <h3 className="text-[22px] sm:text-[26px] font-bold leading-snug text-[#1a1a1a] max-w-[80%]">
+        {slide.highlight && <HighlightChip label={slide.highlight} />}
+        <div className="w-14 h-[2px] bg-[#c9a96e] mt-5 mb-5" aria-hidden="true" />
+        <h3 className="text-[22px] sm:text-[28px] font-bold leading-snug text-white max-w-[86%]">
           {slide.title}
         </h3>
         {slide.subtitle && (
-          <p className="mt-3 text-[12px] sm:text-[14px] text-[#444]">{slide.subtitle}</p>
+          <p className="mt-4 text-[12px] sm:text-[14px] text-[#c6d3e4] max-w-[70%] leading-relaxed">
+            {slide.subtitle}
+          </p>
         )}
       </div>
-      <SlideFooter right={slide.footerRight} />
-    </>
+    </SlideShell>
   );
 }
 
 function BulletSlide({ slide }: { slide: Slide }) {
   return (
-    <>
-      <SlideHeader eyebrow={slide.eyebrow} index={slide.index} />
-      <div className="mt-3">
-        <h3 className="text-[18px] sm:text-[20px] font-semibold text-[#1a1a1a] border-b border-[#1a1a1a] pb-1.5">
-          {slide.title}
-        </h3>
+    <SlideShell slide={slide}>
+      <div className="mt-3 flex items-start justify-between gap-4">
+        <div className="flex items-center gap-2.5">
+          {slide.icon && (
+            <span className="inline-flex items-center justify-center w-8 h-8 rounded-sm border border-[#c9a96e] text-[#c9a96e]">
+              <SlideIconSvg name={slide.icon} className="w-4 h-4" />
+            </span>
+          )}
+          <h3 className="text-[17px] sm:text-[21px] font-semibold text-white leading-tight">
+            {slide.title}
+          </h3>
+        </div>
+        {slide.highlight && <HighlightChip label={slide.highlight} />}
       </div>
+      <div className="w-10 h-[2px] bg-[#c9a96e] mt-2" aria-hidden="true" />
       <ul className="mt-4 space-y-2.5">
         {(slide.bullets ?? []).map((b, i) => (
-          <li key={i} className="flex items-baseline gap-2.5 text-[12px] sm:text-[13px]">
+          <li
+            key={i}
+            className="flex items-baseline gap-2.5 text-[12px] sm:text-[13px]"
+          >
             <span
-              className="inline-flex flex-shrink-0 items-center justify-center w-4 h-4 text-[10px] font-mono bg-[#1d3557] text-white rounded-sm"
+              className="inline-flex flex-shrink-0 items-center justify-center w-5 h-5 text-[10px] font-mono bg-[#c9a96e] text-[#0f2847] rounded-sm font-semibold"
               aria-hidden="true"
             >
               {i + 1}
             </span>
-            <span className="flex-1 text-[#1a1a1a] leading-snug">{b}</span>
+            <span className="flex-1 text-[#e9eef5] leading-relaxed">{b}</span>
           </li>
         ))}
       </ul>
-      <SlideFooter right={slide.footerRight} />
-    </>
+    </SlideShell>
   );
 }
 
 function CtaSlide({ slide }: { slide: Slide }) {
   return (
-    <>
-      <SlideHeader eyebrow="CTA" index={slide.index} />
+    <SlideShell slide={slide}>
       <div className="flex-1 flex flex-col justify-center items-center text-center px-4">
-        <h3 className="text-[24px] sm:text-[32px] font-bold text-[#1a1a1a] leading-snug">
+        {slide.highlight && <HighlightChip label={slide.highlight} />}
+        <div className="w-14 h-[2px] bg-[#c9a96e] mt-5 mb-5" aria-hidden="true" />
+        <h3 className="text-[26px] sm:text-[34px] font-bold text-white leading-snug">
           {slide.title}
         </h3>
         {slide.subtitle && (
-          <p className="mt-4 text-[13px] sm:text-[15px] text-[#444]">{slide.subtitle}</p>
+          <p className="mt-4 text-[13px] sm:text-[15px] text-[#c6d3e4]">
+            {slide.subtitle}
+          </p>
         )}
-        <div className="mt-6 inline-flex items-center gap-2 px-4 py-1.5 border border-[#1a1a1a] text-[12px] tracking-[0.15em]">
+        <div className="mt-6 inline-flex items-center gap-2 px-5 py-2 border border-[#c9a96e] text-[12px] tracking-[0.2em] text-[#c9a96e]">
           お問い合わせ: fujitrace.jp
         </div>
       </div>
-      <SlideFooter right={slide.footerRight} />
-    </>
+    </SlideShell>
   );
 }
 
 function SlideCanvas({ slide }: { slide: Slide }) {
-  return (
-    <div className="jtc-slide">
-      {slide.layout === 'cover' && <CoverSlide slide={slide} />}
-      {slide.layout === 'bullets' && <BulletSlide slide={slide} />}
-      {slide.layout === 'cta' && <CtaSlide slide={slide} />}
-      {slide.layout === 'section' && <BulletSlide slide={slide} />}
-    </div>
-  );
+  if (slide.layout === 'cover') return <CoverSlide slide={slide} />;
+  if (slide.layout === 'cta') return <CtaSlide slide={slide} />;
+  return <BulletSlide slide={slide} />;
 }
 
 function SlideThumb({
@@ -258,19 +416,25 @@ function SlideThumb({
       type="button"
       onClick={onClick}
       aria-label={`スライド ${slide.index} に切替`}
-      className={`group text-left transition-colors ${
-        active ? 'ring-2 ring-blue-500' : 'hover:ring-1 hover:ring-slate-300'
-      } bg-white border border-slate-300 rounded-sm p-1.5 flex flex-col aspect-[16/9]`}
+      className={`group text-left transition-all ${
+        active
+          ? 'ring-2 ring-[#c9a96e] shadow-md'
+          : 'hover:ring-1 hover:ring-[#c9a96e]/60'
+      } bg-gradient-to-br from-[#0f2847] to-[#1e3a5f] border border-[#2b4566] rounded-sm p-1.5 flex flex-col aspect-[16/9]`}
     >
-      <span className="text-[7px] text-slate-400 font-mono tabular-nums">
-        {slide.index}
+      <span className="text-[7px] text-[#c9a96e] font-mono tabular-nums tracking-wider">
+        {String(slide.index).padStart(2, '0')}
       </span>
-      <span className="text-[8px] font-semibold text-slate-700 mt-1 line-clamp-2 leading-tight">
+      <span className="text-[8px] font-semibold text-white mt-1 line-clamp-2 leading-tight">
         {slide.title}
       </span>
       <span className="mt-auto flex flex-col gap-0.5">
         {slide.bullets?.slice(0, 2).map((_, i) => (
-          <span key={i} className="h-[2px] bg-slate-200" style={{ width: `${70 - i * 10}%` }} />
+          <span
+            key={i}
+            className="h-[2px] bg-[#c9a96e]/60"
+            style={{ width: `${70 - i * 10}%` }}
+          />
         ))}
       </span>
     </button>

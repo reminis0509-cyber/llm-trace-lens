@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import TutorialChatUI, { type ChatMessage } from './TutorialChatUI';
 import TutorialStepProgress, { type TutorialStep } from './TutorialStepProgress';
+import JtcDocumentViewer, {
+  JtcTitle,
+  JtcMetaRow,
+  JtcClose,
+} from './JtcDocumentViewer';
 import { TUTORIAL_FOOTNOTE } from '../../lib/tutorial-scripts';
 import { playStepSound, playCompleteSound } from '../../lib/tutorialSound';
 
@@ -21,6 +26,8 @@ interface Topic {
   steps: TutorialStep[];
   liveLog: string[];
   report: Report;
+  /** JTC document metadata for 紙化 (paper) rendering. */
+  paper: PaperMeta;
 }
 
 interface ReportSection {
@@ -35,6 +42,19 @@ interface Report {
   sections: ReportSection[];
   sourceCount: number;
   iters: number;
+}
+
+interface PaperMeta {
+  /** JTC-style document title shown on paper (e.g. "業界調査報告書"). */
+  docTitle: string;
+  /** Document number, e.g. RES-20260422-001. */
+  docNumber: string;
+  /** Issued-on, 令和 reckoning. */
+  issuedOn: string;
+  /** Filename hint for PDF save. */
+  filename: string;
+  /** One-line sub-title under the main title (調査対象). */
+  subject: string;
 }
 
 /* ── Topic 1: インボイス制度の業界影響 ───────────────────────────── */
@@ -85,6 +105,13 @@ const INVOICE_TOPIC: Topic = {
         sources: ['freee インボイス対応プレスリリース', 'マネーフォワード 2024 Q2 IR'],
       },
     ],
+  },
+  paper: {
+    docTitle: '業界調査報告書',
+    docNumber: 'RES-20260422-001',
+    issuedOn: '令和8年4月22日',
+    filename: '業界調査報告書_インボイス制度',
+    subject: 'インボイス制度の業界影響',
   },
 };
 
@@ -144,6 +171,13 @@ const SAAS_TOPIC: Topic = {
       },
     ],
   },
+  paper: {
+    docTitle: '業界調査報告書',
+    docNumber: 'RES-20260422-002',
+    issuedOn: '令和8年4月22日',
+    filename: '業界調査報告書_国内SaaS2026',
+    subject: '国内 SaaS 業界 2026 年動向',
+  },
 };
 
 /* ── Topic 3: freee vs マネーフォワード 比較 ─────────────────────── */
@@ -194,6 +228,13 @@ const COMPARE_TOPIC: Topic = {
         sources: ['freee 2025 IR', 'マネーフォワード 2025 事業戦略'],
       },
     ],
+  },
+  paper: {
+    docTitle: '競合比較調査報告書',
+    docNumber: 'RES-20260422-003',
+    issuedOn: '令和8年4月22日',
+    filename: '競合比較調査報告書_freee_MF',
+    subject: 'freee vs マネーフォワード 比較',
   },
 };
 
@@ -273,6 +314,78 @@ function ReportCard({ report }: { report: Report }) {
   );
 }
 
+/* ── JTC paper body for research reports ──────────────────────────── */
+
+function ResearchReportPaperBody({ topic }: { topic: Topic }) {
+  const { report, paper } = topic;
+  return (
+    <>
+      <JtcTitle label={paper.docTitle} />
+      <JtcMetaRow docNumber={paper.docNumber} issuedOn={paper.issuedOn} />
+
+      <div className="mt-4 text-[13px]">
+        <span className="text-[#555]">調査対象: </span>
+        <span className="font-medium">{paper.subject}</span>
+      </div>
+      <div className="mt-1 text-[12px] text-[#444]">
+        <span className="text-[#555]">情報源数: </span>
+        <span className="font-mono tabular-nums">{report.sourceCount}</span>
+        <span className="text-[#555]">  /  調査反復回数: </span>
+        <span className="font-mono tabular-nums">{report.iters}</span>
+      </div>
+
+      {/* 1. 調査概要 */}
+      <section className="mt-5">
+        <p className="font-semibold text-[14px] mb-1.5 border-b border-[#1a1a1a] pb-1">
+          1. 調査概要
+        </p>
+        <p className="text-[13px] leading-relaxed">{report.summary}</p>
+      </section>
+
+      {/* 2..N: report sections */}
+      {report.sections.map((sec, i) => (
+        <section key={sec.heading} className="mt-5">
+          <p className="font-semibold text-[14px] mb-1.5 border-b border-[#1a1a1a] pb-1">
+            {i + 2}. {sec.heading.replace(/^\d+\.\s*/, '')}
+          </p>
+          <p className="text-[13px] leading-relaxed">{sec.body}</p>
+          <p className="mt-2 text-[11px] text-[#555]">
+            出典: {sec.sources.join(' / ')}
+          </p>
+        </section>
+      ))}
+
+      {/* 所見 */}
+      <section className="mt-5">
+        <p className="font-semibold text-[14px] mb-1.5 border-b border-[#1a1a1a] pb-1">
+          {report.sections.length + 2}. 所見
+        </p>
+        <p className="text-[13px] leading-relaxed">
+          本調査は {report.sourceCount} 件の情報源を {report.iters} 回の反復にわたり横断し、
+          重要論点を上記 {report.sections.length} セクションに集約した。
+          実務上の判断材料として、社内の提案書・稟議・経営会議資料に添付することを推奨する。
+        </p>
+      </section>
+
+      {/* 出典一覧 */}
+      <section className="mt-5">
+        <p className="font-semibold text-[14px] mb-1.5 border-b border-[#1a1a1a] pb-1">
+          {report.sections.length + 3}. 出典一覧
+        </p>
+        <ol className="pl-5 space-y-0.5 text-[12px] list-decimal">
+          {report.sections
+            .flatMap((sec) => sec.sources)
+            .map((src, i) => (
+              <li key={`${src}-${i}`}>{src}</li>
+            ))}
+        </ol>
+      </section>
+
+      <JtcClose />
+    </>
+  );
+}
+
 /* ── Component ───────────────────────────────────────────────────── */
 
 export default function Chapter6Research({ onComplete, onMascot }: Chapter6ResearchProps) {
@@ -322,7 +435,7 @@ export default function Chapter6Research({ onComplete, onMascot }: Chapter6Resea
     playCompleteSound();
     onMascot(
       'happy',
-      '出典付きの\nレポートになった。\n\n来週の提案、\nこのまま使えるよ。',
+      '出典付きの\n報告書になった。\n\nPDF で保存して\n上司に配れるよ。',
     );
   };
 
@@ -338,8 +451,8 @@ export default function Chapter6Research({ onComplete, onMascot }: Chapter6Resea
           業界リサーチ — Wide Research
         </h2>
         <p className="mt-2 text-sm text-slate-600">
-          テーマを投げると、AI 社員が複数ソースを横断して出典付きレポートにまとめます。
-          テーマごとに取得する情報源と構成が変わります。
+          テーマを投げると、AI 社員が複数ソースを横断して出典付き報告書にまとめます。
+          画面プレビューと、上司配布用の PDF 保存の両方に対応します。
         </p>
       </header>
 
@@ -372,7 +485,18 @@ export default function Chapter6Research({ onComplete, onMascot }: Chapter6Resea
 
       {phase === 'done' && selectedTopic && (
         <>
+          {/* Screen structured preview — stays visible. */}
           <ReportCard report={selectedTopic.report} />
+
+          {/* Paper-ified JTC report — preview + PDF save. */}
+          <JtcDocumentViewer
+            kind="業界調査報告書"
+            filename={selectedTopic.paper.filename}
+            caption="上司への配布・稟議添付を前提とした JTC 体裁の報告書です。"
+          >
+            <ResearchReportPaperBody topic={selectedTopic} />
+          </JtcDocumentViewer>
+
           <div className="flex justify-end">
             <button
               type="button"
