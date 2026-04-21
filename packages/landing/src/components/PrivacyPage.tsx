@@ -39,14 +39,14 @@ export default function PrivacyPage() {
           プライバシーポリシー
         </h1>
         <p className="text-sm text-text-muted mb-12">
-          最終更新日: 2025年3月10日
+          最終更新日: 2026年4月21日
         </p>
 
         <div className="space-y-10">
           {/* 前文 */}
           <div>
             <p className="text-text-secondary leading-relaxed">
-              FujiTrace（運営: 個人事業）（以下「当方」といいます）は、当方が提供するAI可観測性プラットフォーム「FujiTrace」（以下「本サービス」といいます）における個人情報の取り扱いについて、以下のとおりプライバシーポリシー（以下「本ポリシー」といいます）を定めます。
+              FujiTrace（運営: 合同会社Reminis）（以下「当方」といいます）は、当方が提供する日本企業向けAI社員プラットフォーム「FujiTrace」（以下「本サービス」といいます）における個人情報の取り扱いについて、以下のとおりプライバシーポリシー（以下「本ポリシー」といいます）を定めます。
             </p>
           </div>
 
@@ -125,27 +125,31 @@ export default function PrivacyPage() {
             </div>
           </article>
 
-          {/* 4. LLMトレースデータの取り扱い */}
+          {/* 4. AIトレースデータおよび業務データの取り扱い */}
           <article>
             <h2 className="text-xl font-semibold text-text-primary mb-4">
-              4. AIトレースデータの取り扱い
+              4. AIトレース・業務データの取り扱い
             </h2>
             <div className="space-y-3 text-text-secondary leading-relaxed">
               <p>
-                本サービスの中核機能であるAIトレースデータの取り扱いについて、以下のとおり定めます。
+                本サービスの中核機能であるAIトレースデータおよびAI社員機能で扱う業務データの取り扱いについて、以下のとおり定めます。
               </p>
               <div className="surface-card p-6 space-y-3 my-4">
                 <p>
                   <span className="font-medium text-text-primary">データの所有権：</span>
-                  トレースデータ（プロンプト、レスポンス等）の所有権は、ユーザーに帰属します。
+                  トレースデータ（プロンプト、レスポンス等）および業務データ（見積書・請求書等の書類、会社基本情報、タスク履歴、保存されたプロジェクト指示）の所有権は、ユーザーに帰属します。
                 </p>
                 <p>
                   <span className="font-medium text-text-primary">AIモデル学習への不使用：</span>
-                  当方は、ユーザーのトレースデータをAIモデルの学習目的で使用することはありません。
+                  当方は、ユーザーのトレースデータおよび業務データをAIモデルの学習目的で使用することはありません。
                 </p>
                 <p>
                   <span className="font-medium text-text-primary">データの隔離：</span>
-                  トレースデータはワークスペースごとに論理的に隔離して保存され、他のユーザーからアクセスすることはできません。
+                  トレースデータおよび業務データはワークスペースごとに論理的に隔離して保存され、他のユーザーからアクセスすることはできません。
+                </p>
+                <p>
+                  <span className="font-medium text-text-primary">国内データ滞留：</span>
+                  本サービスは、顧客データを国内データセンター内のみで処理・保管します。Meta傘下のManus AI等、海外への越境移転は一切行いません。
                 </p>
                 <p>
                   <span className="font-medium text-text-primary">PII検出機能：</span>
@@ -155,10 +159,76 @@ export default function PrivacyPage() {
             </div>
           </article>
 
-          {/* 5. データの保管・セキュリティ */}
+          {/* 4-2. 外部サービス連携 (AI社員 Connector) */}
           <article>
             <h2 className="text-xl font-semibold text-text-primary mb-4">
-              5. データの保管・セキュリティ
+              5. 外部サービス連携（AI社員 Connector）
+            </h2>
+            <div className="space-y-3 text-text-secondary leading-relaxed">
+              <p>
+                本サービスの「AI社員」機能は、ユーザーの明示的な同意（OAuth認可またはAPIキー入力）に基づき、以下の外部サービスと連携することがあります。
+              </p>
+              <ul className="list-disc list-inside space-y-2 pl-2">
+                <li>
+                  <span className="font-medium text-text-primary">Google Calendar</span>：予定の閲覧・作成（スコープ: calendar.readonly / calendar.events）
+                </li>
+                <li>
+                  <span className="font-medium text-text-primary">Gmail</span>：書類送付のための下書き作成・送信（スコープ: gmail.compose / gmail.send）
+                </li>
+                <li>
+                  <span className="font-medium text-text-primary">Google Drive</span>：書類ファイルのアップロード・参照（スコープ: drive.file）
+                </li>
+                <li>
+                  <span className="font-medium text-text-primary">Slack</span>：チャンネル投稿・一覧取得
+                </li>
+                <li>
+                  <span className="font-medium text-text-primary">Chatwork</span>：ルーム投稿・一覧取得（APIトークン認証）
+                </li>
+                <li>
+                  <span className="font-medium text-text-primary">freee</span>：取引先・取引データの閲覧
+                </li>
+                <li>
+                  <span className="font-medium text-text-primary">Notion</span>：ページ作成・検索
+                </li>
+                <li>
+                  <span className="font-medium text-text-primary">GitHub</span>：リポジトリ一覧・Issue作成
+                </li>
+                <li>
+                  <span className="font-medium text-text-primary">LINE Messaging API</span>：メッセージ送信（チャンネルアクセストークン認証）
+                </li>
+                <li>
+                  <span className="font-medium text-text-primary">ユーザー登録のカスタムMCPサーバー</span>：ユーザーが自ら登録したAPIとの連携
+                </li>
+              </ul>
+              <div className="surface-card p-6 space-y-3 my-4">
+                <p>
+                  <span className="font-medium text-text-primary">認可トークンの保管：</span>
+                  外部サービス接続時に取得したアクセストークン・リフレッシュトークンは、AES-256-GCMで暗号化した上で保管します。
+                </p>
+                <p>
+                  <span className="font-medium text-text-primary">要求する権限範囲：</span>
+                  各外部サービスから取得する権限は、AI社員機能の提供に必要な最小限のスコープに限定します。
+                </p>
+                <p>
+                  <span className="font-medium text-text-primary">接続の解除：</span>
+                  ユーザーは、本サービスの「コネクタ設定」画面からいつでも外部サービスとの接続を解除できます。接続解除時、当方は保管する該当トークンを削除します。
+                </p>
+                <p>
+                  <span className="font-medium text-text-primary">外部サービスのプライバシーポリシー：</span>
+                  外部サービスとの連携で共有されるデータの当該サービス側での取り扱いは、各外部サービス事業者のプライバシーポリシーに従います。
+                </p>
+                <p>
+                  <span className="font-medium text-text-primary">書き込み操作の事前確認：</span>
+                  金銭に関わる操作（PDF出力・メール送信・書類保存等）を含む書き込み操作は、ユーザーの明示的な承認を得た上でのみ実行します。
+                </p>
+              </div>
+            </div>
+          </article>
+
+          {/* 6. データの保管・セキュリティ */}
+          <article>
+            <h2 className="text-xl font-semibold text-text-primary mb-4">
+              6. データの保管・セキュリティ
             </h2>
             <div className="space-y-3 text-text-secondary leading-relaxed">
               <p>当方は、個人情報およびトレースデータの保護のため、以下のセキュリティ対策を講じています。</p>
@@ -174,10 +244,10 @@ export default function PrivacyPage() {
             </div>
           </article>
 
-          {/* 6. 個人情報の開示・訂正・削除 */}
+          {/* 7. 個人情報の開示・訂正・削除 */}
           <article>
             <h2 className="text-xl font-semibold text-text-primary mb-4">
-              6. 個人情報の開示・訂正・削除
+              7. 個人情報の開示・訂正・削除
             </h2>
             <div className="space-y-3 text-text-secondary leading-relaxed">
               <p>
@@ -192,10 +262,10 @@ export default function PrivacyPage() {
             </div>
           </article>
 
-          {/* 7. Cookieの使用 */}
+          {/* 8. Cookieの使用 */}
           <article>
             <h2 className="text-xl font-semibold text-text-primary mb-4">
-              7. Cookieの使用
+              8. Cookieの使用
             </h2>
             <div className="space-y-3 text-text-secondary leading-relaxed">
               <p>
@@ -215,10 +285,10 @@ export default function PrivacyPage() {
             </div>
           </article>
 
-          {/* 8. プライバシーポリシーの変更 */}
+          {/* 9. プライバシーポリシーの変更 */}
           <article>
             <h2 className="text-xl font-semibold text-text-primary mb-4">
-              8. プライバシーポリシーの変更
+              9. プライバシーポリシーの変更
             </h2>
             <div className="space-y-3 text-text-secondary leading-relaxed">
               <p>
@@ -233,10 +303,10 @@ export default function PrivacyPage() {
             </div>
           </article>
 
-          {/* 9. お問い合わせ */}
+          {/* 10. お問い合わせ */}
           <article>
             <h2 className="text-xl font-semibold text-text-primary mb-4">
-              9. お問い合わせ
+              10. お問い合わせ
             </h2>
             <div className="space-y-3 text-text-secondary leading-relaxed">
               <p>
@@ -251,7 +321,7 @@ export default function PrivacyPage() {
               以上
             </p>
             <p className="text-sm text-text-muted mt-2">
-              FujiTrace（運営: 個人事業）
+              FujiTrace（運営: 合同会社Reminis）
             </p>
           </div>
         </div>
