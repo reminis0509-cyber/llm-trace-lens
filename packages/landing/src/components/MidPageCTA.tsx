@@ -1,7 +1,7 @@
 /**
  * MidPageCTA — LP 中間の誘導バナー (2026-04-22 刷新)
  *
- * 中小企業 DX 決裁者向けに「書類業務の山を、無料で試せる」訴求に切替。
+ * 中小企業 DX 決裁者向けに「業務の山を、無料で試せる」訴求に切替。
  */
 export default function MidPageCTA() {
   return (

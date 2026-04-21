@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import PdfPreview from './PdfPreview';
 import TutorialStepProgress, { type TutorialStep } from './TutorialStepProgress';
 
 interface Chapter1ButtonProps {
@@ -10,171 +9,139 @@ interface Chapter1ButtonProps {
 type Phase = 'waiting' | 'working' | 'done';
 
 const STEPS: TutorialStep[] = [
-  { label: '入力データを受信中...', duration: 500 },
-  { label: 'AI が見積書を生成中...', duration: 800 },
-  { label: '出力を検証中...', duration: 500 },
+  { label: 'Google Calendar から予定を取得中...', duration: 500 },
+  { label: 'Gmail の未読タスクを抽出中...', duration: 700 },
+  { label: '朝のブリーフィングを整理中...', duration: 600 },
 ];
 
-const PREFILL = {
-  clientName: '株式会社サンプル商事',
-  honorific: '御中',
-  subject: 'AI 社員導入コンサルティング',
-  issueDate: '2026-04-15',
-  expiryDate: '2026-05-15',
-  itemName: 'AI 社員初期構築',
-  quantity: '1',
-  unitPrice: '¥300,000',
-  amount: '¥300,000',
-  subtotal: '¥300,000',
-  tax: '¥30,000',
-  total: '¥330,000',
-  paymentTerms: '月末締翌月末払い',
-};
+interface BriefingEvent {
+  time: string;
+  title: string;
+  participants: string;
+  note?: string;
+}
 
-const PDF_SUMMARY =
-  '宛先: 株式会社サンプル商事\n件名: AI 社員導入コンサルティング\n合計: ¥330,000（税込）';
+interface BriefingTask {
+  priority: 'high' | 'mid' | 'low';
+  title: string;
+  source: string;
+}
 
-function ReadOnlyField({
-  label,
-  value,
-  hint = '自動入力',
-  mono = false,
-  align = 'left',
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  mono?: boolean;
-  align?: 'left' | 'right';
-}) {
+const EVENTS: BriefingEvent[] = [
+  {
+    time: '10:00 - 10:45',
+    title: '株式会社サンプル商事 定例',
+    participants: '田中部長 / 佐藤様',
+    note: '前回メモ: 見積書の再提出依頼あり',
+  },
+  {
+    time: '13:30 - 14:00',
+    title: '社内 プロダクトレビュー',
+    participants: '田中 / 鈴木 / 加藤',
+  },
+  {
+    time: '16:00 - 17:00',
+    title: '新規問合せヒアリング (株式会社ABC)',
+    participants: '先方 3 名',
+    note: '初回、提案資料は仮でも OK',
+  },
+];
+
+const TASKS: BriefingTask[] = [
+  {
+    priority: 'high',
+    title: '株式会社サンプル商事様の見積書再提出',
+    source: 'Gmail「お世話になっております…」',
+  },
+  {
+    priority: 'high',
+    title: 'プロダクトレビューの議題整理',
+    source: 'Calendar 定例メモ',
+  },
+  {
+    priority: 'mid',
+    title: '株式会社ABCの事前調査',
+    source: 'Calendar 備考欄',
+  },
+  {
+    priority: 'low',
+    title: '経費精算の締め切り確認',
+    source: 'Gmail リマインダー',
+  },
+];
+
+function PriorityBadge({ priority }: { priority: BriefingTask['priority'] }) {
+  const styles: Record<BriefingTask['priority'], string> = {
+    high: 'bg-rose-100 text-rose-800 border-rose-200',
+    mid: 'bg-amber-100 text-amber-800 border-amber-200',
+    low: 'bg-slate-100 text-slate-600 border-slate-200',
+  };
+  const labels: Record<BriefingTask['priority'], string> = {
+    high: '最優先',
+    mid: '今日中',
+    low: '余裕があれば',
+  };
   return (
-    <label className="block">
-      <span className="block text-xs font-medium text-slate-600 mb-1">{label}</span>
-      <div
-        className={`w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 ${
-          mono ? 'tabular-nums' : ''
-        } ${align === 'right' ? 'text-right' : ''}`}
-        aria-readonly="true"
-      >
-        {value}
-      </div>
-      <span className="mt-1 block text-[11px] text-slate-400">{hint}</span>
-    </label>
+    <span
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${styles[priority]}`}
+    >
+      {labels[priority]}
+    </span>
   );
 }
 
 export default function Chapter1Button({ onComplete, onMascot }: Chapter1ButtonProps) {
   const [phase, setPhase] = useState<Phase>('waiting');
 
-  const handleGenerate = () => {
+  const handleStart = () => {
     if (phase !== 'waiting') return;
     setPhase('working');
-    onMascot('talk', '見積書を作っているよ。\nちょっとだけ…\n待っててね。');
+    onMascot('talk', 'おはよう。\n予定とタスクを…\nまとめてくるね。');
   };
 
   const handleStepsComplete = () => {
     setPhase('done');
-    onMascot('happy', 'できた！');
+    onMascot(
+      'happy',
+      '今日はこんな一日。\n見積書の再提出が\n最優先みたいだよ。',
+    );
   };
 
   return (
     <section aria-labelledby="ch1-title" className="space-y-6">
       <header>
-        <p className="text-xs font-semibold tracking-wide text-blue-700 uppercase">第 1 章 / 4</p>
+        <p className="text-xs font-semibold tracking-wide text-blue-700 uppercase">
+          第 1 章 / 8 — 月曜朝
+        </p>
         <h2 id="ch1-title" className="mt-1 text-2xl font-bold text-slate-900">
-          ボタン一つで見積書を作る
+          初出社 — 今日の予定をAI社員に聞く
         </h2>
         <p className="mt-2 text-sm text-slate-600">
-          取引先・品目・金額はすでに入っています。下のボタンを押すと AI 社員が見積書 PDF を生成します。
+          ボタンを押すと、AI 社員が Calendar と Gmail を見てから「今日やるべきこと」を 1 画面にまとめてくれます。
         </p>
       </header>
 
-      {phase !== 'done' && (
-        <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-6">
-          <section aria-labelledby="ch1-client" className="space-y-3">
-            <h3 id="ch1-client" className="text-sm font-semibold text-slate-900">
-              取引先情報
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <ReadOnlyField label="宛先" value={PREFILL.clientName} />
-              <ReadOnlyField label="敬称" value={PREFILL.honorific} />
-            </div>
-          </section>
+      {phase === 'waiting' && (
+        <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-5">
+          <div className="rounded-lg bg-slate-50 border border-slate-200 px-4 py-3 text-sm text-slate-700 space-y-1.5">
+            <p>
+              <span className="font-semibold text-slate-900">朝のブリーフィング</span>{' '}
+              は、Google Calendar の予定と Gmail の未読メールから、
+              今日こなすべきタスクを自動で整理する機能です。
+            </p>
+            <p className="text-xs text-slate-500">
+              ※このチュートリアルでは、サンプルデータを使って動作を再現しています。
+            </p>
+          </div>
 
-          <section aria-labelledby="ch1-content" className="space-y-3">
-            <h3 id="ch1-content" className="text-sm font-semibold text-slate-900">
-              見積内容
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="sm:col-span-3">
-                <ReadOnlyField label="件名" value={PREFILL.subject} />
-              </div>
-              <ReadOnlyField label="発行日" value={PREFILL.issueDate} mono />
-              <ReadOnlyField label="有効期限" value={PREFILL.expiryDate} mono />
-            </div>
-          </section>
-
-          <section aria-labelledby="ch1-items" className="space-y-3">
-            <h3 id="ch1-items" className="text-sm font-semibold text-slate-900">
-              明細
-            </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs font-medium text-slate-500 border-b border-slate-200">
-                    <th className="py-2 pr-3">品名</th>
-                    <th className="py-2 px-3 text-right w-20">数量</th>
-                    <th className="py-2 px-3 text-right w-32">単価</th>
-                    <th className="py-2 pl-3 text-right w-32">金額</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b border-slate-100">
-                    <td className="py-3 pr-3 text-slate-800">{PREFILL.itemName}</td>
-                    <td className="py-3 px-3 text-right tabular-nums text-slate-800">{PREFILL.quantity}</td>
-                    <td className="py-3 px-3 text-right tabular-nums text-slate-800">{PREFILL.unitPrice}</td>
-                    <td className="py-3 pl-3 text-right tabular-nums text-slate-800">{PREFILL.amount}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <p className="text-[11px] text-slate-400">自動入力</p>
-          </section>
-
-          <section aria-labelledby="ch1-total" className="space-y-3">
-            <h3 id="ch1-total" className="text-sm font-semibold text-slate-900">
-              合計
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <ReadOnlyField label="小計" value={PREFILL.subtotal} mono align="right" />
-              <ReadOnlyField label="消費税 (10%)" value={PREFILL.tax} mono align="right" />
-              <ReadOnlyField label="合計" value={PREFILL.total} mono align="right" />
-            </div>
-          </section>
-
-          <section aria-labelledby="ch1-payment" className="space-y-3">
-            <h3 id="ch1-payment" className="text-sm font-semibold text-slate-900">
-              支払条件
-            </h3>
-            <ReadOnlyField label="支払条件" value={PREFILL.paymentTerms} />
-          </section>
-
-          <div className="pt-4 border-t border-slate-100 flex flex-col items-center gap-3">
+          <div className="flex flex-col items-center gap-3 pt-2">
             <button
               type="button"
-              onClick={handleGenerate}
-              disabled={phase !== 'waiting'}
-              aria-label="AI で見積書を生成する"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-8 py-3 text-base font-semibold text-white hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed shadow-sm"
+              onClick={handleStart}
+              aria-label="今日のブリーフィングを聞く"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-8 py-3 text-base font-semibold text-white hover:bg-blue-700 shadow-sm"
             >
-              {phase === 'working' ? (
-                <>
-                  <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                  作成中...
-                </>
-              ) : (
-                'AI で見積書を生成する'
-              )}
+              今日のブリーフィングを聞く
             </button>
             <p className="text-xs text-slate-500">所要時間: 約 2 秒</p>
           </div>
@@ -191,12 +158,71 @@ export default function Chapter1Button({ onComplete, onMascot }: Chapter1ButtonP
 
       {phase === 'done' && (
         <>
-          <PdfPreview
-            src="/tutorial/sample-estimate.pdf"
-            filename="見積書_サンプル.pdf"
-            title="見積書ができました！"
-            summary={PDF_SUMMARY}
-          />
+          <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-5 sm:p-6 shadow-sm space-y-5">
+            <header className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold tracking-wide text-blue-700 uppercase">
+                  朝のブリーフィング
+                </p>
+                <h3 className="text-lg font-bold text-slate-900">2026年4月20日（月）</h3>
+              </div>
+              <span className="inline-flex items-center rounded-full bg-white border border-blue-200 px-2.5 py-0.5 text-[10px] font-semibold text-blue-700">
+                Calendar + Gmail
+              </span>
+            </header>
+
+            <section aria-labelledby="ch1-events" className="space-y-2">
+              <h4 id="ch1-events" className="text-sm font-semibold text-slate-900">
+                今日の予定（{EVENTS.length} 件）
+              </h4>
+              <div className="space-y-2">
+                {EVENTS.map((ev) => (
+                  <div
+                    key={ev.time}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2.5"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-xs font-mono tabular-nums text-slate-500 flex-shrink-0">
+                        {ev.time}
+                      </span>
+                      <p className="text-sm font-semibold text-slate-900 flex-1">{ev.title}</p>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-600">{ev.participants}</p>
+                    {ev.note && (
+                      <p className="mt-1 text-xs text-slate-500 italic">↳ {ev.note}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section aria-labelledby="ch1-tasks" className="space-y-2">
+              <h4 id="ch1-tasks" className="text-sm font-semibold text-slate-900">
+                今日のタスク（優先順）
+              </h4>
+              <ol className="space-y-2">
+                {TASKS.map((t) => (
+                  <li
+                    key={t.title}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 flex items-start gap-3"
+                  >
+                    <PriorityBadge priority={t.priority} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-slate-900">{t.title}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        出所: {t.source}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
+
+            <p className="text-[11px] text-slate-400">
+              ※このチュートリアルでは関数で動いています
+            </p>
+          </div>
+
           <div className="flex justify-end">
             <button
               type="button"

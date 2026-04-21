@@ -66,7 +66,7 @@ export default function App() {
   } else {
     pageContent = (
       <>
-        {/* 1. Hero — 書類業務に、AI社員を */}
+        {/* 1. Hero — 全ての業務に、AI社員を */}
         <Hero />
         <div className="section-divider" />
 

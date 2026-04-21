@@ -9,7 +9,7 @@ interface CompletionCertificateProps {
 
 const SHARE_URL = 'https://fujitrace.jp/tutorial';
 const SHARE_TEXT =
-  'FujiTrace の AI 社員 基礎チュートリアルを修了しました。見積書・請求書・発注書・送付状・納品書を体験しました。';
+  'FujiTrace の AI 社員「一週間」チュートリアルを修了しました。ブリーフィング / 書類作成 / 議事録 / スライド / Excel / リサーチ / 校正 / 複合タスクを体験。';
 const X_INTENT_URL = `https://twitter.com/intent/tweet?text=${encodeURIComponent(SHARE_TEXT)}&url=${encodeURIComponent(SHARE_URL)}`;
 
 const CERT_FONT = '"Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif';
@@ -29,20 +29,33 @@ function buildCertificateSvg(displayName: string, dateStr: string): string {
   const W = CERT_WIDTH;
   const H = CERT_HEIGHT;
 
-  const docLabels = ['見積書', '請求書', '納品書', '発注書', '送付状'];
-  const iconsX = W / 2 - ((docLabels.length - 1) * 140) / 2;
+  // 8-chapter week labels — matches tutorial-chapters.ts.
+  const chapterLabels = [
+    '月朝 / ブリーフィング',
+    '月昼 / 書類作成',
+    '火 / 議事録',
+    '水 / スライド',
+    '木 / Excel 分析',
+    '金 / Wide Research',
+    '週末 / 校正+メール',
+    '来週 / 複合タスク',
+  ];
+  // Lay labels on two rows of 4.
+  const iconCols = 4;
+  const iconWidth = 240;
+  const rowStartY = H - 210;
+  const iconsX = W / 2 - ((iconCols - 1) * iconWidth) / 2;
 
-  const icons = docLabels
+  const icons = chapterLabels
     .map((lbl, i) => {
-      const cx = iconsX + i * 140;
-      const cy = H - 160;
+      const col = i % iconCols;
+      const row = Math.floor(i / iconCols);
+      const cx = iconsX + col * iconWidth;
+      const cy = rowStartY + row * 58;
       return `
         <g>
-          <rect x="${cx - 36}" y="${cy - 44}" width="72" height="88" rx="6" ry="6" fill="#ffffff" stroke="#c9a04e" stroke-width="2"/>
-          <line x1="${cx - 22}" y1="${cy - 24}" x2="${cx + 22}" y2="${cy - 24}" stroke="#c9a04e" stroke-width="1.5"/>
-          <line x1="${cx - 22}" y1="${cy - 10}" x2="${cx + 22}" y2="${cy - 10}" stroke="#c9a04e" stroke-width="1.5"/>
-          <line x1="${cx - 22}" y1="${cy + 4}" x2="${cx + 12}" y2="${cy + 4}" stroke="#c9a04e" stroke-width="1.5"/>
-          <text x="${cx}" y="${cy + 72}" text-anchor="middle" font-family='${CERT_FONT}' font-size="20" fill="#475569">${lbl}</text>
+          <rect x="${cx - 100}" y="${cy - 18}" width="200" height="36" rx="18" ry="18" fill="#fefce8" stroke="#c9a04e" stroke-width="1.5"/>
+          <text x="${cx}" y="${cy + 6}" text-anchor="middle" font-family='${CERT_FONT}' font-size="16" fill="#475569">${lbl}</text>
         </g>
       `;
     })
@@ -50,7 +63,7 @@ function buildCertificateSvg(displayName: string, dateStr: string): string {
 
   // Small pixel-dog silhouette (abstract, since PNG embedding is avoided)
   const dog = `
-    <g transform="translate(120, ${H - 210})">
+    <g transform="translate(80, ${H - 110})">
       <rect x="0"  y="30" width="14" height="14" fill="#8b5a2b"/>
       <rect x="14" y="24" width="14" height="20" fill="#8b5a2b"/>
       <rect x="28" y="24" width="56" height="16" fill="#8b5a2b"/>
@@ -75,8 +88,8 @@ function buildCertificateSvg(displayName: string, dateStr: string): string {
 
   <text x="${W / 2}" y="340" text-anchor="middle" font-family='${CERT_FONT}' font-size="26" fill="#0f172a">${name || '受講者様'}</text>
   <text x="${W / 2}" y="380" text-anchor="middle" font-family='${CERT_FONT}' font-size="20" fill="#334155">は</text>
-  <text x="${W / 2}" y="418" text-anchor="middle" font-family='${CERT_FONT}' font-size="24" font-weight="600" fill="#0f172a">FujiTrace AI 社員 基礎チュートリアル</text>
-  <text x="${W / 2}" y="454" text-anchor="middle" font-family='${CERT_FONT}' font-size="20" fill="#334155">を修了しました</text>
+  <text x="${W / 2}" y="418" text-anchor="middle" font-family='${CERT_FONT}' font-size="24" font-weight="600" fill="#0f172a">FujiTrace AI 社員 「一週間」チュートリアル</text>
+  <text x="${W / 2}" y="454" text-anchor="middle" font-family='${CERT_FONT}' font-size="20" fill="#334155">（全 8 章）を修了しました</text>
 
   <text x="${W / 2}" y="520" text-anchor="middle" font-family='${CERT_FONT}' font-size="18" fill="#475569">${dateStr}</text>
 
@@ -270,8 +283,9 @@ export default function CompletionCertificate({
           </div>
           <ul className="space-y-2 text-sm text-slate-700">
             {[
-              '見積書 / 請求書 / 納品書 / 発注書 / 送付状 の作成・チェックを無制限',
-              '自律型 AI 社員（β）で複数タスクを自動化',
+              '書類 5 種 / 議事録 / スライド / Excel / Wide Research / 校正 を無制限',
+              'Gmail / Calendar / Drive など 9 Connector と連携',
+              '自律型 AI 社員（β）で複合タスクを自動化',
               'Watch Room で AI 実行をチームで可視化',
             ].map((item) => (
               <li key={item} className="flex items-start gap-2">
@@ -298,10 +312,9 @@ export default function CompletionCertificate({
                 付録
               </span>
               <span>
-                応用クエスト教材
-                <span className="text-xs text-slate-500">（Phase A1 公開予定）</span>
+                応用クエスト（20 問以上）
                 <span className="block text-xs text-slate-600 mt-0.5">
-                  チュートリアルの続編。経費一括処理・月次請求書バッチなど、実務で AI を使いこなすハンズオン 5 本。
+                  ダッシュボード内「学習」タブから、書類・議事録・スライド・Excel・Research・校正・複合タスクの実務演習にすぐ進めます。
                 </span>
               </span>
             </li>

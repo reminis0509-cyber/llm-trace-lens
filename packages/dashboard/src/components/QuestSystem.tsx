@@ -1,454 +1,30 @@
 import { useState, useCallback, useMemo } from 'react';
-import { ArrowLeft, Check, Lock, Clock, Copy, ChevronRight, Clipboard } from 'lucide-react';
+import { ArrowLeft, Check, Clock, Copy, ChevronRight, Clipboard } from 'lucide-react';
+import {
+  CATEGORY_META,
+  QUESTS,
+  difficultyLabel,
+  getCategoryMeta,
+  getQuestsByCategory,
+  type Quest,
+  type QuestCategory,
+} from '../lib/quest-questions';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types / constants
 // ---------------------------------------------------------------------------
-
-interface QuestStep {
-  instruction: string;
-  hint?: string;
-  checkType: 'send_message' | 'receive_response' | 'pdf_generated';
-}
-
-interface Quest {
-  id: string;
-  level: 'beginner' | 'intermediate' | 'advanced';
-  number: number;
-  title: string;
-  description: string;
-  objective: string;
-  hint: string;
-  estimatedTime: string;
-  steps: QuestStep[];
-}
 
 interface QuestProgress {
   completedQuests: string[];
   currentSteps: Record<string, boolean[]>;
 }
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const QUEST_STORAGE_KEY = 'fujitrace_quest_progress';
-
-const BEGINNER_QUESTS: Quest[] = [
-  {
-    id: 'beginner-1',
-    level: 'beginner',
-    number: 1,
-    title: '見積書を30秒で作る',
-    description: '必要な情報を一括で送り、見積書をPDFで出力するまでを体験します。',
-    objective: 'フジに必要な情報をまとめて送り、見積書を完成させてPDFで出力する',
-    hint: '見積書を作成。宛先: 株式会社サンプル 山田様、品目: Webデザイン 1式 200,000円、納期: 来月末',
-    estimatedTime: '2分',
-    steps: [
-      {
-        instruction: 'フジに以下の情報を一括で送ってみましょう: 宛先・品目・金額・納期',
-        hint: '見積書を作成。宛先: 株式会社サンプル 山田様、品目: Webデザイン 1式 200,000円、納期: 来月末',
-        checkType: 'send_message',
-      },
-      {
-        instruction: '承認ボタンを押して見積書を完成させましょう',
-        checkType: 'receive_response',
-      },
-      {
-        instruction: 'PDFで出力ボタンを押してダウンロードしてみましょう',
-        checkType: 'pdf_generated',
-      },
-    ],
-  },
-  {
-    id: 'beginner-2',
-    level: 'beginner',
-    number: 2,
-    title: '請求書を正確に作る',
-    description: '振込先やインボイス番号を含む請求書を作成します。',
-    objective: '請求書に必要なすべての情報（振込先・インボイス番号含む）を送り、PDFで出力する',
-    hint: '請求書を作成。宛先: 株式会社テスト 佐藤様、品目: コンサルティング 月額50,000円×3ヶ月、支払期限: 来月末、振込先: みずほ銀行 渋谷支店 普通 1234567',
-    estimatedTime: '3分',
-    steps: [
-      {
-        instruction: '請求書に必要な情報（振込先・インボイス番号含む）を送りましょう',
-        hint: '請求書を作成。宛先: 株式会社テスト 佐藤様、品目: コンサルティング 月額50,000円×3ヶ月、支払期限: 来月末、振込先: みずほ銀行 渋谷支店 普通 1234567',
-        checkType: 'send_message',
-      },
-      {
-        instruction: '内容を確認して承認しましょう',
-        checkType: 'receive_response',
-      },
-      {
-        instruction: 'PDFで出力してファイル名を確認しましょう',
-        checkType: 'pdf_generated',
-      },
-    ],
-  },
-  {
-    id: 'beginner-3',
-    level: 'beginner',
-    number: 3,
-    title: '書類3点セットを一気に作る',
-    description: '同じ会話で見積書・発注書・送付状を連続作成します。',
-    objective: '1つの会話の中で見積書、発注書、送付状の3点を連続して作成する',
-    hint: '見積書を作成。株式会社ABC 田中様、品目: ロゴデザイン 1式 150,000円',
-    estimatedTime: '5分',
-    steps: [
-      {
-        instruction: 'まず見積書を作成しましょう',
-        hint: '見積書を作成。株式会社ABC 田中様、品目: ロゴデザイン 1式 150,000円',
-        checkType: 'send_message',
-      },
-      {
-        instruction: '同じ会話で発注書も作成しましょう',
-        hint: 'この案件の発注書も作って',
-        checkType: 'send_message',
-      },
-      {
-        instruction: '最後に送付状を作成しましょう',
-        hint: '見積書と発注書を同封する送付状を作って',
-        checkType: 'send_message',
-      },
-    ],
-  },
-  {
-    id: 'beginner-4',
-    level: 'beginner',
-    number: 4,
-    title: 'AIに調査レポートを書かせる',
-    description: 'フジに調査を依頼し、レポートをPDFで出力します。',
-    objective: 'フジにリサーチを依頼し、出典付きのレポートをPDFで出力する',
-    hint: '日本の中小企業のDX推進状況について500字程度でまとめてください',
-    estimatedTime: '3分',
-    steps: [
-      {
-        instruction: 'フジに業界の調査を依頼しましょう',
-        hint: '日本の中小企業のDX推進状況について500字程度でまとめてください',
-        checkType: 'send_message',
-      },
-      {
-        instruction: '出典が記載されているか確認しましょう',
-        checkType: 'receive_response',
-      },
-      {
-        instruction: 'PDFで出力ボタンでレポートをダウンロードしましょう',
-        checkType: 'pdf_generated',
-      },
-    ],
-  },
-  {
-    id: 'beginner-5',
-    level: 'beginner',
-    number: 5,
-    title: 'メモリを使いこなす',
-    description: 'デフォルト設定をメモリに保存し、書類作成に反映させます。',
-    objective: 'メモリにデフォルト設定を保存し、新しい会話で設定が反映されることを確認する',
-    hint: '',
-    estimatedTime: '3分',
-    steps: [
-      {
-        instruction: '画面右上のメモリボタンを開きましょう',
-        checkType: 'send_message',
-      },
-      {
-        instruction: 'デフォルト設定を保存しましょう',
-        hint: '・消費税は軽減税率8%で計算\n・支払条件はデフォルトで月末締め翌月末払い\n・敬称は御中を使用',
-        checkType: 'send_message',
-      },
-      {
-        instruction: '新しい会話で見積書を作成し、メモリの設定が反映されているか確認しましょう',
-        checkType: 'receive_response',
-      },
-    ],
-  },
-];
-
-const INTERMEDIATE_QUESTS: Quest[] = [
-  {
-    id: 'intermediate-1',
-    level: 'intermediate',
-    number: 6,
-    title: '見積書の妥当性をチェックさせる',
-    description: '作成した見積書をフジに検証させ、金額ミスや記載漏れを指摘してもらいます',
-    objective: 'AIをレビュアーとして活用する方法を学ぶ',
-    hint: '見積書を作成。宛先: 株式会社テスト 山田様、品目: システム開発 1式 800,000円、納期: 来月末',
-    estimatedTime: '3分',
-    steps: [
-      {
-        instruction: 'まず見積書を作成しましょう（意図的に支払条件を空欄にしてみてください）',
-        hint: '見積書を作成。宛先: 株式会社テスト 山田様、品目: システム開発 1式 800,000円、納期: 来月末',
-        checkType: 'send_message',
-      },
-      {
-        instruction: '作成した見積書の内容をフジにチェックさせましょう',
-        hint: 'この見積書に問題がないかチェックしてください。支払条件が抜けていませんか？',
-        checkType: 'send_message',
-      },
-      {
-        instruction: 'フジの指摘を確認し、修正指示を出してみましょう',
-        hint: '支払条件を「納品後30日以内」に修正して再作成してください',
-        checkType: 'send_message',
-      },
-    ],
-  },
-  {
-    id: 'intermediate-2',
-    level: 'intermediate',
-    number: 7,
-    title: '競合調査レポートを作成する',
-    description: 'フジに業界調査を依頼し、出典付きのレポートをPDFで出力します',
-    objective: 'AIをリサーチャーとして活用する方法を学ぶ',
-    hint: '日本のSaaS業界の主要5社について、売上規模・主力製品・特徴を比較分析してレポートを作成してください',
-    estimatedTime: '5分',
-    steps: [
-      {
-        instruction: 'フジに業界の調査レポートを依頼しましょう',
-        hint: '日本のSaaS業界の主要5社について、売上規模・主力製品・特徴を比較分析してレポートを作成してください',
-        checkType: 'send_message',
-      },
-      {
-        instruction: 'レポートに出典が記載されているか確認しましょう',
-        checkType: 'receive_response',
-      },
-      {
-        instruction: 'PDFで出力ボタンでレポートをダウンロードしましょう',
-        checkType: 'pdf_generated',
-      },
-    ],
-  },
-  {
-    id: 'intermediate-3',
-    level: 'intermediate',
-    number: 8,
-    title: '月次報告書のたたき台を作る',
-    description: '売上や経費のデータをフジに渡して、月次報告書を生成させます',
-    objective: 'AIにデータを渡して文書化するスキルを身につける',
-    hint: '4月の月次報告書を作成してください。売上: 350万円（前月比+15%）、経費: 180万円（人件費120万、広告費30万、その他30万）、新規顧客: 5社、解約: 1社',
-    estimatedTime: '5分',
-    steps: [
-      {
-        instruction: '月次の数字をフジに伝えて報告書を依頼しましょう',
-        hint: '4月の月次報告書を作成してください。売上: 350万円（前月比+15%）、経費: 180万円（人件費120万、広告費30万、その他30万）、新規顧客: 5社、解約: 1社',
-        checkType: 'send_message',
-      },
-      {
-        instruction: '報告書の内容を確認し、分析コメントが含まれているか確認しましょう',
-        checkType: 'receive_response',
-      },
-      {
-        instruction: 'PDFで出力してダウンロードしましょう',
-        checkType: 'pdf_generated',
-      },
-    ],
-  },
-  {
-    id: 'intermediate-4',
-    level: 'intermediate',
-    number: 9,
-    title: 'メール文面を3パターン作らせる',
-    description: '同じ内容のメールを丁寧・標準・カジュアルの3パターンで作成させます',
-    objective: 'AIに条件分岐の出力をさせるスキルを身につける',
-    hint: '新規取引先への挨拶メールを3パターン作成してください。パターン1: 非常に丁寧（大企業向け）、パターン2: 標準的なビジネス、パターン3: カジュアル（スタートアップ向け）。内容は自己紹介と今後の協業への期待です。',
-    estimatedTime: '3分',
-    steps: [
-      {
-        instruction: 'フジに3パターンのメールを一度に依頼しましょう',
-        hint: '新規取引先への挨拶メールを3パターン作成してください。パターン1: 非常に丁寧（大企業向け）、パターン2: 標準的なビジネス、パターン3: カジュアル（スタートアップ向け）。内容は自己紹介と今後の協業への期待です。',
-        checkType: 'send_message',
-      },
-      {
-        instruction: '3パターンの違いを比較しましょう。トーンや表現がどう変わるか確認してください',
-        checkType: 'receive_response',
-      },
-      {
-        instruction: '最も使いたいパターンをPDFで出力しましょう',
-        checkType: 'pdf_generated',
-      },
-    ],
-  },
-  {
-    id: 'intermediate-5',
-    level: 'intermediate',
-    number: 10,
-    title: '会議の議事録を整理させる',
-    description: '走り書きの会議メモをフジに渡して、構造化された議事録に変換させます',
-    objective: 'AIに非構造データを構造化させるスキルを身につける',
-    hint: '以下の会議メモを議事録として整理してください。\n\n4/17 定例ミーティング 参加: 田中、佐藤、鈴木\n・売上は目標達成 前月比15%増\n・新規案件 A社のシステム開発 来週提案\n・佐藤さんが見積書作成担当\n・鈴木さんは競合調査\n・次回は来週金曜 同じ時間\n・経費精算の締め切り 今月25日 忘れずに',
-    estimatedTime: '5分',
-    steps: [
-      {
-        instruction: '走り書きの会議メモをフジに送りましょう',
-        hint: '以下の会議メモを議事録として整理してください。\n\n4/17 定例ミーティング 参加: 田中、佐藤、鈴木\n・売上は目標達成 前月比15%増\n・新規案件 A社のシステム開発 来週提案\n・佐藤さんが見積書作成担当\n・鈴木さんは競合調査\n・次回は来週金曜 同じ時間\n・経費精算の締め切り 今月25日 忘れずに',
-        checkType: 'send_message',
-      },
-      {
-        instruction: '決定事項・TODO・次回予定が整理されているか確認しましょう',
-        checkType: 'receive_response',
-      },
-      {
-        instruction: '議事録をPDFで出力して保存しましょう',
-        checkType: 'pdf_generated',
-      },
-    ],
-  },
-];
-
-const ADVANCED_QUESTS: Quest[] = [
-  {
-    id: 'advanced-1',
-    level: 'advanced',
-    number: 11,
-    title: '見積書→請求書→納品書の一気通貫',
-    description: '1つの案件で見積書から納品書まで全書類を一つの会話で作成します',
-    objective: '業務フロー全体をAIで回すスキルを身につける',
-    hint: '株式会社ABC 田中様宛に、Webアプリ開発の見積書を作成してください。要件定義 200,000円、デザイン 300,000円、開発 500,000円、テスト 100,000円。納期は3ヶ月後、支払条件は納品後30日以内。',
-    estimatedTime: '8分',
-    steps: [
-      {
-        instruction: '案件の見積書を作成しましょう',
-        hint: '株式会社ABC 田中様宛に、Webアプリ開発の見積書を作成してください。要件定義 200,000円、デザイン 300,000円、開発 500,000円、テスト 100,000円。納期は3ヶ月後、支払条件は納品後30日以内。',
-        checkType: 'send_message',
-      },
-      {
-        instruction: '承認後、同じ会話で請求書の作成を依頼しましょう',
-        hint: 'この案件の請求書も作成してください。請求番号はINV-2026-001で。',
-        checkType: 'send_message',
-      },
-      {
-        instruction: '最後に納品書を作成して、3点セットを完成させましょう',
-        hint: '納品書も作成してください。納品日は本日です。',
-        checkType: 'send_message',
-      },
-      {
-        instruction: '全書類をPDFで出力しましょう',
-        checkType: 'pdf_generated',
-      },
-    ],
-  },
-  {
-    id: 'advanced-2',
-    level: 'advanced',
-    number: 12,
-    title: '取引条件を比較検討させる',
-    description: '2社の見積条件をフジに渡して比較分析と推奨を出させます',
-    objective: 'AIに意思決定支援をさせるスキルを身につける',
-    hint: '以下の2社の見積を比較分析してください。\n\nA社: システム開発 800万円、納期4ヶ月、保守月額5万円、実績10年\nB社: システム開発 600万円、納期6ヶ月、保守月額8万円、実績3年\n\n3年間の総コスト、リスク、推奨理由を含めてレポートにしてください。',
-    estimatedTime: '5分',
-    steps: [
-      {
-        instruction: '2社の見積条件をフジに伝えて比較を依頼しましょう',
-        hint: '以下の2社の見積を比較分析してください。\n\nA社: システム開発 800万円、納期4ヶ月、保守月額5万円、実績10年\nB社: システム開発 600万円、納期6ヶ月、保守月額8万円、実績3年\n\n3年間の総コスト、リスク、推奨理由を含めてレポートにしてください。',
-        checkType: 'send_message',
-      },
-      {
-        instruction: '比較表と推奨理由が含まれているか確認しましょう',
-        checkType: 'receive_response',
-      },
-      {
-        instruction: 'PDFで出力して意思決定の資料にしましょう',
-        checkType: 'pdf_generated',
-      },
-    ],
-  },
-  {
-    id: 'advanced-3',
-    level: 'advanced',
-    number: 13,
-    title: '事業計画のたたき台を作らせる',
-    description: '市場規模や売上目標を伝えて事業計画書のドラフトを生成させます',
-    objective: 'AIに経営文書を作らせるスキルを身につける',
-    hint: '以下の情報で事業計画書のたたき台を作成してください。\n\n事業名: AIコンサルティング事業\n市場規模: 国内AI市場 2兆円（2025年）\n初年度売上目標: 3,000万円\nターゲット: 従業員50-200名の中小企業\n主力サービス: AI導入支援（月額30万円）\nコスト構造: 人件費60%、マーケティング20%、その他20%\n差別化: 日本語特化、導入後サポート込み',
-    estimatedTime: '8分',
-    steps: [
-      {
-        instruction: '事業の概要と目標をフジに伝えましょう',
-        hint: '以下の情報で事業計画書のたたき台を作成してください。\n\n事業名: AIコンサルティング事業\n市場規模: 国内AI市場 2兆円（2025年）\n初年度売上目標: 3,000万円\nターゲット: 従業員50-200名の中小企業\n主力サービス: AI導入支援（月額30万円）\nコスト構造: 人件費60%、マーケティング20%、その他20%\n差別化: 日本語特化、導入後サポート込み',
-        checkType: 'send_message',
-      },
-      {
-        instruction: 'エグゼクティブサマリー、市場分析、収支計画が含まれているか確認しましょう',
-        checkType: 'receive_response',
-      },
-      {
-        instruction: '必要に応じて修正指示を出しましょう',
-        hint: '収支計画に四半期ごとの目標を追加してください',
-        checkType: 'send_message',
-      },
-      {
-        instruction: 'PDFで出力して保存しましょう',
-        checkType: 'pdf_generated',
-      },
-    ],
-  },
-  {
-    id: 'advanced-4',
-    level: 'advanced',
-    number: 14,
-    title: 'コンプライアンスチェックを実行する',
-    description: '契約書や発注書の法的要件をフジに検証させます',
-    objective: 'AIに法務リスクを洗い出させるスキルを身につける',
-    hint: '以下の発注書の内容にコンプライアンス上の問題がないかチェックしてください。\n\n発注先: 個人事業主 佐藤太郎\n品目: Webサイトデザイン\n金額: 45万円\n納期: 1ヶ月\n支払条件: 納品後60日以内\n\n下請法やフリーランス新法の観点から問題点を指摘してください。',
-    estimatedTime: '5分',
-    steps: [
-      {
-        instruction: '発注書の内容をフジに検証させましょう',
-        hint: '以下の発注書の内容にコンプライアンス上の問題がないかチェックしてください。\n\n発注先: 個人事業主 佐藤太郎\n品目: Webサイトデザイン\n金額: 45万円\n納期: 1ヶ月\n支払条件: 納品後60日以内\n\n下請法やフリーランス新法の観点から問題点を指摘してください。',
-        checkType: 'send_message',
-      },
-      {
-        instruction: '指摘された問題点を確認しましょう（支払期日60日は下請法違反の可能性等）',
-        checkType: 'receive_response',
-      },
-      {
-        instruction: '修正した条件で再作成を依頼しましょう',
-        hint: '支払条件を納品後30日以内に修正して、発注書を再作成してください',
-        checkType: 'send_message',
-      },
-    ],
-  },
-  {
-    id: 'advanced-5',
-    level: 'advanced',
-    number: 15,
-    title: '複数書類を連携して業務を完結させる',
-    description: 'メモリ設定から書類作成、報告書まで1セッションで業務を完結させます',
-    objective: 'AIを事務パートナーとして使いこなす総合演習',
-    hint: 'メモリに以下を保存:\n・主要取引先: 株式会社グローバルテック 鈴木部長\n・消費税: 10%\n・支払条件: 月末締め翌月末払い\n・自社の強み: AI導入実績50社以上',
-    estimatedTime: '10分',
-    steps: [
-      {
-        instruction: 'メモリに取引先情報を登録しましょう',
-        hint: 'メモリに以下を保存:\n・主要取引先: 株式会社グローバルテック 鈴木部長\n・消費税: 10%\n・支払条件: 月末締め翌月末払い\n・自社の強み: AI導入実績50社以上',
-        checkType: 'send_message',
-      },
-      {
-        instruction: '新しい会話で見積書を作成しましょう（メモリの情報が反映されるはず）',
-        hint: '株式会社グローバルテックに、AI導入コンサルティング 月額30万円×6ヶ月の見積書を作成してください',
-        checkType: 'send_message',
-      },
-      {
-        instruction: '同じ会話で送付状も作成しましょう',
-        hint: 'この見積書を送付する送付状を作成してください',
-        checkType: 'send_message',
-      },
-      {
-        instruction: '最後に、この案件の提案概要をまとめたレポートを作成しましょう',
-        hint: '株式会社グローバルテックへのAI導入提案の概要レポートを作成してください。提案内容、期待効果、スケジュールを含めてください。',
-        checkType: 'send_message',
-      },
-      {
-        instruction: '全ての成果物をPDFで出力して完了です',
-        checkType: 'pdf_generated',
-      },
-    ],
-  },
-];
-
-const ALL_QUESTS: Quest[] = [...BEGINNER_QUESTS, ...INTERMEDIATE_QUESTS, ...ADVANCED_QUESTS];
+// v2 key — old v1 payloads are intentionally discarded (schema changed, no
+// meaningful migration path, CEO approved re-start).
+const QUEST_STORAGE_KEY = 'fujitrace_quest_progress_v2';
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Progress I/O
 // ---------------------------------------------------------------------------
 
 function loadProgress(): QuestProgress {
@@ -458,7 +34,8 @@ function loadProgress(): QuestProgress {
       const parsed = JSON.parse(raw) as QuestProgress;
       return {
         completedQuests: Array.isArray(parsed.completedQuests) ? parsed.completedQuests : [],
-        currentSteps: parsed.currentSteps && typeof parsed.currentSteps === 'object' ? parsed.currentSteps : {},
+        currentSteps:
+          parsed.currentSteps && typeof parsed.currentSteps === 'object' ? parsed.currentSteps : {},
       };
     }
   } catch {
@@ -468,45 +45,11 @@ function loadProgress(): QuestProgress {
 }
 
 function saveProgress(progress: QuestProgress): void {
-  localStorage.setItem(QUEST_STORAGE_KEY, JSON.stringify(progress));
-}
-
-type QuestStatus = 'completed' | 'available' | 'locked';
-
-function getQuestStatus(quest: Quest, progress: QuestProgress): QuestStatus {
-  if (progress.completedQuests.includes(quest.id)) return 'completed';
-
-  if (quest.level === 'beginner') {
-    const idx = BEGINNER_QUESTS.findIndex((q) => q.id === quest.id);
-    if (idx === 0) return 'available';
-    const prevQuest = BEGINNER_QUESTS[idx - 1];
-    if (prevQuest && progress.completedQuests.includes(prevQuest.id)) return 'available';
-    return 'locked';
+  try {
+    localStorage.setItem(QUEST_STORAGE_KEY, JSON.stringify(progress));
+  } catch {
+    // quota-exceeded / disabled storage — silently ignore
   }
-
-  if (quest.level === 'intermediate') {
-    // All beginner quests must be completed first
-    const allBeginnersDone = BEGINNER_QUESTS.every((q) => progress.completedQuests.includes(q.id));
-    if (!allBeginnersDone) return 'locked';
-    const idx = INTERMEDIATE_QUESTS.findIndex((q) => q.id === quest.id);
-    if (idx === 0) return 'available';
-    const prevQuest = INTERMEDIATE_QUESTS[idx - 1];
-    if (prevQuest && progress.completedQuests.includes(prevQuest.id)) return 'available';
-    return 'locked';
-  }
-
-  if (quest.level === 'advanced') {
-    // All intermediate quests must be completed first
-    const allIntermediatesDone = INTERMEDIATE_QUESTS.every((q) => progress.completedQuests.includes(q.id));
-    if (!allIntermediatesDone) return 'locked';
-    const idx = ADVANCED_QUESTS.findIndex((q) => q.id === quest.id);
-    if (idx === 0) return 'available';
-    const prevQuest = ADVANCED_QUESTS[idx - 1];
-    if (prevQuest && progress.completedQuests.includes(prevQuest.id)) return 'available';
-    return 'locked';
-  }
-
-  return 'locked';
 }
 
 async function copyToClipboard(text: string): Promise<boolean> {
@@ -536,7 +79,7 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
   const [toast, setToast] = useState<string | null>(null);
 
   const selectedQuest = useMemo(
-    () => (selectedQuestId ? ALL_QUESTS.find((q) => q.id === selectedQuestId) ?? null : null),
+    () => (selectedQuestId ? QUESTS.find((q) => q.id === selectedQuestId) ?? null : null),
     [selectedQuestId],
   );
 
@@ -546,27 +89,24 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
   }, []);
 
   // Step toggling
-  const toggleStep = useCallback(
-    (questId: string, stepIndex: number) => {
-      setProgress((prev) => {
-        const quest = ALL_QUESTS.find((q) => q.id === questId);
-        if (!quest) return prev;
+  const toggleStep = useCallback((questId: string, stepIndex: number) => {
+    setProgress((prev) => {
+      const quest = QUESTS.find((q) => q.id === questId);
+      if (!quest) return prev;
 
-        const steps = prev.currentSteps[questId]
-          ? [...prev.currentSteps[questId]]
-          : new Array<boolean>(quest.steps.length).fill(false);
-        steps[stepIndex] = !steps[stepIndex];
+      const steps = prev.currentSteps[questId]
+        ? [...prev.currentSteps[questId]]
+        : new Array<boolean>(quest.steps.length).fill(false);
+      steps[stepIndex] = !steps[stepIndex];
 
-        const next: QuestProgress = {
-          ...prev,
-          currentSteps: { ...prev.currentSteps, [questId]: steps },
-        };
-        saveProgress(next);
-        return next;
-      });
-    },
-    [],
-  );
+      const next: QuestProgress = {
+        ...prev,
+        currentSteps: { ...prev.currentSteps, [questId]: steps },
+      };
+      saveProgress(next);
+      return next;
+    });
+  }, []);
 
   // Complete quest
   const completeQuest = useCallback(
@@ -613,16 +153,18 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
   // Detail view
   // -----------------------------------------------------------------------
   if (selectedQuest) {
-    const status = getQuestStatus(selectedQuest, progress);
-    const stepStates = progress.currentSteps[selectedQuest.id] ?? new Array<boolean>(selectedQuest.steps.length).fill(false);
-    const allStepsCompleted = stepStates.length === selectedQuest.steps.length && stepStates.every(Boolean);
+    const stepStates =
+      progress.currentSteps[selectedQuest.id] ??
+      new Array<boolean>(selectedQuest.steps.length).fill(false);
+    const allStepsCompleted =
+      stepStates.length === selectedQuest.steps.length && stepStates.every(Boolean);
+    const isAlreadyDone = progress.completedQuests.includes(selectedQuest.id);
+    const categoryMeta = getCategoryMeta(selectedQuest.category);
 
     return (
       <div className="max-w-2xl mx-auto py-8">
-        {/* Toast */}
         {toast && <Toast message={toast} />}
 
-        {/* Back button */}
         <button
           type="button"
           onClick={() => setSelectedQuestId(null)}
@@ -633,18 +175,18 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
           <span>戻る</span>
         </button>
 
-        {/* Quest header */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-mono text-text-muted">Quest {selectedQuest.number}</span>
-            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-              selectedQuest.level === 'beginner'
-                ? 'bg-blue-100 text-blue-800'
-                : selectedQuest.level === 'intermediate'
-                  ? 'bg-purple-100 text-purple-800'
-                  : 'bg-amber-100 text-amber-800'
-            }`}>
-              {selectedQuest.level === 'beginner' ? '初級' : selectedQuest.level === 'intermediate' ? '中級' : '上級'}
+            <span className="text-xs font-mono text-text-muted">
+              Quest {selectedQuest.number}
+            </span>
+            <span
+              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${categoryMeta.badgeClass}`}
+            >
+              {categoryMeta.label}
+            </span>
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700">
+              {difficultyLabel(selectedQuest.difficulty)}
             </span>
             <span className="flex items-center gap-1 text-xs text-text-muted">
               <Clock className="w-3 h-3" strokeWidth={1.5} />
@@ -653,6 +195,14 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
           </div>
           <h2 className="text-xl font-semibold text-text-primary mb-2">{selectedQuest.title}</h2>
           <p className="text-sm text-text-secondary">{selectedQuest.objective}</p>
+        </div>
+
+        {/* Expected answer preview */}
+        <div className="mb-6 rounded-card border border-border bg-base-elevated px-4 py-3">
+          <p className="text-xs font-semibold text-text-primary mb-1">AI 社員が返す内容（目安）</p>
+          <p className="text-sm text-text-secondary leading-relaxed">
+            {selectedQuest.sampleAnswer}
+          </p>
         </div>
 
         {/* Steps */}
@@ -668,13 +218,12 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
                   <div className="flex items-start gap-3">
                     <button
                       type="button"
-                      onClick={() => status === 'available' && toggleStep(selectedQuest.id, i)}
-                      disabled={status !== 'available'}
+                      onClick={() => toggleStep(selectedQuest.id, i)}
                       className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded border transition-colors duration-120 flex items-center justify-center ${
                         checked
                           ? 'bg-emerald-600 border-emerald-600 text-white'
                           : 'border-border hover:border-text-muted'
-                      } ${status !== 'available' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      } cursor-pointer`}
                       aria-label={`Step ${i + 1}: ${step.instruction}`}
                       aria-checked={checked}
                       role="checkbox"
@@ -682,7 +231,11 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
                       {checked && <Check className="w-3 h-3" strokeWidth={2.5} />}
                     </button>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm ${checked ? 'text-text-muted line-through' : 'text-text-primary'}`}>
+                      <p
+                        className={`text-sm ${
+                          checked ? 'text-text-muted line-through' : 'text-text-primary'
+                        }`}
+                      >
                         Step {i + 1}: {step.instruction}
                       </p>
                       {step.hint && (
@@ -698,7 +251,7 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
                           aria-label="ヒントをコピーしてAI社員に移動"
                         >
                           <Copy className="w-3 h-3" strokeWidth={1.5} />
-                          コピーしてAI社員に送る
+                          コピーして AI 社員に送る
                           <ChevronRight className="w-3 h-3" strokeWidth={1.5} />
                         </button>
                       )}
@@ -722,7 +275,7 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
         </div>
 
         {/* Complete button */}
-        {status === 'available' && (
+        {!isAlreadyDone && (
           <div className="mt-6 text-center">
             <button
               type="button"
@@ -745,6 +298,11 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
             )}
           </div>
         )}
+        {isAlreadyDone && (
+          <div className="mt-6 text-center text-xs text-emerald-700">
+            このクエストは完了済みです
+          </div>
+        )}
       </div>
     );
   }
@@ -752,100 +310,81 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
   // -----------------------------------------------------------------------
   // List view
   // -----------------------------------------------------------------------
-  const beginnerCompletedCount = progress.completedQuests.filter((id) =>
-    BEGINNER_QUESTS.some((q) => q.id === id),
+  const totalCompleted = progress.completedQuests.filter((id) =>
+    QUESTS.some((q) => q.id === id),
   ).length;
-  const intermediateCompletedCount = progress.completedQuests.filter((id) =>
-    INTERMEDIATE_QUESTS.some((q) => q.id === id),
-  ).length;
-  const advancedCompletedCount = progress.completedQuests.filter((id) =>
-    ADVANCED_QUESTS.some((q) => q.id === id),
-  ).length;
-  const totalCompleted = beginnerCompletedCount + intermediateCompletedCount + advancedCompletedCount;
+  const totalAvailable = QUESTS.length;
 
   return (
     <div className="max-w-2xl mx-auto py-8">
-      {/* Toast */}
       {toast && <Toast message={toast} />}
 
       {/* Header */}
       <div className="mb-8">
         <h2 className="text-xl font-semibold text-text-primary">応用クエスト</h2>
         <p className="text-sm text-text-secondary mt-1">
-          チュートリアルの次のステップ。本物のAIが動きます。
+          チュートリアルの次のステップ。本物の AI が動きます。
         </p>
-        {totalCompleted > 0 && (
-          <p className="text-xs text-text-muted mt-2">
-            {totalCompleted} / {ALL_QUESTS.length} 完了
-          </p>
-        )}
+        <p className="text-xs text-text-muted mt-2">
+          {totalCompleted} / {totalAvailable} 完了・8 カテゴリ・23 問
+        </p>
       </div>
 
-      {/* Beginner section */}
-      <div className="mb-8">
-        <div className="flex items-center gap-2 mb-3">
-          <h3 className="text-sm font-semibold text-text-primary">初級</h3>
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-800">
-            {beginnerCompletedCount} / {BEGINNER_QUESTS.length}
-          </span>
-        </div>
-        <div className="space-y-3">
-          {BEGINNER_QUESTS.map((quest) => (
-            <QuestCard
-              key={quest.id}
-              quest={quest}
-              progress={progress}
-              onSelect={setSelectedQuestId}
-            />
-          ))}
-        </div>
-      </div>
+      {/* Category sections */}
+      {CATEGORY_META.map((cat) => (
+        <CategorySection
+          key={cat.id}
+          category={cat.id}
+          progress={progress}
+          onSelect={setSelectedQuestId}
+        />
+      ))}
+    </div>
+  );
+}
 
-      {/* Intermediate section */}
-      <div className="mb-8">
-        <div className="flex items-center gap-2 mb-3">
-          <h3 className="text-sm font-semibold text-text-primary">中級</h3>
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-800">
-            {intermediateCompletedCount} / {INTERMEDIATE_QUESTS.length}
-          </span>
-        </div>
-        <div className="space-y-3">
-          {INTERMEDIATE_QUESTS.map((quest) => (
-            <QuestCard
-              key={quest.id}
-              quest={quest}
-              progress={progress}
-              onSelect={setSelectedQuestId}
-            />
-          ))}
-        </div>
-      </div>
+// ---------------------------------------------------------------------------
+// Category section
+// ---------------------------------------------------------------------------
 
-      {/* Advanced section */}
-      <div className="mb-8">
-        <div className="flex items-center gap-2 mb-3">
-          <h3 className="text-sm font-semibold text-text-primary">上級</h3>
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800">
-            {advancedCompletedCount} / {ADVANCED_QUESTS.length}
-          </span>
-        </div>
-        <div className="space-y-3">
-          {ADVANCED_QUESTS.map((quest) => (
-            <QuestCard
-              key={quest.id}
-              quest={quest}
-              progress={progress}
-              onSelect={setSelectedQuestId}
-            />
-          ))}
-        </div>
+interface CategorySectionProps {
+  category: QuestCategory;
+  progress: QuestProgress;
+  onSelect: (id: string) => void;
+}
+
+function CategorySection({ category, progress, onSelect }: CategorySectionProps) {
+  const meta = getCategoryMeta(category);
+  const quests = getQuestsByCategory(category);
+  const completedCount = quests.filter((q) => progress.completedQuests.includes(q.id)).length;
+
+  return (
+    <div className="mb-8">
+      <div className="flex items-center gap-2 mb-1">
+        <h3 className={`text-sm font-semibold ${meta.accentClass}`}>{meta.label}</h3>
+        <span
+          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${meta.badgeClass}`}
+        >
+          {completedCount} / {quests.length}
+        </span>
+      </div>
+      <p className="text-xs text-text-muted mb-3">{meta.summary}</p>
+      <div className="space-y-3">
+        {quests.map((quest) => (
+          <QuestCard
+            key={quest.id}
+            quest={quest}
+            progress={progress}
+            onSelect={onSelect}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// QuestCard sub-component
+// QuestCard
 // ---------------------------------------------------------------------------
 
 interface QuestCardProps {
@@ -855,64 +394,48 @@ interface QuestCardProps {
 }
 
 function QuestCard({ quest, progress, onSelect }: QuestCardProps) {
-  const status = getQuestStatus(quest, progress);
-  const isClickable = status === 'completed' || status === 'available';
-  const levelBadge = quest.level === 'beginner'
-    ? 'bg-blue-100 text-blue-800'
-    : quest.level === 'intermediate'
-      ? 'bg-purple-100 text-purple-800'
-      : 'bg-amber-100 text-amber-800';
-  const levelLabel = quest.level === 'beginner' ? '初級' : quest.level === 'intermediate' ? '中級' : '上級';
+  const isCompleted = progress.completedQuests.includes(quest.id);
+  const meta = getCategoryMeta(quest.category);
 
   return (
     <button
       type="button"
-      onClick={() => isClickable && onSelect(quest.id)}
-      disabled={!isClickable}
-      className={`w-full text-left rounded-card border transition-colors duration-120 ${
-        status === 'locked'
-          ? 'border-border bg-base-surface opacity-60 cursor-not-allowed'
-          : status === 'completed'
-            ? 'border-emerald-200 bg-emerald-50/50 hover:border-emerald-300 cursor-pointer'
-            : 'border-border bg-base-surface hover:border-accent/40 cursor-pointer'
+      onClick={() => onSelect(quest.id)}
+      className={`w-full text-left rounded-card border transition-colors duration-120 cursor-pointer ${
+        isCompleted
+          ? 'border-emerald-200 bg-emerald-50/50 hover:border-emerald-300'
+          : 'border-border bg-base-surface hover:border-accent/40'
       }`}
       aria-label={`Quest ${quest.number}: ${quest.title}`}
-      aria-disabled={!isClickable}
     >
       <div className="flex items-center gap-4 px-5 py-4">
-        {/* Status indicator */}
+        {/* Status / number badge */}
         <div className="flex-shrink-0">
-          {status === 'completed' && (
+          {isCompleted ? (
             <div
               className="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center"
               aria-label="完了"
             >
               <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
             </div>
-          )}
-          {status === 'available' && (
+          ) : (
             <div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center">
               <span className="text-xs font-semibold text-white">{quest.number}</span>
-            </div>
-          )}
-          {status === 'locked' && (
-            <div
-              className="w-7 h-7 rounded-full bg-base-elevated flex items-center justify-center"
-              aria-label="ロック中"
-            >
-              <Lock className="w-3.5 h-3.5 text-text-muted" strokeWidth={1.5} />
             </div>
           )}
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <p className={`text-sm font-medium ${status === 'locked' ? 'text-text-muted' : 'text-text-primary'}`}>
-              {quest.title}
-            </p>
-            <span className={`inline-flex items-center px-1 py-0.5 rounded text-[9px] font-semibold ${levelBadge}`}>
-              {levelLabel}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="text-sm font-medium text-text-primary">{quest.title}</p>
+            <span
+              className={`inline-flex items-center px-1 py-0.5 rounded text-[9px] font-semibold ${meta.badgeClass}`}
+            >
+              {meta.label}
+            </span>
+            <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-semibold bg-slate-100 text-slate-700">
+              {difficultyLabel(quest.difficulty)}
             </span>
           </div>
           <p className="text-xs text-text-muted mt-0.5">{quest.description}</p>
@@ -924,17 +447,14 @@ function QuestCard({ quest, progress, onSelect }: QuestCardProps) {
           {quest.estimatedTime}
         </div>
 
-        {/* Chevron for clickable items */}
-        {isClickable && (
-          <ChevronRight className="w-4 h-4 text-text-muted flex-shrink-0" strokeWidth={1.5} />
-        )}
+        <ChevronRight className="w-4 h-4 text-text-muted flex-shrink-0" strokeWidth={1.5} />
       </div>
     </button>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Toast sub-component
+// Toast
 // ---------------------------------------------------------------------------
 
 interface ToastProps {

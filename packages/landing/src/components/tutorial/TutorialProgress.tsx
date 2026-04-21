@@ -1,16 +1,10 @@
 import type { ChapterId, ChapterState } from '../../lib/tutorial-progress';
+import { CHAPTERS } from '../../lib/tutorial-chapters';
 
 interface TutorialProgressProps {
   currentChapter: ChapterState;
   completedChapters: ChapterId[];
 }
-
-const SEGMENTS: { id: ChapterId; label: string }[] = [
-  { id: 1, label: 'ボタン' },
-  { id: 2, label: 'チャット入門' },
-  { id: 3, label: '練習' },
-  { id: 4, label: '応用' },
-];
 
 export default function TutorialProgress({
   currentChapter,
@@ -20,12 +14,12 @@ export default function TutorialProgress({
 
   return (
     <nav aria-label="チュートリアル進捗" className="w-full">
-      <ol className="flex items-stretch gap-1.5 sm:gap-2">
-        {SEGMENTS.map((seg) => {
+      <ol className="grid grid-cols-8 gap-1 sm:gap-1.5">
+        {CHAPTERS.map((seg) => {
           const isCompleted = isDone || completedChapters.includes(seg.id);
           const isCurrent = !isDone && currentChapter === seg.id;
           const base =
-            'flex-1 rounded-md px-2 py-2 sm:py-2.5 border text-center transition';
+            'rounded-md px-1 py-1.5 sm:py-2 border text-center transition min-w-0';
           let style: string;
           if (isCompleted) {
             style = 'bg-blue-600 border-blue-600 text-white';
@@ -40,24 +34,27 @@ export default function TutorialProgress({
               key={seg.id}
               className={`${base} ${style}`}
               aria-current={isCurrent ? 'step' : undefined}
+              title={`第 ${seg.id} 章: ${seg.title}`}
             >
-              <div className="flex items-center justify-center gap-1.5">
-                <span className="text-[11px] sm:text-xs font-bold tabular-nums">
+              <div className="flex flex-col items-center justify-center gap-0.5 sm:flex-row sm:gap-1">
+                <span className="text-[10px] sm:text-xs font-bold tabular-nums">
                   {seg.id}
                 </span>
-                <span className="text-[10px] sm:text-xs font-medium truncate">
-                  {seg.label}
+                <span className="text-[9px] sm:text-[10px] font-medium truncate">
+                  {seg.shortLabel}
                 </span>
               </div>
             </li>
           );
         })}
-        {isDone && (
-          <li className="flex-none rounded-md px-3 py-2 sm:py-2.5 border border-amber-400 bg-amber-50 text-amber-800 text-[11px] sm:text-xs font-bold">
-            修了
-          </li>
-        )}
       </ol>
+      {isDone && (
+        <div className="mt-2 flex justify-center">
+          <span className="inline-flex items-center rounded-md px-3 py-1 border border-amber-400 bg-amber-50 text-amber-800 text-[11px] sm:text-xs font-bold">
+            修了
+          </span>
+        </div>
+      )}
     </nav>
   );
 }

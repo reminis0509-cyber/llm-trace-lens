@@ -4,7 +4,7 @@ import { trackDashboardConversion } from '../utils/gtag';
  * Hero — 中小企業 DX 決裁者向け (2026-04-22 刷新)
  *
  * 方針:
- *  - コピーは「書類業務に、AI社員を。」で具体性+安全性を両立
+ *  - コピーは「全ての業務に、AI社員を。」で業務範囲の広さを訴求
  *  - 右側に和文ビジネス文書風の「見積書プレビュー」を配置し、PDF世界観と整合
  *  - 派手なアニメ禁止、絵文字禁止、老舗 SaaS 基調
  */
@@ -28,16 +28,16 @@ export default function Hero() {
 
             {/* Main headline */}
             <h1 className="text-[2rem] sm:text-display-sm lg:text-[3rem] font-semibold text-text-primary mb-5 leading-[1.25] tracking-tight">
-              書類業務に、
+              全ての業務に、
               <br />
               AI社員を。
             </h1>
 
             {/* Subheadline */}
             <p className="text-base sm:text-lg text-text-secondary mb-7 leading-relaxed">
-              見積書・請求書・議事録・提案スライドまで。
+              見積書作成から議事録、営業スライド、Excel分析、業界リサーチまで。
               <br className="hidden sm:block" />
-              日本企業の机上作業を、AIが代行・チェックします。
+              日本企業のあらゆる机上業務を、AIが代行・チェックします。
             </p>
 
             {/* Trust badges (inline, 老舗SaaS風に控えめ) */}
@@ -96,7 +96,7 @@ export default function Hero() {
             {/* Stats — 数字3つ、老舗SaaS基調 */}
             <div className="mt-10 pt-8 border-t border-border-subtle grid grid-cols-3 gap-2 sm:gap-6 max-w-lg">
               {[
-                { value: '5', unit: '種', label: '対応書類' },
+                { value: '10+', unit: '種', label: '対応業務' },
                 { value: '9', unit: '連携', label: '業務システム' },
                 { value: '¥0', unit: '〜', label: '月額料金' },
               ].map((stat) => (

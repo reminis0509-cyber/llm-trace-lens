@@ -18,7 +18,7 @@ export default function CTA() {
           />
 
           <h2 className="text-2xl sm:text-display-sm font-semibold text-text-primary mb-4">
-            書類業務に、AI社員を。
+            全ての業務に、AI社員を。
           </h2>
           <p className="text-base sm:text-lg text-text-secondary mb-8 max-w-2xl mx-auto leading-relaxed">
             まずは登録不要のチュートリアルで体験してください。

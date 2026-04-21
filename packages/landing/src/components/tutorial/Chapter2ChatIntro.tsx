@@ -20,7 +20,7 @@ interface Chapter2ChatIntroProps {
   onMascot: (state: 'idle' | 'talk' | 'happy', message: string, hint?: string) => void;
 }
 
-const SUGGESTIONS = ['請求書作って', '見積書作って', '納品書お願い'];
+const SUGGESTIONS = ['見積書作って', '請求書お願い', '発注書を作りたい'];
 
 type Phase = 'chat' | 'generating' | 'done';
 
@@ -46,7 +46,7 @@ export default function Chapter2ChatIntro({ onComplete, onMascot }: Chapter2Chat
       announced.current = true;
       onMascot(
         'talk',
-        '次はチャット。\n\n「請求書作って」って…\n入れてみて！',
+        'ブリーフィング通り、\nまずは見積書の再提出。\n\n「見積書作って」って\n送ってみて！',
         '下のチップをタップするだけでOK',
       );
     }
@@ -103,12 +103,14 @@ export default function Chapter2ChatIntro({ onComplete, onMascot }: Chapter2Chat
   return (
     <section aria-labelledby="ch2-title" className="space-y-6">
       <header>
-        <p className="text-xs font-semibold tracking-wide text-blue-700 uppercase">第 2 章 / 4</p>
+        <p className="text-xs font-semibold tracking-wide text-blue-700 uppercase">
+          第 2 章 / 8 — 月曜午後
+        </p>
         <h2 id="ch2-title" className="mt-1 text-2xl font-bold text-slate-900">
-          チャットで指示してみる
+          見積書をお願い — チャットで書類作成
         </h2>
         <p className="mt-2 text-sm text-slate-600">
-          書類の名前を含めて送信すると、ボクが対応する書類を用意するよ。
+          書類の名前を含めてメッセージを送ると、AI 社員が該当書類を用意します。
         </p>
       </header>
 
@@ -117,7 +119,7 @@ export default function Chapter2ChatIntro({ onComplete, onMascot }: Chapter2Chat
         onSend={handleSend}
         suggestions={SUGGESTIONS}
         isTyping={isTyping}
-        placeholder="例: 請求書作って"
+        placeholder="例: 見積書作って"
         disabled={revealedKind !== null}
       />
 
@@ -135,14 +137,12 @@ export default function Chapter2ChatIntro({ onComplete, onMascot }: Chapter2Chat
               completed={phase === 'done'}
             />
             {phase === 'done' && (
-              <>
-                <div className="rounded-2xl rounded-bl-md bg-slate-100 text-slate-800 px-4 py-2.5">
-                  <p className="text-sm leading-relaxed">
-                    {getSimpleResponse({ kind: revealedKind, keyword: documentLabel(revealedKind) })}
-                  </p>
-                  <p className="mt-1.5 text-xs text-slate-400">{TUTORIAL_FOOTNOTE}</p>
-                </div>
-              </>
+              <div className="rounded-2xl rounded-bl-md bg-slate-100 text-slate-800 px-4 py-2.5">
+                <p className="text-sm leading-relaxed">
+                  {getSimpleResponse({ kind: revealedKind, keyword: documentLabel(revealedKind) })}
+                </p>
+                <p className="mt-1.5 text-xs text-slate-400">{TUTORIAL_FOOTNOTE}</p>
+              </div>
             )}
           </div>
         </div>

@@ -6,8 +6,12 @@ import TutorialProgress from './tutorial/TutorialProgress';
 import ChapterCompleteSplash from './tutorial/ChapterCompleteSplash';
 import Chapter1Button from './tutorial/Chapter1Button';
 import Chapter2ChatIntro from './tutorial/Chapter2ChatIntro';
-import Chapter3ChatPractice from './tutorial/Chapter3ChatPractice';
-import Chapter4ChatComplex from './tutorial/Chapter4ChatComplex';
+import Chapter3Minutes from './tutorial/Chapter3ChatPractice';
+import Chapter4SlideBuilder from './tutorial/Chapter4ChatComplex';
+import Chapter5ExcelAnalyze from './tutorial/Chapter5ExcelAnalyze';
+import Chapter6Research from './tutorial/Chapter6Research';
+import Chapter7Proofread from './tutorial/Chapter7Proofread';
+import Chapter8Integration from './tutorial/Chapter8Integration';
 import CompletionCertificate from './tutorial/CompletionCertificate';
 import {
   buildInitialProgress,
@@ -15,9 +19,9 @@ import {
   resetProgress,
   saveProgress,
   type ChapterId,
-  type PracticeTaskId,
   type TutorialProgress as TProgress,
 } from '../lib/tutorial-progress';
+import { getChapterMeta } from '../lib/tutorial-chapters';
 
 interface MascotMessage {
   state: DachshundState;
@@ -28,15 +32,8 @@ interface MascotMessage {
 const INITIAL_MASCOT: MascotMessage = {
   state: 'idle',
   message:
-    'やあ。\nボクはフジ。\n日本企業のAI社員だよ。\n\nまずは…\n見積書を作るところを\n見せるね。',
-  hint: '下のフォームを見てから、\n「AIで見積書を生成する」を\n押してみてね。',
-};
-
-const CHAPTER_TITLES: Record<ChapterId, string> = {
-  1: 'ボタン一つで見積書を作る',
-  2: 'チャットで指示してみる',
-  3: '反復で経験値を積む',
-  4: '複雑な指示で AI の可能性を体感',
+    'やあ。\nボクはフジ。\n日本企業のAI社員だよ。\n\nこれから一週間、\nボクの仕事を見せるね。',
+  hint: '下の「今日のブリーフィングを聞く」\nから始めよう。',
 };
 
 function CloseIcon({ className }: { className?: string }) {
@@ -105,9 +102,9 @@ function ResumePrompt({ progress, onResume, onRestart }: ResumePromptProps) {
 
 export default function TutorialPage() {
   useSeo({
-    title: 'AI 社員 基礎チュートリアル | FujiTrace',
+    title: 'AI 社員 基礎チュートリアル — 一週間の仕事を体験 | FujiTrace',
     description:
-      '4 章構成の学習プログラムで、見積書・請求書・発注書・送付状・納品書を AI 社員と一緒に体験。修了証 PNG を発行できます。',
+      '8 章構成で、AI 社員のブリーフィング / 書類作成 / 議事録 / スライド / Excel 分析 / Wide Research / 校正 / 複合タスクを順に体験。修了証 PNG を発行できます。',
     url: 'https://fujitrace.jp/tutorial',
   });
 
@@ -159,7 +156,7 @@ export default function TutorialPage() {
 
   const handleChapterComplete = (ch: ChapterId) => {
     if (!progress) return;
-    const nextCh = ch === 4 ? 'done' : ((ch + 1) as ChapterId);
+    const nextCh = ch === 8 ? 'done' : ((ch + 1) as ChapterId);
     const completed = progress.completedChapters.includes(ch)
       ? progress.completedChapters
       : [...progress.completedChapters, ch];
@@ -167,20 +164,10 @@ export default function TutorialPage() {
       ...progress,
       currentChapter: nextCh,
       completedChapters: completed,
-      completedAt: ch === 4 ? new Date().toISOString() : progress.completedAt,
+      completedAt: ch === 8 ? new Date().toISOString() : progress.completedAt,
     };
     persist(updated);
     setSplashChapter(ch);
-  };
-
-  const handleTaskComplete = (task: PracticeTaskId) => {
-    if (!progress) return;
-    if (progress.chapter3Tasks.includes(task)) return;
-    const updated: TProgress = {
-      ...progress,
-      chapter3Tasks: [...progress.chapter3Tasks, task],
-    };
-    persist(updated);
   };
 
   const handleUserNameChange = (userName: string) => {
@@ -203,7 +190,7 @@ export default function TutorialPage() {
       return (
         <ChapterCompleteSplash
           chapterNumber={splashChapter}
-          chapterTitle={CHAPTER_TITLES[splashChapter]}
+          chapterTitle={getChapterMeta(splashChapter).title}
           onNext={handleSplashNext}
         />
       );
@@ -227,18 +214,48 @@ export default function TutorialPage() {
     }
     if (ch === 3) {
       return (
-        <Chapter3ChatPractice
+        <Chapter3Minutes
           onComplete={() => handleChapterComplete(3)}
           onMascot={updateMascot}
-          initialCompletedTasks={progress.chapter3Tasks}
-          onTaskComplete={handleTaskComplete}
         />
       );
     }
     if (ch === 4) {
       return (
-        <Chapter4ChatComplex
+        <Chapter4SlideBuilder
           onComplete={() => handleChapterComplete(4)}
+          onMascot={updateMascot}
+        />
+      );
+    }
+    if (ch === 5) {
+      return (
+        <Chapter5ExcelAnalyze
+          onComplete={() => handleChapterComplete(5)}
+          onMascot={updateMascot}
+        />
+      );
+    }
+    if (ch === 6) {
+      return (
+        <Chapter6Research
+          onComplete={() => handleChapterComplete(6)}
+          onMascot={updateMascot}
+        />
+      );
+    }
+    if (ch === 7) {
+      return (
+        <Chapter7Proofread
+          onComplete={() => handleChapterComplete(7)}
+          onMascot={updateMascot}
+        />
+      );
+    }
+    if (ch === 8) {
+      return (
+        <Chapter8Integration
+          onComplete={() => handleChapterComplete(8)}
           onMascot={updateMascot}
         />
       );
@@ -277,13 +294,14 @@ export default function TutorialPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-16 space-y-8">
         <header className="space-y-2 text-center sm:text-left">
           <p className="text-xs font-semibold tracking-wide text-blue-700 uppercase">
-            無料チュートリアル — 4 章構成
+            無料チュートリアル — AI 社員の一週間（8 章構成）
           </p>
           <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">
-            AI 社員 基礎チュートリアル
+            AI 社員の一週間
           </h1>
           <p className="text-sm text-slate-600 max-w-2xl mx-auto sm:mx-0">
-            4 章を通して、ボタン操作・チャット・反復練習・複雑指示までを学びます。修了後は修了証 PNG を発行できます。
+            月曜朝のブリーフィングから、書類作成・議事録・スライド・Excel 分析・Wide Research・校正・複合タスクまで。
+            AI 社員がデスクで働く 1 週間を体験します。
           </p>
         </header>
 

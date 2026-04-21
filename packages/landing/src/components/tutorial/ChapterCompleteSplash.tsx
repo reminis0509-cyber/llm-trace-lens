@@ -10,10 +10,14 @@ interface ChapterCompleteSplashProps {
 }
 
 const SPLASH_MESSAGES: Record<ChapterId, string> = {
-  1: 'ボタンだけでも…\nここまでできるんだ。',
-  2: 'チャットでも\n動かせたね。',
-  3: 'もう慣れたね。\n最後は…\n難しいやつ。',
-  4: '全部クリア！\n修了証を\n発行しよう。',
+  1: '出社完了。\n今日の予定が…\n見えたね。',
+  2: 'チャットでも\n書類を作れる。\nこれが第一歩。',
+  3: '録音だけで\n議事録になる。\n驚いたでしょ？',
+  4: '1 行から\nスライド 10 枚。\nこれはヤバい。',
+  5: 'Excel を渡すだけで\n傾向を読み取れた。',
+  6: '業界レポートが\n数分で…\nできあがる。',
+  7: '校正からメール下書きまで\n全部 AI 社員に任せて OK。',
+  8: '一言で、全部。\nこれが AI 社員の\n真価。',
 };
 
 export default function ChapterCompleteSplash({
@@ -30,7 +34,7 @@ export default function ChapterCompleteSplash({
   }, []);
 
   const label =
-    nextLabel ?? (chapterNumber === 4 ? '修了証を発行 →' : '次の章へ →');
+    nextLabel ?? (chapterNumber === 8 ? '修了証を発行 →' : '次の章へ →');
 
   return (
     <section

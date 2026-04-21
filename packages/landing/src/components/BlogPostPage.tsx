@@ -376,10 +376,10 @@ export default function BlogPostPage({ slug }: BlogPostPageProps) {
                   FujiTrace AI社員
                 </p>
                 <p className="text-lg font-bold text-text-primary mb-2">
-                  書類業務、AIに任せませんか。
+                  日々の業務、AIに任せませんか。
                 </p>
                 <p className="text-sm text-text-secondary leading-relaxed">
-                  見積書・請求書・納品書・発注書・送付状の作成からAIチェックまで、無料でお使いいただけます。登録番号の記載漏れ、計算ミス、記載不備をAIが自動検出します。
+                  書類作成から議事録、営業スライド、Excel分析、業界リサーチまで、日本企業のあらゆる机上業務をAI社員が代行します。登録番号の記載漏れ、計算ミス、記載不備もAIが自動検出します。
                 </p>
               </div>
               <div className="flex flex-col gap-3 md:flex-shrink-0">
