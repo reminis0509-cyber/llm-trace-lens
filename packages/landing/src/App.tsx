@@ -4,8 +4,9 @@ import Hero from './components/Hero';
 import DemoShowcase from './components/DemoShowcase';
 import Problems from './components/Problems';
 import Solution from './components/Solution';
-import Features from './components/Features';
-import Partners from './components/Partners';
+import Differentiation from './components/Differentiation';
+import TrustSection from './components/TrustSection';
+import FAQ from './components/FAQ';
 import Pricing from './components/Pricing';
 import CTA from './components/CTA';
 import Footer from './components/Footer';
@@ -22,10 +23,7 @@ import TutorialPage from './components/TutorialPage';
 import ScenarioTutorialPage from './components/ScenarioTutorialPage';
 import type { DocumentKind } from './lib/tutorial-scripts';
 import EstimateDemo from './components/EstimateDemo';
-import PiiDetection from './components/PiiDetection';
-import LiveTraceFeed from './components/LiveTraceFeed';
 import MidPageCTA from './components/MidPageCTA';
-import PricingSimulator from './components/PricingSimulator';
 import EducationShowcase from './components/EducationShowcase';
 
 export default function App() {
@@ -68,58 +66,50 @@ export default function App() {
   } else {
     pageContent = (
       <>
-        {/* 1. Hero — 教育訴求 */}
+        {/* 1. Hero — 書類業務に、AI社員を */}
         <Hero />
         <div className="section-divider" />
 
-        {/* 2. デモ見積書フォーム — 即体験 */}
-        <EstimateDemo />
-        <div className="section-divider" />
-
-        {/* 3. 教育ショーケース — チュートリアル/クエスト/AI社員 */}
-        <EducationShowcase />
-        <div className="section-divider" />
-
-        {/* 4. 課題 — AIが使えない壁 */}
+        {/* 2. 課題共感 — 中小企業 DX ペイン */}
         <Problems />
         <div className="section-divider" />
 
-        {/* 5. 解決策 — 体験→鍛錬→実務 */}
+        {/* 3. 解決策 — AI 社員の 3 カテゴリ */}
         <Solution />
         <div className="section-divider" />
 
-        {/* 6. 中間CTA */}
-        <MidPageCTA />
+        {/* 4. 差別化 — ChatGPT/海外AI との比較 */}
+        <Differentiation />
         <div className="section-divider" />
 
-        {/* 7. 機能一覧 */}
-        <Features />
+        {/* 5. デモ見積書フォーム — 即体験 */}
+        <EstimateDemo />
         <div className="section-divider" />
 
-        {/* 8. 製品画面デモ */}
+        {/* 6. 出力サンプル — 実書類の雰囲気 */}
         <DemoShowcase />
         <div className="section-divider" />
 
-        {/* 9. 機密情報検知 */}
-        <PiiDetection />
+        {/* 7. 中間CTA */}
+        <MidPageCTA />
         <div className="section-divider" />
 
-        {/* 10. ライブトレースフィード */}
-        <LiveTraceFeed />
+        {/* 8. 安心材料 — セキュリティ・法令遵守 */}
+        <TrustSection />
         <div className="section-divider" />
 
-        {/* 11. 料金 */}
+        {/* 9. 教育ショーケース — チュートリアル訴求 */}
+        <EducationShowcase />
+        <div className="section-divider" />
+
+        {/* 10. 料金 */}
         <Pricing />
         <div className="section-divider" />
 
-        {/* 12. 料金シミュレーション */}
-        <PricingSimulator />
-        <div className="section-divider" />
+        {/* 11. FAQ */}
+        <FAQ />
 
-        {/* 13. パートナー */}
-        <Partners />
-
-        {/* 14. 最終CTA */}
+        {/* 12. 最終CTA */}
         <CTA />
       </>
     );

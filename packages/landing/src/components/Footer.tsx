@@ -29,10 +29,10 @@ export default function Footer() {
           <div>
             <h4 className="text-sm font-medium text-text-primary mb-3">製品</h4>
             <ul className="space-y-2 text-sm text-text-muted">
-              <li><a href="#features" className="hover:text-text-primary transition-colors duration-120">機能</a></li>
+              <li><a href="#solution" className="hover:text-text-primary transition-colors duration-120">機能一覧</a></li>
               <li><a href="#pricing" className="hover:text-text-primary transition-colors duration-120">料金</a></li>
-              <li><a href="#" className="hover:text-text-primary transition-colors duration-120">ドキュメント</a></li>
-              <li><a href="#" className="hover:text-text-primary transition-colors duration-120">API リファレンス</a></li>
+              <li><a href="#faq" className="hover:text-text-primary transition-colors duration-120">よくあるご質問</a></li>
+              <li><a href="/for-engineers" className="hover:text-text-primary transition-colors duration-120">技術詳細</a></li>
             </ul>
           </div>
 

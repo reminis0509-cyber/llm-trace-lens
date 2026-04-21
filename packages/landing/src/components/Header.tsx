@@ -18,9 +18,9 @@ type AiMenuEntry = AiToolItem | { isDivider: true };
 const navItems: NavItem[] = [
   { label: '課題', href: '#problems' },
   { label: '解決策', href: '#solution' },
-  { label: '機能', href: '#features' },
-  { label: '導入方法', href: '#getting-started' },
+  { label: '比較', href: '#differentiation' },
   { label: '料金', href: '#pricing' },
+  { label: 'よくあるご質問', href: '#faq' },
   { label: '技術詳細', href: '/for-engineers' },
 ];
 

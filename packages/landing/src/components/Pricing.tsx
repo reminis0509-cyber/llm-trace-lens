@@ -90,8 +90,8 @@ const plans: PlanCard[] = [
     ],
     cta: '\u30C1\u30FC\u30E0\u3067\u59CB\u3081\u308B',
     ctaHref: '/dashboard',
-    highlighted: false,
-    badge: '\u65B0\u767B\u5834',
+    highlighted: true,
+    badge: '\u4E2D\u5C0F\u4F01\u696D\u63A8\u5968',
   },
   {
     name: 'Max',
@@ -147,7 +147,9 @@ export default function Pricing() {
             料金プラン
           </h2>
           <p className="text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
-            AI社員を雇うコストを、個人でも大企業でも合う形に。
+            個人・中小企業・大規模組織まで、必要な分だけ。
+            <br className="hidden md:block" />
+            すべてのプランで国内データ滞留・最低利用期間なしです。
           </p>
         </div>
 

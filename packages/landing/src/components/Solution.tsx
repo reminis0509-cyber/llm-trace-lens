@@ -1,56 +1,170 @@
-const solutions = [
+/**
+ * Solution — AI 社員 v2.1 全機能を 3 カテゴリで提示 (2026-04-22 刷新)
+ *
+ * v1 の「体験→鍛錬→実務」3 ステップ教育訴求から、
+ * 「書類業務 / 分析・リサーチ / コミュニケーション」の機能カテゴリ訴求へ。
+ * チュートリアル訴求は EducationShowcase が引き続き担当。
+ */
+interface Capability {
+  label: string;
+}
+
+interface SolutionCategory {
+  tag: string;
+  title: string;
+  description: string;
+  capabilities: Capability[];
+  footnote?: string;
+}
+
+const categories: SolutionCategory[] = [
   {
-    step: '01',
-    title: 'チュートリアルで即体験',
+    tag: '書類業務',
+    title: '机上の書類作成を、ひととおり代行します。',
     description:
-      '登録不要・30秒で開始。ボタン操作からチャット指示まで、4章構成のハンズオン教材でAI社員の使い方を体験できます。',
+      '見積・請求・納品・発注・送付状の五書類に加え、稟議書や議事録のドラフトまで。インボイス・支払サイト・敬語の商慣習を踏まえて仕上げます。',
+    capabilities: [
+      { label: '見積書・請求書・納品書・発注書・送付状' },
+      { label: '稟議書・議事録のドラフト' },
+      { label: 'インボイス制度・支払サイト準拠' },
+      { label: 'AI による金額・整合性の自動チェック' },
+    ],
+    footnote: '書き込み前に人間の承認を挟む設計。誤送信を避けます。',
   },
   {
-    step: '02',
-    title: 'クエストで実務レベルに',
+    tag: '分析・リサーチ',
+    title: '「調べて、まとめる」の時間を圧縮します。',
     description:
-      '全15段階のクエストで、見積書作成から競合調査レポート、業務フロー全体の自動化まで。実際にAIを動かしながらスキルを身につけます。',
+      'Excel をアップロードすれば LLM が解釈し、競合調査・業界動向も Wide Research で深掘り。日本語ビジネス文書の校正もお任せください。',
+    capabilities: [
+      { label: 'Excel 解析 (.xlsx アップロード)' },
+      { label: 'Wide Research による業界・競合調査' },
+      { label: '日本語ビジネス文書の校正 (敬語・誤字・冗長)' },
+      { label: 'レポート形式での自動要約' },
+    ],
   },
   {
-    step: '03',
-    title: 'AIミスを自動検出して安心運用',
+    tag: 'コミュニケーション',
+    title: '会議とやり取りを、業務システムと繋ぎます。',
     description:
-      'AIが生成した書類の金額ミス・記載漏れをリアルタイムで検出。日本語の機密情報15種類以上を自動遮断し、安全にAIを業務で使えます。',
+      '音声から議事録を自動構造化。提案スライドも生成可能。Google Calendar / Gmail / Chatwork / freee など九種の業務システムと連携します。',
+    capabilities: [
+      { label: '議事録 (音声 → 日時・参加者・決定事項・ToDo)' },
+      { label: '提案スライド・営業資料の生成' },
+      {
+        label:
+          'Calendar / Gmail / Drive / Slack / Chatwork / freee / Notion / GitHub / LINE',
+      },
+      { label: '朝のブリーフィング (今日の予定・昨日完了・保留)' },
+    ],
   },
 ];
+
+function CategoryCard({ category, index }: { category: SolutionCategory; index: number }) {
+  return (
+    <article className="relative surface-card p-6 sm:p-7 flex flex-col h-full">
+      {/* 番号と分類 */}
+      <div className="flex items-center gap-3 mb-4">
+        <span className="inline-flex items-center justify-center w-8 h-8 rounded-card bg-accent text-white font-mono text-xs tabular-nums">
+          {String(index + 1).padStart(2, '0')}
+        </span>
+        <span className="inline-block px-2 py-0.5 text-[11px] text-accent bg-accent-dim rounded label-spacing">
+          {category.tag}
+        </span>
+      </div>
+
+      <h3 className="text-base sm:text-lg font-semibold text-text-primary mb-3 leading-snug">
+        {category.title}
+      </h3>
+      <p className="text-sm text-text-secondary mb-5 leading-relaxed">
+        {category.description}
+      </p>
+
+      {/* 機能箇条書き (チェックアイコン) */}
+      <ul className="space-y-2 mb-4">
+        {category.capabilities.map((cap) => (
+          <li
+            key={cap.label}
+            className="flex items-start gap-2 text-sm text-text-secondary"
+          >
+            <svg
+              className="w-4 h-4 text-accent mt-0.5 flex-shrink-0"
+              fill="none"
+              viewBox="0 0 20 20"
+              stroke="currentColor"
+              strokeWidth={2}
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 10l3 3 7-7"
+              />
+            </svg>
+            <span>{cap.label}</span>
+          </li>
+        ))}
+      </ul>
+
+      {category.footnote && (
+        <p className="mt-auto pt-4 border-t border-border-subtle text-xs text-text-muted leading-relaxed">
+          {category.footnote}
+        </p>
+      )}
+    </article>
+  );
+}
 
 export default function Solution() {
   return (
     <section id="solution" className="py-16 sm:py-24 px-4 sm:px-6">
       <div className="section-container">
         {/* Section header */}
-        <div className="text-center mb-16">
-          <span className="inline-block px-3 py-1.5 text-xs text-text-muted label-spacing uppercase surface-card mb-6">
+        <div className="text-center mb-14">
+          <span className="inline-block px-3 py-1.5 text-xs text-text-muted label-spacing uppercase surface-card mb-5">
             解決策
           </span>
           <h2 className="text-2xl sm:text-display-sm font-semibold text-text-primary mb-4">
-            FujiTrace なら、
+            FujiTrace AI社員が、
             <br className="sm:hidden" />
-            社員がAIを使いこなせる
+            担える仕事。
           </h2>
-          <p className="text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
-            体験 → 練習 → 実務の3ステップで、
+          <p className="text-base sm:text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
+            書類作成だけではありません。分析・リサーチ・コミュニケーションまで、
             <br className="hidden md:block" />
-            AIを「知っている」から「使いこなせる」に変えます。
+            中小企業の事務作業を横断的に引き受けます。
           </p>
         </div>
 
-        {/* Solution steps */}
-        <div className="grid lg:grid-cols-3 gap-4">
-          {solutions.map((solution, index) => (
-            <div key={index} className="surface-card p-6 hover:bg-app-bg-elevated transition-colors duration-120">
-              <div className="w-10 h-10 rounded-card bg-accent-dim text-accent flex items-center justify-center font-mono text-sm mb-4">
-                {solution.step}
-              </div>
-              <h3 className="text-base font-medium text-text-primary mb-2">{solution.title}</h3>
-              <p className="text-sm text-text-secondary">{solution.description}</p>
-            </div>
+        {/* 3 category cards */}
+        <div className="grid md:grid-cols-3 gap-4 lg:gap-5">
+          {categories.map((category, idx) => (
+            <CategoryCard key={category.tag} category={category} index={idx} />
           ))}
+        </div>
+
+        {/* 補足リンク */}
+        <div className="mt-10 text-center">
+          <a
+            href="/tools"
+            className="inline-flex items-center gap-2 text-sm text-accent hover:underline underline-offset-4"
+          >
+            搭載機能の全体像を見る
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+              />
+            </svg>
+          </a>
         </div>
       </div>
     </section>

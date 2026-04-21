@@ -1,5 +1,13 @@
 import { trackDashboardConversion } from '../utils/gtag';
 
+/**
+ * Hero — 中小企業 DX 決裁者向け (2026-04-22 刷新)
+ *
+ * 方針:
+ *  - コピーは「書類業務に、AI社員を。」で具体性+安全性を両立
+ *  - 右側に和文ビジネス文書風の「見積書プレビュー」を配置し、PDF世界観と整合
+ *  - 派手なアニメ禁止、絵文字禁止、老舗 SaaS 基調
+ */
 export default function Hero() {
   const scrollToDemo = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -7,92 +15,197 @@ export default function Hero() {
   };
 
   return (
-    <section className="min-h-screen flex items-center justify-center pt-20 pb-20 px-4 sm:px-6">
+    <section className="pt-24 pb-16 sm:pt-28 sm:pb-20 px-4 sm:px-6">
       <div className="section-container w-full">
-        <div className="text-center">
-          {/* Eyebrow */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 surface-card text-sm mb-8">
-            <span className="w-1.5 h-1.5 bg-accent rounded-full" />
-            <span className="text-text-muted">すべての日本企業にAIを届ける</span>
+        <div className="grid lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-14 items-center">
+          {/* ---- Left: headline + copy + CTA ---- */}
+          <div>
+            {/* Eyebrow */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 surface-card text-xs mb-6">
+              <span className="w-1.5 h-1.5 bg-accent rounded-full" aria-hidden="true" />
+              <span className="text-text-muted">中小企業のバックオフィスを、AIで。</span>
+            </div>
+
+            {/* Main headline */}
+            <h1 className="text-[2rem] sm:text-display-sm lg:text-[3rem] font-semibold text-text-primary mb-5 leading-[1.25] tracking-tight">
+              書類業務に、
+              <br />
+              AI社員を。
+            </h1>
+
+            {/* Subheadline */}
+            <p className="text-base sm:text-lg text-text-secondary mb-7 leading-relaxed">
+              見積書・請求書・議事録・提案スライドまで。
+              <br className="hidden sm:block" />
+              日本企業の机上作業を、AIが代行・チェックします。
+            </p>
+
+            {/* Trust badges (inline, 老舗SaaS風に控えめ) */}
+            <ul className="flex flex-wrap gap-x-5 gap-y-2 mb-8 text-sm text-text-secondary">
+              {[
+                '国内データ滞留',
+                '承認後に実行',
+                '商工会議所圏の中小企業向け',
+              ].map((badge) => (
+                <li key={badge} className="flex items-center gap-1.5">
+                  <svg
+                    className="w-4 h-4 text-status-pass flex-shrink-0"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span>{badge}</span>
+                </li>
+              ))}
+            </ul>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
+              <a
+                href="/tutorial"
+                className="px-7 py-3.5 bg-accent text-white rounded-card text-base font-semibold hover:bg-accent-hover transition-colors duration-120 text-center"
+              >
+                無料で試す
+              </a>
+              <a
+                href="#demo"
+                onClick={scrollToDemo}
+                className="px-6 py-3.5 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-app-bg-elevated transition-colors duration-120 text-center"
+              >
+                デモを見る
+              </a>
+            </div>
+            <p className="text-sm text-text-muted">
+              登録不要・クレジットカード不要で、
+              <a
+                href="/dashboard"
+                onClick={trackDashboardConversion}
+                className="text-accent hover:underline underline-offset-4"
+              >
+                そのままダッシュボードへ
+              </a>
+              。
+            </p>
+
+            {/* Stats — 数字3つ、老舗SaaS基調 */}
+            <div className="mt-10 pt-8 border-t border-border-subtle grid grid-cols-3 gap-2 sm:gap-6 max-w-lg">
+              {[
+                { value: '5', unit: '種', label: '対応書類' },
+                { value: '9', unit: '連携', label: '業務システム' },
+                { value: '¥0', unit: '〜', label: '月額料金' },
+              ].map((stat) => (
+                <div key={stat.label} className="text-left">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl sm:text-3xl font-mono tabular-nums text-text-primary">
+                      {stat.value}
+                    </span>
+                    <span className="text-sm text-text-muted">{stat.unit}</span>
+                  </div>
+                  <div className="mt-1 text-xs text-text-muted label-spacing">
+                    {stat.label}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Main headline */}
-          <h1 className="text-[2rem] sm:text-display-sm lg:text-display font-semibold text-text-primary mb-6 leading-[1.2]">
-            AI社員、
-            <br className="hidden sm:block" />
-            雇いませんか。
-          </h1>
-
-          {/* Subheadline */}
-          <p className="text-lg text-text-secondary max-w-2xl mx-auto mb-8 leading-relaxed">
-            チュートリアルで体験し、クエストで鍛え、実務で使いこなす。
-            <br className="hidden md:block" />
-            見積書・請求書・納品書の作成からチェックまで、
-            <br className="hidden md:block" />
-            社員がAIを使いこなせるようになるプラットフォーム。
-          </p>
-
-          {/* Trust badges */}
-          <div className="flex flex-wrap justify-center gap-4 mb-10">
-            {[
-              '初期費用・月額 0円',
-              'クレジットカード不要',
-              'ログインなしで試せる',
-            ].map((badge) => (
-              <div key={badge} className="flex items-center gap-1.5 text-sm text-text-secondary">
-                <svg className="w-4 h-4 text-status-pass flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                <span>{badge}</span>
+          {/* ---- Right: 実書類風プレビュー ---- */}
+          <div className="relative">
+            {/* 薄い背景紙 */}
+            <div
+              className="absolute inset-0 -translate-x-3 translate-y-3 bg-app-bg-surface border border-border rounded-card"
+              aria-hidden="true"
+            />
+            {/* 前面の和文ビジネス文書 */}
+            <div className="relative bg-white border border-border rounded-card p-6 sm:p-8 shadow-sm">
+              {/* タイトル */}
+              <div className="text-center pb-4 border-b-2 border-[#1a1a1a]">
+                <h2 className="text-lg sm:text-xl font-semibold text-[#1a1a1a] tracking-[0.4em] ml-[0.4em]">
+                  御見積書
+                </h2>
               </div>
-            ))}
-          </div>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
-            <a
-              href="/tutorial"
-              className="w-full sm:w-auto px-8 py-4 bg-accent text-white rounded-card text-base font-semibold hover:bg-accent-hover transition-colors duration-120 text-center"
-            >
-              登録不要で試す（30秒）
-            </a>
-            <a
-              href="#demo"
-              onClick={scrollToDemo}
-              className="w-full sm:w-auto px-6 py-4 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-app-bg-elevated transition-colors duration-120 text-center"
-            >
-              このページでデモを見る
-            </a>
-          </div>
-          <div className="flex justify-center mb-12">
-            <a
-              href="/dashboard"
-              onClick={trackDashboardConversion}
-              className="text-sm text-text-muted hover:text-text-primary underline underline-offset-4"
-            >
-              ログインして全機能を使う →
-            </a>
-          </div>
-
-          {/* Stats */}
-          <div className="flex flex-wrap justify-center gap-12 mb-12">
-            {[
-              { value: '4章', label: 'チュートリアル' },
-              { value: '15問', label: '応用クエスト' },
-              { value: '5種', label: '対応書類' },
-            ].map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-3xl font-mono tabular-nums text-accent mb-1">{stat.value}</div>
-                <div className="text-xs text-text-muted label-spacing">{stat.label}</div>
+              {/* 宛先 / 発行者 */}
+              <div className="grid grid-cols-2 gap-4 mt-5 text-[11px] sm:text-xs text-[#1a1a1a]">
+                <div>
+                  <p className="mb-1 text-[#444]">宛先</p>
+                  <p className="text-sm font-medium">
+                    株式会社 日本橋商事{' '}
+                    <span className="text-[#666] font-normal">御中</span>
+                  </p>
+                  <p className="mt-3 text-[#444]">件名</p>
+                  <p className="text-sm">業務システム導入支援</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[#444]">発行日</p>
+                  <p className="text-sm">令和8年4月20日</p>
+                  <p className="mt-3 text-[#444]">見積番号</p>
+                  <p className="text-sm font-mono">EST-20260420-001</p>
+                </div>
               </div>
-            ))}
-          </div>
 
-          {/* Scroll indicator */}
-          <div className="mt-16">
-            <svg className="w-5 h-5 mx-auto text-text-muted animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-            </svg>
+              {/* 明細テーブル */}
+              <div className="mt-5 border border-[#1a1a1a]">
+                <div className="grid grid-cols-[40px_1fr_56px_88px] bg-[#f8f9fa] border-b border-[#1a1a1a] text-[10px] sm:text-[11px] text-[#444]">
+                  <div className="px-2 py-1.5 text-center border-r border-[#333]">No</div>
+                  <div className="px-2 py-1.5 border-r border-[#333]">品名</div>
+                  <div className="px-2 py-1.5 text-center border-r border-[#333]">数量</div>
+                  <div className="px-2 py-1.5 text-right">金額</div>
+                </div>
+                {[
+                  { no: '1', name: '要件定義', qty: '1式', amount: '250,000' },
+                  { no: '2', name: '設計・実装', qty: '1式', amount: '850,000' },
+                  { no: '3', name: '導入研修', qty: '1回', amount: '120,000' },
+                ].map((row) => (
+                  <div
+                    key={row.no}
+                    className="grid grid-cols-[40px_1fr_56px_88px] text-[11px] sm:text-xs text-[#1a1a1a] border-b border-[#333] last:border-b-0"
+                  >
+                    <div className="px-2 py-1.5 text-center border-r border-[#333] font-mono">
+                      {row.no}
+                    </div>
+                    <div className="px-2 py-1.5 border-r border-[#333]">{row.name}</div>
+                    <div className="px-2 py-1.5 text-center border-r border-[#333]">
+                      {row.qty}
+                    </div>
+                    <div className="px-2 py-1.5 text-right tabular-nums">{row.amount}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 合計 — 二重線風 */}
+              <div className="mt-4 ml-auto w-full sm:w-64">
+                <div className="flex justify-between text-[11px] sm:text-xs text-[#444] py-1">
+                  <span>小計</span>
+                  <span className="tabular-nums text-[#1a1a1a]">1,220,000円</span>
+                </div>
+                <div className="flex justify-between text-[11px] sm:text-xs text-[#444] py-1">
+                  <span>消費税 (10%)</span>
+                  <span className="tabular-nums text-[#1a1a1a]">122,000円</span>
+                </div>
+                <div className="flex justify-between items-baseline border-t-2 border-double border-[#1a1a1a] pt-1.5 mt-1">
+                  <span className="text-xs font-medium text-[#1a1a1a]">合計</span>
+                  <span className="text-base font-semibold tabular-nums text-[#1a1a1a]">
+                    1,342,000円
+                  </span>
+                </div>
+              </div>
+
+              {/* AI検証チップ (角に小さく) */}
+              <div className="mt-4 pt-4 border-t border-border-subtle flex items-center gap-2 text-[11px] text-text-muted">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-status-pass/10 text-status-pass font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-status-pass" aria-hidden="true" />
+                  AI検証済み
+                </span>
+                <span>金額・消費税・記載事項 チェック完了</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
