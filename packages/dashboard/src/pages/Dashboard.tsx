@@ -1,5 +1,9 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Key, Settings as SettingsIcon, LogOut, Menu, X, Shield, Bot, Radio, HelpCircle, GraduationCap, Users as UsersIcon, Sun, ListChecks, Plug } from 'lucide-react';
+import {
+  Key, Settings as SettingsIcon, LogOut, Menu, X, Shield, Bot, Radio, HelpCircle,
+  GraduationCap, Users as UsersIcon, Sun, ListChecks, Plug, Folder, Clock,
+  Activity, Search, Wand2, ChevronDown,
+} from 'lucide-react';
 import { Settings } from './Settings';
 import { ApiKeys } from './ApiKeys';
 import { AdminDashboard } from './AdminDashboard';
@@ -15,17 +19,26 @@ import { WatchPane } from '../components/watch/WatchPane';
 import { MorningBriefing } from './MorningBriefing';
 import { TaskBoard } from './TaskBoard';
 import { ConnectorSettings } from './ConnectorSettings';
+import { Projects } from './Projects';
+import { ProjectDetail } from './ProjectDetail';
+import { ScheduleManager } from './ScheduleManager';
+import { ConcurrentTaskBoard } from './ConcurrentTaskBoard';
+import { WideResearch } from './WideResearch';
+import { CustomMcpSettings } from './CustomMcpSettings';
+import { FujiTraceApiKeys } from './FujiTraceApiKeys';
+import { WebAppBuilder } from './WebAppBuilder';
 
-// Tab structure (2026-04-20, AI Employee v1): left-to-right = 線化フロー。
-// briefing (朝の見渡し) → ai-clerk (依頼) → tasks (進捗) → watch (監視) →
-// learn (鍛錬) → team (社内共有) → settings (+ admin at far right).
-// Exported as DashboardEntryTab so App.tsx can route by path without
-// importing the internal Tab alias.
+// Tab structure (AI Employee v2, 2026-04-20):
+// Main 5 tabs: briefing (朝) → ai-clerk (依頼) → projects (永続) → tasks (進捗) → watch (監視)
+// Secondary tabs remain accessible: learn / team / settings / admin
+// v1 の左右線化フローは維持しつつ、projects をタスクの前段に挟む。
 export type DashboardEntryTab =
   | 'briefing'
   | 'ai-clerk'
+  | 'projects'
   | 'tasks'
   | 'watch'
+  | 'tools'
   | 'learn'
   | 'team'
   | 'settings'
@@ -37,8 +50,13 @@ type TabItem = { id: Tab; label: string; icon: React.ReactNode };
 const mainTabs: TabItem[] = [
   { id: 'briefing', label: 'ブリーフィング', icon: <Sun className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'ai-clerk', label: 'AI社員', icon: <Bot className="w-4 h-4" strokeWidth={1.5} /> },
+  { id: 'projects', label: 'プロジェクト', icon: <Folder className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'tasks', label: 'タスク', icon: <ListChecks className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'watch', label: 'トレース', icon: <Radio className="w-4 h-4" strokeWidth={1.5} /> },
+];
+
+const secondaryTabs: TabItem[] = [
+  { id: 'tools', label: 'ツール', icon: <Wand2 className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'learn', label: '教材', icon: <GraduationCap className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'team', label: 'チーム', icon: <UsersIcon className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'settings', label: '設定', icon: <SettingsIcon className="w-4 h-4" strokeWidth={1.5} /> },
@@ -54,39 +72,102 @@ function getInitialTab(override?: Tab): Tab {
   // Backward compat for previous tab IDs — redirect to new homes.
   if (hash === 'traces' || hash === 'stats') return 'watch';
   if (hash === 'apikeys') return 'settings';
-  const validTabs: Tab[] = ['briefing', 'ai-clerk', 'tasks', 'watch', 'learn', 'team', 'settings', 'admin'];
-  if (validTabs.includes(hash as Tab)) return hash as Tab;
+  const allTabs: Tab[] = [
+    'briefing', 'ai-clerk', 'projects', 'tasks', 'watch',
+    'tools', 'learn', 'team', 'settings', 'admin',
+  ];
+  if (allTabs.includes(hash as Tab)) return hash as Tab;
   return 'ai-clerk';
 }
 
-type SettingsSubView = 'apikeys' | 'general' | 'connectors';
+/**
+ * Settings sub-views (2026-04-20, v2):
+ *   - apikeys          : LLM プロバイダ API キー登録 (既存 ApiKeys.tsx)
+ *   - general          : 一般設定
+ *   - connectors       : コネクタ (7種)
+ *   - custom-mcp       : カスタム MCP (v2)
+ *   - fujitrace-keys   : FujiTrace 自身の API キー発行 (v2)
+ */
+type SettingsSubView = 'apikeys' | 'general' | 'connectors' | 'custom-mcp' | 'fujitrace-keys';
+
+type ToolsSubView = 'research' | 'web-app-builder';
+
+type TasksSubView = 'board' | 'running' | 'schedule';
 
 /**
- * Entry-level view selector. When the user is on
- * /dashboard/settings/connectors the dashboard renders the connector
- * settings page in place of the tab body. All other routes use the tab
- * structure.
+ * Entry-level view selector.
+ *   - tab           : 既存のタブ構造
+ *   - connectors    : /dashboard/settings/connectors 直リンク (v1)
+ *   - settings-sub  : /dashboard/settings/{custom-mcp, api-keys}
+ *   - projects / project-detail / schedule / running / research / web-app-builder :
+ *     v2 追加の直リンクルート
  */
 export type DashboardEntry =
   | { kind: 'tab'; tab?: DashboardEntryTab }
-  | { kind: 'connectors' };
+  | { kind: 'connectors' }
+  | { kind: 'projects' }
+  | { kind: 'project-detail'; projectId: string }
+  | { kind: 'schedule' }
+  | { kind: 'running' }
+  | { kind: 'research' }
+  | { kind: 'web-app-builder' }
+  | { kind: 'settings-sub'; sub: 'custom-mcp' | 'fujitrace-keys' };
 
 interface DashboardProps {
   entry?: DashboardEntry;
 }
 
 export function Dashboard({ entry = { kind: 'tab' } }: DashboardProps) {
-  const initialTab = entry.kind === 'tab' ? entry.tab : 'settings';
-  const initialSubView: SettingsSubView = entry.kind === 'connectors' ? 'connectors' : 'apikeys';
+  const initialTab: Tab | undefined = (() => {
+    switch (entry.kind) {
+      case 'tab': return entry.tab;
+      case 'connectors':
+      case 'settings-sub':
+        return 'settings';
+      case 'projects':
+      case 'project-detail':
+        return 'projects';
+      case 'schedule':
+      case 'running':
+        return 'tasks';
+      case 'research':
+      case 'web-app-builder':
+        return 'tools';
+      default:
+        return undefined;
+    }
+  })();
+
+  const initialSettingsSubView: SettingsSubView = (() => {
+    if (entry.kind === 'connectors') return 'connectors';
+    if (entry.kind === 'settings-sub') return entry.sub;
+    return 'apikeys';
+  })();
+
+  const initialToolsSubView: ToolsSubView = entry.kind === 'web-app-builder' ? 'web-app-builder' : 'research';
+
+  const initialTasksSubView: TasksSubView = (() => {
+    if (entry.kind === 'running') return 'running';
+    if (entry.kind === 'schedule') return 'schedule';
+    return 'board';
+  })();
+
   const [activeTab, setActiveTab] = useState<Tab>(() => getInitialTab(initialTab));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [settingsSubView, setSettingsSubView] = useState<SettingsSubView>(initialSubView);
+  const [settingsSubView, setSettingsSubView] = useState<SettingsSubView>(initialSettingsSubView);
+  const [toolsSubView, setToolsSubView] = useState<ToolsSubView>(initialToolsSubView);
+  const [tasksSubView, setTasksSubView] = useState<TasksSubView>(initialTasksSubView);
+  const [secondaryMenuOpen, setSecondaryMenuOpen] = useState(false);
+  // Active project detail id (reset to null when leaving project-detail entry
+  // via the projects tab). Initialized from URL entry.
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(
+    entry.kind === 'project-detail' ? entry.projectId : null,
+  );
   const { user, signOut } = useAuth();
   const { workspaceId, isSystemAdmin } = useRole();
 
-  // First-login onboarding: auto-show for new users (account created < 7 days,
-  // no completion/skip flag). See docs/戦略_2026.md Section 13.2.
+  // First-login onboarding: auto-show for new users.
   useEffect(() => {
     if (!user) return;
     if (shouldShowOnboarding({ userCreatedAt: user.created_at })) {
@@ -113,21 +194,24 @@ export function Dashboard({ entry = { kind: 'tab' } }: DashboardProps) {
   };
 
   const handleTabChange = (tabId: Tab) => {
+    // Leaving projects tab via header: clear any active project detail so the
+    // next visit to "projects" shows the list, not the last-opened detail.
+    if (tabId === 'projects' && activeTab === 'projects') {
+      setActiveProjectId(null);
+    } else if (tabId !== 'projects') {
+      setActiveProjectId(null);
+    }
     setActiveTab(tabId);
     setMobileMenuOpen(false);
+    setSecondaryMenuOpen(false);
   };
 
-  // Watch tab uses a fixed-height layout (handled internally by WatchPane in
-  // ambient sub-view). We still need to suppress the outer padding wrapper so
-  // the pane can use `calc(100vh - 48px)` cleanly.
   const watchTabActive = activeTab === 'watch';
 
   return (
     <div className="min-h-screen bg-base">
-      {/* Header - 48px height */}
       <header className="h-12 bg-base-surface border-b border-border sticky top-0 z-50">
         <div className="h-full px-4 sm:px-6 flex items-center justify-between">
-          {/* Logo - icon only */}
           <div className="flex items-center gap-2">
             <svg className="w-5 h-5" viewBox="0 0 32 32" fill="none">
               <path d="M6 26 L14.5 6 L19.7 18.2" stroke="#93c5fd" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
@@ -135,12 +219,12 @@ export function Dashboard({ entry = { kind: 'tab' } }: DashboardProps) {
             </svg>
           </div>
 
-          {/* Desktop Navigation — single row, no separator (5-tab regime) */}
+          {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center h-full">
             {mainTabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 className={`relative h-full px-4 text-nav flex items-center gap-2 transition-colors duration-120 ${
                   activeTab === tab.id
                     ? 'text-text-primary'
@@ -154,23 +238,60 @@ export function Dashboard({ entry = { kind: 'tab' } }: DashboardProps) {
                 )}
               </button>
             ))}
-            {adminTabs.map((tab) => (
+
+            {/* Secondary dropdown (ツール / 教材 / チーム / 設定) */}
+            <div className="relative h-full">
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`relative h-full px-4 text-nav flex items-center gap-2 transition-colors duration-120 ${
-                  activeTab === tab.id
+                type="button"
+                onClick={() => setSecondaryMenuOpen((v) => !v)}
+                onBlur={() => setTimeout(() => setSecondaryMenuOpen(false), 150)}
+                aria-haspopup="true"
+                aria-expanded={secondaryMenuOpen}
+                className={`relative h-full px-4 text-nav flex items-center gap-1.5 transition-colors duration-120 ${
+                  secondaryTabs.some((t) => t.id === activeTab)
                     ? 'text-text-primary'
                     : 'text-text-secondary hover:text-text-primary'
                 }`}
               >
-                {tab.icon}
-                <span className="hidden xl:inline">{tab.label}</span>
-                {activeTab === tab.id && (
+                <span className="hidden xl:inline">その他</span>
+                <ChevronDown className="w-3.5 h-3.5" strokeWidth={1.5} />
+                {secondaryTabs.some((t) => t.id === activeTab) && (
                   <span className="absolute bottom-0 left-0 right-0 h-px bg-text-primary" />
                 )}
               </button>
-            ))}
+              {secondaryMenuOpen && (
+                <div className="absolute right-0 top-full mt-1 w-44 bg-base-surface border border-border rounded-card shadow-lg py-1 z-50">
+                  {secondaryTabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onMouseDown={(e) => { e.preventDefault(); handleTabChange(tab.id); }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left transition-colors duration-120 ${
+                        activeTab === tab.id
+                          ? 'text-text-primary bg-base-elevated'
+                          : 'text-text-secondary hover:text-text-primary hover:bg-base-elevated'
+                      }`}
+                    >
+                      {tab.icon}
+                      <span>{tab.label}</span>
+                    </button>
+                  ))}
+                  {adminTabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onMouseDown={(e) => { e.preventDefault(); handleTabChange(tab.id); }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left transition-colors duration-120 ${
+                        activeTab === tab.id
+                          ? 'text-text-primary bg-base-elevated'
+                          : 'text-text-secondary hover:text-text-primary hover:bg-base-elevated'
+                      }`}
+                    >
+                      {tab.icon}
+                      <span>{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </nav>
 
           {/* Desktop User Menu */}
@@ -211,25 +332,11 @@ export function Dashboard({ entry = { kind: 'tab' } }: DashboardProps) {
           </button>
         </div>
 
-        {/* Mobile Navigation Drawer — single row, no separator */}
+        {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-border bg-base-surface">
             <nav className="px-4 py-2 space-y-1">
-              {mainTabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-card transition-colors duration-120 ${
-                    activeTab === tab.id
-                      ? 'text-text-primary bg-base-elevated'
-                      : 'text-text-secondary hover:text-text-primary hover:bg-base-elevated'
-                  }`}
-                >
-                  {tab.icon}
-                  <span>{tab.label}</span>
-                </button>
-              ))}
-              {adminTabs.map((tab) => (
+              {[...mainTabs, ...secondaryTabs, ...adminTabs].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
@@ -270,8 +377,7 @@ export function Dashboard({ entry = { kind: 'tab' } }: DashboardProps) {
         )}
       </header>
 
-      {/* Main Content — watch tab uses no outer padding (WatchPane manages its
-           own fixed-height layout); other views use the standard padded shell */}
+      {/* Main Content */}
       {watchTabActive ? (
         <ErrorBoundary>
           <WatchPane />
@@ -279,14 +385,27 @@ export function Dashboard({ entry = { kind: 'tab' } }: DashboardProps) {
       ) : (
       <main className="p-6 sm:p-10">
         <ErrorBoundary>
-          {activeTab === 'briefing' && (
-            <MorningBriefing />
-          )}
-          {activeTab === 'ai-clerk' && (
-            <AiClerkChat />
+          {activeTab === 'briefing' && <MorningBriefing />}
+          {activeTab === 'ai-clerk' && <AiClerkChat />}
+          {activeTab === 'projects' && (
+            activeProjectId
+              ? <ProjectDetail projectId={activeProjectId} />
+              : <Projects />
           )}
           {activeTab === 'tasks' && (
-            <TaskBoard />
+            <div className="space-y-6">
+              <TasksSubViewPills current={tasksSubView} onChange={setTasksSubView} />
+              {tasksSubView === 'board' && <TaskBoard />}
+              {tasksSubView === 'running' && <ConcurrentTaskBoard />}
+              {tasksSubView === 'schedule' && <ScheduleManager />}
+            </div>
+          )}
+          {activeTab === 'tools' && (
+            <div className="space-y-6">
+              <ToolsSubViewPills current={toolsSubView} onChange={setToolsSubView} />
+              {toolsSubView === 'research' && <WideResearch />}
+              {toolsSubView === 'web-app-builder' && <WebAppBuilder />}
+            </div>
           )}
           {activeTab === 'learn' && (
             <QuestSystem onSwitchToClerk={() => setActiveTab('ai-clerk')} />
@@ -305,6 +424,8 @@ export function Dashboard({ entry = { kind: 'tab' } }: DashboardProps) {
               )}
               {settingsSubView === 'general' && <Settings />}
               {settingsSubView === 'connectors' && <ConnectorSettings />}
+              {settingsSubView === 'custom-mcp' && <CustomMcpSettings />}
+              {settingsSubView === 'fujitrace-keys' && <FujiTraceApiKeys />}
             </div>
           )}
           {activeTab === 'admin' && isSystemAdmin && <AdminDashboard />}
@@ -331,12 +452,79 @@ interface SettingsPillsProps {
 
 function SettingsSubViewPills({ current, onChange }: SettingsPillsProps) {
   const items: { id: SettingsSubView; label: string; icon: React.ReactNode }[] = [
-    { id: 'apikeys', label: 'APIキー', icon: <Key className="w-3.5 h-3.5" strokeWidth={1.5} /> },
+    { id: 'apikeys', label: 'LLMキー', icon: <Key className="w-3.5 h-3.5" strokeWidth={1.5} /> },
     { id: 'general', label: '一般', icon: <SettingsIcon className="w-3.5 h-3.5" strokeWidth={1.5} /> },
     { id: 'connectors', label: 'コネクタ', icon: <Plug className="w-3.5 h-3.5" strokeWidth={1.5} /> },
+    { id: 'custom-mcp', label: 'カスタムMCP', icon: <Plug className="w-3.5 h-3.5" strokeWidth={1.5} /> },
+    { id: 'fujitrace-keys', label: 'APIキー', icon: <Key className="w-3.5 h-3.5" strokeWidth={1.5} /> },
   ];
   return (
-    <div className="inline-flex items-center gap-1 p-1 bg-base-elevated rounded-card border border-border">
+    <div className="inline-flex items-center gap-1 p-1 bg-base-elevated rounded-card border border-border flex-wrap">
+      {items.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          onClick={() => onChange(item.id)}
+          className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-card transition-colors duration-120 ${
+            current === item.id
+              ? 'bg-accent text-white'
+              : 'text-text-secondary hover:text-text-primary'
+          }`}
+          aria-pressed={current === item.id}
+        >
+          {item.icon}
+          <span>{item.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+interface ToolsPillsProps {
+  current: ToolsSubView;
+  onChange: (v: ToolsSubView) => void;
+}
+
+function ToolsSubViewPills({ current, onChange }: ToolsPillsProps) {
+  const items: { id: ToolsSubView; label: string; icon: React.ReactNode }[] = [
+    { id: 'research', label: 'ワイド リサーチ', icon: <Search className="w-3.5 h-3.5" strokeWidth={1.5} /> },
+    { id: 'web-app-builder', label: 'Web App Builder (β)', icon: <Wand2 className="w-3.5 h-3.5" strokeWidth={1.5} /> },
+  ];
+  return (
+    <div className="inline-flex items-center gap-1 p-1 bg-base-elevated rounded-card border border-border flex-wrap">
+      {items.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          onClick={() => onChange(item.id)}
+          className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-card transition-colors duration-120 ${
+            current === item.id
+              ? 'bg-accent text-white'
+              : 'text-text-secondary hover:text-text-primary'
+          }`}
+          aria-pressed={current === item.id}
+        >
+          {item.icon}
+          <span>{item.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+interface TasksPillsProps {
+  current: TasksSubView;
+  onChange: (v: TasksSubView) => void;
+}
+
+function TasksSubViewPills({ current, onChange }: TasksPillsProps) {
+  const items: { id: TasksSubView; label: string; icon: React.ReactNode }[] = [
+    { id: 'board', label: 'ボード', icon: <ListChecks className="w-3.5 h-3.5" strokeWidth={1.5} /> },
+    { id: 'running', label: '実行中', icon: <Activity className="w-3.5 h-3.5" strokeWidth={1.5} /> },
+    { id: 'schedule', label: '定期', icon: <Clock className="w-3.5 h-3.5" strokeWidth={1.5} /> },
+  ];
+  return (
+    <div className="inline-flex items-center gap-1 p-1 bg-base-elevated rounded-card border border-border flex-wrap">
       {items.map((item) => (
         <button
           key={item.id}

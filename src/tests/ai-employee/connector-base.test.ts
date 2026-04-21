@@ -74,7 +74,10 @@ describe('Connector registry', () => {
   });
 
   it('getConnector returns null for an unregistered provider', () => {
-    expect(getConnector('freee')).toBeNull();
+    // v2 (2026-04-20) registered every spec'd provider. We assert that
+    // a truly unknown value (cast via `as unknown`) still returns null.
+    const fake = 'totally-fake-provider' as unknown as Parameters<typeof getConnector>[0];
+    expect(getConnector(fake)).toBeNull();
   });
 
   it('getConnectorForAction routes listEventsToday to Calendar', () => {

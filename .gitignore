@@ -50,3 +50,8 @@ docs/internal/
 REPORT.md
 PRODUCT_OVERVIEW.md
 build/
+
+# Playwright E2E artifacts
+playwright-report/
+test-results/
+playwright/.cache/

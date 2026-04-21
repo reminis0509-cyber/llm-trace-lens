@@ -1,5 +1,5 @@
 /**
- * FujiTrace AI 事務員 — Comprehensive test suite.
+ * FujiTrace AI 社員 — Comprehensive test suite.
  *
  * Covers:
  *   1. tool-matcher: buildFunctionCallingTools / resolveToolName
@@ -228,8 +228,10 @@ describe('buildSystemPrompt', () => {
 
   it('should contain constraints about forbidden tasks', () => {
     const prompt = buildSystemPrompt(allToolSchemas);
-    // The prompt must instruct the LLM to reject non-office requests
-    expect(prompt).toContain('事務作業以外');
+    // AI社員化 (2026-04-21): 業務スコープを事務作業から業務全般に拡張後、
+    // 対応不可ケースは「_log_feature_request」に落とす方針。
+    expect(prompt).toContain('_log_feature_request');
+    expect(prompt).toContain('対応不可');
   });
 
   it('should contain the constraint about monetary operations requiring approval', () => {
@@ -254,7 +256,7 @@ describe('buildSystemPrompt', () => {
     const prompt = buildSystemPrompt(allToolSchemas);
     // The prompt template defines when adaptation is acceptable
     expect(prompt).toContain('応用の判断基準');
-    expect(prompt).toContain('応用してはいけないケース');
+    expect(prompt).toContain('応用が禁止されているケース');
   });
 });
 
@@ -345,14 +347,17 @@ describe('事務作業カタログ coverage', () => {
     const prompt = buildSystemPrompt(allToolSchemas);
     // The prompt must contain rules for when adaptation is OK / not OK
     expect(prompt).toContain('応用の判断基準');
-    expect(prompt).toContain('応用してはいけないケース');
+    expect(prompt).toContain('応用が禁止されているケース');
     // The responsibilityLevel constraint for adaptation must be present
     expect(prompt).toContain('responsibilityLevel');
   });
 
-  it('system prompt includes constraint about non-office requests', () => {
+  it('system prompt includes fallback for unsupported requests', () => {
+    // AI社員化 (2026-04-21): 業務スコープ拡張に伴い、対応不可リクエストは
+    // `_log_feature_request` 経由で欲望DBに落とす方針。
     const prompt = buildSystemPrompt(allToolSchemas);
-    expect(prompt).toContain('事務作業以外のリクエスト');
+    expect(prompt).toContain('対応不可');
+    expect(prompt).toContain('_log_feature_request');
   });
 
   it('tool schemas have correct responsibilityLevel', () => {
@@ -417,10 +422,11 @@ describe('事務作業カタログ coverage', () => {
     expect(allToolSchemas.length).toBeGreaterThanOrEqual(100);
   });
 
-  it('non-office tasks have no matching tools and system prompt rejects them', () => {
+  it('non-office tasks have no matching tools; prompt routes them via feature-request', () => {
+    // AI社員化 (2026-04-21): 業務全般スコープに拡張後、天気/翻訳等の明確に業務外
+    // なリクエストは、ツール不在 + _log_feature_request 経路に落とす方針。
     const prompt = buildSystemPrompt(allToolSchemas);
-    // System prompt must contain rejection text for non-office work
-    expect(prompt).toContain('事務作業に関するご依頼をお願いします');
+    expect(prompt).toContain('_log_feature_request');
 
     // No registered tool should handle weather, coding, or translation
     const allNames = allToolSchemas.map((s) => s.name).join(' ');
@@ -589,7 +595,9 @@ describe('desire-db', () => {
 
     expect(mockHasTable).toHaveBeenCalledWith('agent_conversations');
     expect(mockHasTable).toHaveBeenCalledWith('feature_requests');
-    expect(mockCreateTable).toHaveBeenCalledTimes(2);
+    // 3 tables: agent_conversations, feature_requests, workspace_memory
+    // (workspace_memory added when AI社員 v2 expanded the agent memory model)
+    expect(mockCreateTable).toHaveBeenCalledTimes(3);
   });
 
   it('ensureAgentTables should skip creation when tables already exist', async () => {
@@ -625,6 +633,7 @@ describe('system prompt template file', () => {
   it('should be non-empty and contain core agent identity', () => {
     const template = fs.readFileSync(SYSTEM_PROMPT_PATH, 'utf-8');
     expect(template.length).toBeGreaterThan(50);
-    expect(template).toContain('FujiTrace AI 事務員');
+    // AI社員化 (2026-04-21): system prompt identity is 「フジ」.
+    expect(template).toContain('「フジ」');
   });
 });

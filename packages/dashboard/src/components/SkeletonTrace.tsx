@@ -36,6 +36,12 @@ interface StreamingSkeletonTraceProps {
   trace: SkeletonTrace | null;
   /** Whether to play sounds (default true) */
   soundEnabled?: boolean;
+  /**
+   * When true, render a 2-pane "Manus's Computer" style layout: steps on the
+   * left, live work pane on the right. Existing call sites remain unchanged
+   * unless they opt-in. See AI Employee v2 (2026-04-20).
+   */
+  showLiveView?: boolean;
 }
 
 /* ─── Static props (post-completion report view) ────────────────────────── */
@@ -357,6 +363,7 @@ export function StreamingSkeletonTrace({
   isExecuting,
   trace,
   soundEnabled = true,
+  showLiveView = false,
 }: StreamingSkeletonTraceProps) {
   const prevStepCountRef = useRef(0);
   const wasExecutingRef = useRef(false);
@@ -422,33 +429,8 @@ export function StreamingSkeletonTrace({
   const completedCount = steps.length;
   const totalElapsed = useElapsedSeconds(isExecuting);
 
-  return (
-    <div className="w-full rounded-xl border border-gray-100 bg-white p-5">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-5">
-        <img
-          src="/dashboard/mascot-run.gif"
-          alt="処理中"
-          width={32}
-          height={32}
-          className="flex-shrink-0"
-          style={{ imageRendering: 'pixelated' }}
-        />
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-800">{taskName}</span>
-          {isExecuting && (
-            <>
-              <span className="text-xs text-gray-400">
-                {completedCount} / {expectedSteps.length}
-              </span>
-              <span className="text-xs text-gray-400 font-mono tabular-nums">
-                {totalElapsed}s
-              </span>
-            </>
-          )}
-        </div>
-      </div>
-
+  const stepsColumn = (
+    <>
       {/* Steps timeline */}
       <div className="relative">
         <div className="absolute left-[13px] top-0 bottom-0 w-px bg-gray-200" />
@@ -479,6 +461,120 @@ export function StreamingSkeletonTrace({
               合計 {(steps.reduce((s, st) => s + st.durationMs, 0) / 1000).toFixed(1)}秒
             </span>
           </div>
+        </div>
+      )}
+    </>
+  );
+
+  return (
+    <div className="w-full rounded-xl border border-gray-100 bg-white p-5">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-5">
+        <img
+          src="/dashboard/mascot-run.gif"
+          alt="処理中"
+          width={32}
+          height={32}
+          className="flex-shrink-0"
+          style={{ imageRendering: 'pixelated' }}
+        />
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-800">{taskName}</span>
+          {isExecuting && (
+            <>
+              <span className="text-xs text-gray-400">
+                {completedCount} / {expectedSteps.length}
+              </span>
+              <span className="text-xs text-gray-400 font-mono tabular-nums">
+                {totalElapsed}s
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {showLiveView ? (
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-4">
+          <div className="min-w-0">{stepsColumn}</div>
+          <div className="min-w-0">
+            <LiveWorkPane steps={steps} isExecuting={isExecuting} />
+          </div>
+        </div>
+      ) : (
+        stepsColumn
+      )}
+    </div>
+  );
+}
+
+/* ─── Live Work pane (Manus's Computer style) ───────────────────────── */
+
+interface LiveWorkPaneProps {
+  steps: SkeletonStep[];
+  isExecuting: boolean;
+}
+
+function extractToolName(details: Record<string, unknown> | undefined): string | null {
+  if (!details) return null;
+  if (typeof details.tool === 'string') return details.tool;
+  if (typeof details.toolName === 'string') return details.toolName;
+  if (typeof details.functionName === 'string') return details.functionName;
+  return null;
+}
+
+function extractPreview(details: Record<string, unknown> | undefined): string | null {
+  if (!details) return null;
+  if (typeof details.output === 'string') return details.output;
+  if (typeof details.preview === 'string') return details.preview;
+  if (typeof details.url === 'string') return `[browser] ${details.url}`;
+  if (details.args !== undefined) {
+    try {
+      return JSON.stringify(details.args, null, 2);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function LiveWorkPane({ steps, isExecuting }: LiveWorkPaneProps) {
+  const latest = steps[steps.length - 1];
+  const toolName = latest ? extractToolName(latest.details) : null;
+  const preview = latest ? extractPreview(latest.details) : null;
+
+  return (
+    <div className="h-full rounded-lg border border-gray-100 bg-gray-50/60 p-4 flex flex-col">
+      <div className="flex items-center gap-2 mb-3">
+        <Spinner />
+        <span className="text-xs text-gray-600">
+          {isExecuting ? '現在の作業' : '最後の作業'}
+        </span>
+      </div>
+
+      {!latest ? (
+        <p className="text-xs text-gray-400">まだ作業は始まっていません。</p>
+      ) : (
+        <div className="flex-1 min-h-0 space-y-3">
+          <div>
+            <div className="text-xs text-gray-400 mb-0.5">ステップ</div>
+            <div className="text-sm text-gray-800">{latest.name}</div>
+          </div>
+          {toolName && (
+            <div>
+              <div className="text-xs text-gray-400 mb-0.5">ツール呼び出し</div>
+              <code className="text-xs bg-white border border-gray-100 rounded px-2 py-1 font-mono text-gray-700">
+                {toolName}
+              </code>
+            </div>
+          )}
+          {preview && (
+            <div className="flex-1 min-h-0">
+              <div className="text-xs text-gray-400 mb-0.5">出力プレビュー</div>
+              <pre className="text-xs bg-white border border-gray-100 rounded p-2 font-mono text-gray-700 max-h-72 overflow-auto whitespace-pre-wrap break-words">
+                {preview}
+              </pre>
+            </div>
+          )}
         </div>
       )}
     </div>

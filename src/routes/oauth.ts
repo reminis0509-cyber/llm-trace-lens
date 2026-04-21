@@ -159,6 +159,51 @@ export default async function oauthRoutes(fastify: FastifyInstance): Promise<voi
   );
 
   // ---------------------------------------------------------------------
+  // POST /api/auth/oauth/:provider/api-key
+  // For providers that do not use OAuth (chatwork, line) and still need
+  // a token stored in connector_tokens. Body: { token: string }
+  // ---------------------------------------------------------------------
+  fastify.post<{ Params: ProviderParams; Body: { token?: unknown } }>(
+    '/api/auth/oauth/:provider/api-key',
+    async (request, reply) => {
+      const { provider } = request.params;
+      const userEmail = request.user?.email;
+      if (!userEmail) {
+        return reply.code(401).send({ success: false, error: '認証が必要です' });
+      }
+      if (!isConnectorProvider(provider)) {
+        return reply.code(400).send({ success: false, error: `未対応のプロバイダ: ${provider}` });
+      }
+      const API_KEY_PROVIDERS: ConnectorProvider[] = ['chatwork', 'line'];
+      if (!API_KEY_PROVIDERS.includes(provider)) {
+        return reply
+          .code(400)
+          .send({ success: false, error: `${provider} is OAuth-based; use /start instead` });
+      }
+      const token = typeof request.body?.token === 'string' ? request.body.token : null;
+      if (!token || token.length < 8 || token.length > 4096) {
+        return reply.code(400).send({ success: false, error: 'token が必須です (8..4096 chars)' });
+      }
+      try {
+        await saveConnectorToken({
+          userId: userEmail,
+          provider,
+          bundle: {
+            accessToken: token,
+            refreshToken: null,
+            expiresAt: null,
+            scopes: [],
+          },
+        });
+        return reply.send({ success: true, data: { provider, connected: true } });
+      } catch (err) {
+        request.log.error({ err, provider }, '[oauth] /api-key failed');
+        return reply.code(500).send({ success: false, error: '内部エラーが発生しました' });
+      }
+    },
+  );
+
+  // ---------------------------------------------------------------------
   // POST /api/auth/oauth/:provider/disconnect
   // ---------------------------------------------------------------------
   fastify.post<{ Params: ProviderParams }>(
@@ -201,12 +246,85 @@ interface AuthorizeRedirectErr {
   status: number;
 }
 
+/**
+ * Build the canonical callback URL for a non-google provider. The Google
+ * provider has its own dedicated builder above because the `googleapis`
+ * SDK expects the redirect URI to be baked into the OAuth2Client.
+ */
+function buildGenericRedirectUri(
+  request: FastifyRequest,
+  provider: ConnectorProvider,
+): string {
+  const envBase = process.env.OAUTH_REDIRECT_BASE;
+  const hostHeader = request.headers.host ?? 'localhost';
+  const forwardedProto = (request.headers['x-forwarded-proto'] as string | undefined) ?? 'http';
+  const forwardedHost = (request.headers['x-forwarded-host'] as string | undefined) ?? hostHeader;
+  const base = envBase
+    ? envBase.replace(/\/+$/, '')
+    : `${forwardedProto}://${forwardedHost}`;
+  return `${base}/api/auth/oauth/${provider}/callback`;
+}
+
+interface OAuthAppConfig {
+  clientId: string;
+  clientSecret: string;
+  authorizeUrl: string;
+  tokenUrl: string;
+  scope: string;
+}
+
+function loadOAuthAppConfig(provider: ConnectorProvider): OAuthAppConfig | null {
+  const cidEnv = `${provider.toUpperCase()}_OAUTH_CLIENT_ID`;
+  const csEnv = `${provider.toUpperCase()}_OAUTH_CLIENT_SECRET`;
+  const clientId = process.env[cidEnv];
+  const clientSecret = process.env[csEnv];
+  if (!clientId || !clientSecret) return null;
+
+  if (provider === 'slack') {
+    return {
+      clientId,
+      clientSecret,
+      authorizeUrl: 'https://slack.com/oauth/v2/authorize',
+      tokenUrl: 'https://slack.com/api/oauth.v2.access',
+      scope: 'chat:write,channels:read,groups:read',
+    };
+  }
+  if (provider === 'freee') {
+    return {
+      clientId,
+      clientSecret,
+      authorizeUrl: 'https://accounts.secure.freee.co.jp/public_api/authorize',
+      tokenUrl: 'https://accounts.secure.freee.co.jp/public_api/token',
+      scope: 'read',
+    };
+  }
+  if (provider === 'notion') {
+    return {
+      clientId,
+      clientSecret,
+      authorizeUrl: 'https://api.notion.com/v1/oauth/authorize',
+      tokenUrl: 'https://api.notion.com/v1/oauth/token',
+      scope: '',
+    };
+  }
+  if (provider === 'github') {
+    return {
+      clientId,
+      clientSecret,
+      authorizeUrl: 'https://github.com/login/oauth/authorize',
+      tokenUrl: 'https://github.com/login/oauth/access_token',
+      scope: 'repo',
+    };
+  }
+  return null;
+}
+
 async function buildAuthorizeRedirect(
   request: FastifyRequest,
   provider: ConnectorProvider,
   userId: string,
 ): Promise<AuthorizeRedirectOk | AuthorizeRedirectErr> {
-  if (provider === 'google') {
+  if (provider === 'google' || provider === 'google_drive') {
     if (!isGoogleOAuthConfigured()) {
       return {
         status: 503,
@@ -223,12 +341,12 @@ async function buildAuthorizeRedirect(
     const scopes = aggregateScopesForProvider('google');
     const state = await createOAuthState({
       userId,
-      provider,
+      provider: 'google',
       redirectUri,
     });
     const authorizeUrl = client.generateAuthUrl({
-      access_type: 'offline', // issue refresh token
-      prompt: 'consent',      // force refresh token re-issue on reconnect
+      access_type: 'offline',
+      prompt: 'consent',
       scope: [...scopes],
       state,
       include_granted_scopes: true,
@@ -236,10 +354,32 @@ async function buildAuthorizeRedirect(
     return { authorizeUrl, state };
   }
 
-  return {
-    status: 501,
-    error: `プロバイダ ${provider} はまだ実装されていません`,
-  };
+  // API-key based: user submits a token through /api/auth/oauth/:provider/api-key
+  if (provider === 'chatwork' || provider === 'line' || provider === 'custom_mcp') {
+    return {
+      status: 400,
+      error: `${provider} is API-key based — POST /api/auth/oauth/${provider}/api-key with { token } instead of starting an OAuth flow`,
+    };
+  }
+
+  const app = loadOAuthAppConfig(provider);
+  if (!app) {
+    return {
+      status: 503,
+      error: `${provider.toUpperCase()}_OAUTH_CLIENT_ID / _SECRET が未設定です`,
+    };
+  }
+  const redirectUri = buildGenericRedirectUri(request, provider);
+  const state = await createOAuthState({ userId, provider, redirectUri });
+  const qs = new URLSearchParams({
+    client_id: app.clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    state,
+  });
+  if (app.scope) qs.set('scope', app.scope);
+  if (provider === 'notion') qs.set('owner', 'user');
+  return { authorizeUrl: `${app.authorizeUrl}?${qs.toString()}`, state };
 }
 
 interface ExchangeOk {
@@ -261,7 +401,7 @@ async function exchangeCodeForTokens(
   code: string,
   redirectUri: string,
 ): Promise<ExchangeOk | ExchangeErr> {
-  if (provider === 'google') {
+  if (provider === 'google' || provider === 'google_drive') {
     if (!isGoogleOAuthConfigured()) {
       return { status: 503, error: 'Google OAuth is not configured' };
     }
@@ -281,5 +421,59 @@ async function exchangeCodeForTokens(
       },
     };
   }
-  return { status: 501, error: `プロバイダ ${provider} はまだ実装されていません` };
+
+  const app = loadOAuthAppConfig(provider);
+  if (!app) {
+    return { status: 501, error: `プロバイダ ${provider} はまだ実装されていません` };
+  }
+
+  const body = new URLSearchParams({
+    client_id: app.clientId,
+    client_secret: app.clientSecret,
+    code,
+    redirect_uri: redirectUri,
+    grant_type: 'authorization_code',
+  });
+  const res = await fetch(app.tokenUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Accept: 'application/json',
+    },
+    body: body.toString(),
+  });
+  let json: Record<string, unknown> = {};
+  try {
+    json = (await res.json()) as Record<string, unknown>;
+  } catch {
+    return { status: 502, error: `${provider} token endpoint: bad JSON` };
+  }
+  if (res.status < 200 || res.status >= 300) {
+    return { status: 502, error: `${provider} token endpoint ${res.status}` };
+  }
+  // Slack's oauth.v2.access returns nested { authed_user, access_token (bot) }
+  let accessToken: string | null =
+    typeof json.access_token === 'string' ? json.access_token : null;
+  if (!accessToken && provider === 'slack') {
+    const botToken = (json as { access_token?: string }).access_token;
+    if (typeof botToken === 'string') accessToken = botToken;
+  }
+  if (!accessToken) {
+    return { status: 502, error: `${provider} returned no access_token` };
+  }
+  const refreshToken =
+    typeof json.refresh_token === 'string' ? json.refresh_token : null;
+  const expiresIn =
+    typeof json.expires_in === 'number' ? json.expires_in : null;
+  const scopeRaw =
+    typeof json.scope === 'string' ? json.scope : '';
+  const scopes = scopeRaw ? scopeRaw.split(/[,\s]+/).filter(Boolean) : [];
+  return {
+    bundle: {
+      accessToken,
+      refreshToken,
+      expiresAt: expiresIn ? new Date(Date.now() + expiresIn * 1000) : null,
+      scopes,
+    },
+  };
 }

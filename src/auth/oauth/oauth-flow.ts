@@ -19,7 +19,17 @@ import { encryptToken, decryptToken } from '../../lib/token-crypto.js';
 // Types
 // ---------------------------------------------------------------------------
 
-export type ConnectorProvider = 'google' | 'chatwork' | 'slack' | 'freee' | 'drive';
+export type ConnectorProvider =
+  | 'google'
+  | 'chatwork'
+  | 'slack'
+  | 'freee'
+  | 'drive'
+  | 'google_drive'
+  | 'notion'
+  | 'github'
+  | 'line'
+  | 'custom_mcp';
 
 export const CONNECTOR_PROVIDERS: readonly ConnectorProvider[] = [
   'google',
@@ -27,6 +37,11 @@ export const CONNECTOR_PROVIDERS: readonly ConnectorProvider[] = [
   'slack',
   'freee',
   'drive',
+  'google_drive',
+  'notion',
+  'github',
+  'line',
+  'custom_mcp',
 ] as const;
 
 export function isConnectorProvider(value: unknown): value is ConnectorProvider {

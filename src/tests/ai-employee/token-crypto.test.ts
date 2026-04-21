@@ -40,8 +40,11 @@ describe('token-crypto', () => {
     withTempKey((key) => {
       const sealed = encryptTokenWithKey('hello', key);
       const parsed = JSON.parse(sealed);
-      // flip one base64 char in the ciphertext
-      parsed.ct = parsed.ct.slice(0, -2) + (parsed.ct.endsWith('A') ? 'B' : 'A') + parsed.ct.slice(-1);
+      // Flip the first base64 char deterministically. Previous impl keyed the
+      // replacement on the last char, which could collide with the target
+      // position and silently skip the tamper (~1/64 flakiness).
+      const first = parsed.ct.charAt(0);
+      parsed.ct = (first === 'A' ? 'B' : 'A') + parsed.ct.slice(1);
       const tampered = JSON.stringify(parsed);
       expect(() => decryptTokenWithKey(tampered, key)).toThrow();
     });

@@ -39,6 +39,19 @@ import toolsRoutes from './routes/tools/index.js';
 import agentRoutes from './routes/agent/index.js';
 import oauthRoutes from './routes/oauth.js';
 import workspaceRoutes from './routes/workspace.js';
+import projectRoutes from './routes/projects.js';
+import scheduledTaskRoutes from './routes/scheduled-tasks.js';
+import queueStatusRoutes from './routes/queue-status.js';
+import wideResearchRoutes from './routes/wide-research.js';
+import customMcpRoutes from './routes/custom-mcp.js';
+import apiKeyRoutes from './routes/api-keys.js';
+import externalApiRoutes from './routes/external-api/index.js';
+import sandboxRoutes from './routes/sandbox.js';
+import webAppBuilderRoutes from './routes/web-app-builder.js';
+import {
+  startScheduledTaskRunner,
+  stopScheduledTaskRunner,
+} from './scheduler/runner.js';
 import { startExchangeRateScheduler, stopExchangeRateScheduler } from './chatbot/exchange-rate.js';
 import { closeKnex } from './storage/knex-client.js';
 
@@ -225,6 +238,17 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
   // Register AI Employee workspace routes (briefing / tasks / memory)
   await workspaceRoutes(fastify);
 
+  // --- AI Employee v2 (Full Manus TTP) routes --------------------------
+  await projectRoutes(fastify);
+  await scheduledTaskRoutes(fastify);
+  await queueStatusRoutes(fastify);
+  await wideResearchRoutes(fastify);
+  await customMcpRoutes(fastify);
+  await apiKeyRoutes(fastify);
+  await externalApiRoutes(fastify);
+  await sandboxRoutes(fastify);
+  await webAppBuilderRoutes(fastify);
+
   // Register main routes
   await registerRoutes(fastify);
 
@@ -304,6 +328,9 @@ export async function start() {
   // Start exchange rate scheduler (daily USD/JPY fetch)
   startExchangeRateScheduler();
 
+  // Start AI Employee v2 scheduled task runner (in-process cron)
+  startScheduledTaskRunner();
+
   // Graceful shutdown
   const signals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];
   for (const signal of signals) {
@@ -311,6 +338,7 @@ export async function start() {
       fastify.log.info(`Received ${signal}, shutting down...`);
       stopRetentionScheduler();
       stopExchangeRateScheduler();
+      stopScheduledTaskRunner();
       await fastify.close();
       await closeKnex();
       process.exit(0);

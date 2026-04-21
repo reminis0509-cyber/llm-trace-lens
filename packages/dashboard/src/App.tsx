@@ -19,6 +19,11 @@ function isWatchRoomPath(path: string): boolean {
  * Resolve the in-dashboard entry view from the URL path. See AI Employee v1
  * (2026-04-20) for the route additions: /dashboard/briefing,
  * /dashboard/tasks, /dashboard/settings/connectors.
+ *
+ * v2 additions (2026-04-20): /dashboard/projects, /dashboard/projects/:id,
+ * /dashboard/schedule, /dashboard/running, /dashboard/research,
+ * /dashboard/settings/custom-mcp, /dashboard/settings/api-keys,
+ * /dashboard/tools/web-app-builder.
  */
 function resolveDashboardEntry(path: string): DashboardEntry {
   if (path.startsWith('/dashboard/briefing') || path.startsWith('/briefing')) {
@@ -26,6 +31,39 @@ function resolveDashboardEntry(path: string): DashboardEntry {
   }
   if (path.startsWith('/dashboard/tasks') || path.startsWith('/tasks')) {
     return { kind: 'tab', tab: 'tasks' };
+  }
+  // --- v2 additions ---
+  if (path.startsWith('/dashboard/projects/') || path.startsWith('/projects/')) {
+    const match = path.match(/\/(?:dashboard\/)?projects\/([^/?#]+)/);
+    const id = match ? decodeURIComponent(match[1]) : '';
+    return { kind: 'project-detail', projectId: id };
+  }
+  if (path.startsWith('/dashboard/projects') || path.startsWith('/projects')) {
+    return { kind: 'projects' };
+  }
+  if (path.startsWith('/dashboard/schedule') || path.startsWith('/schedule')) {
+    return { kind: 'schedule' };
+  }
+  if (path.startsWith('/dashboard/running') || path.startsWith('/running')) {
+    return { kind: 'running' };
+  }
+  if (path.startsWith('/dashboard/research') || path.startsWith('/research')) {
+    return { kind: 'research' };
+  }
+  if (path.startsWith('/dashboard/tools/web-app-builder') || path.startsWith('/tools/web-app-builder')) {
+    return { kind: 'web-app-builder' };
+  }
+  if (
+    path.startsWith('/dashboard/settings/custom-mcp') ||
+    path.startsWith('/settings/custom-mcp')
+  ) {
+    return { kind: 'settings-sub', sub: 'custom-mcp' };
+  }
+  if (
+    path.startsWith('/dashboard/settings/api-keys') ||
+    path.startsWith('/settings/api-keys')
+  ) {
+    return { kind: 'settings-sub', sub: 'fujitrace-keys' };
   }
   if (
     path.startsWith('/dashboard/settings/connectors') ||
