@@ -47,7 +47,7 @@ import customMcpRoutes from './routes/custom-mcp.js';
 import apiKeyRoutes from './routes/api-keys.js';
 import externalApiRoutes from './routes/external-api/index.js';
 import sandboxRoutes from './routes/sandbox.js';
-import webAppBuilderRoutes from './routes/web-app-builder.js';
+import slideBuilderRoutes from './routes/slide-builder.js';
 import {
   startScheduledTaskRunner,
   stopScheduledTaskRunner,
@@ -247,7 +247,10 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
   await apiKeyRoutes(fastify);
   await externalApiRoutes(fastify);
   await sandboxRoutes(fastify);
-  await webAppBuilderRoutes(fastify);
+  // AI 社員 v2.1 — Slide Builder (replaces the v2 Web App Builder β stub).
+  // Also keeps /api/agent/web-app-builder alive as a deprecated alias so the
+  // dashboard does not 404 during the rename rollout.
+  await slideBuilderRoutes(fastify);
 
   // Register main routes
   await registerRoutes(fastify);

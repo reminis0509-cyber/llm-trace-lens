@@ -1,18 +1,23 @@
 /**
  * nav-v2.spec — Dashboard v2 navigation (main 5 + その他 dropdown + pill subnav)
- * (AI Employee v2, 2026-04-20)
+ * (AI Employee v2, 2026-04-20 / v2.1 pivot 2026-04-21)
  *
  * v1 の nav.spec は 7 main tabs を前提にしていたが、v2 で構造が変わった:
  *   - Main tabs (5): ブリーフィング / AI社員 / プロジェクト / タスク / トレース
  *   - Secondary dropdown (その他): ツール / 教材 / チーム / 設定
  *   - Subnav pills:
  *       tasks    → ボード / 実行中 / 定期
- *       tools    → ワイド リサーチ / Web App Builder (β)
+ *       tools    → ワイド リサーチ / スライドビルダー (β) / Excel分析 (β) /
+ *                   音声議事録 (β) / 文書校正 (β)
  *       settings → LLMキー / 一般 / コネクタ / カスタムMCP / APIキー
+ *
+ * v2.1 で Web App Builder はスライドビルダーに pivot し、Excel 分析 / 音声
+ * 議事録 / 文書校正 が追加された。
  *
  * この spec は各ラベルの visibility + 切替時の pageerror 無し + 404 相当
  * にならないことを pin。各画面の中身は個別の spec (projects / schedule /
- * running / research / custom-mcp / api-keys / web-app-builder) が担保。
+ * running / research / custom-mcp / api-keys / slide-builder /
+ * excel-analyzer / meeting-transcriber / document-proofreader) が担保。
  */
 
 import { test, expect } from '@playwright/test';
@@ -81,13 +86,16 @@ test.describe('Dashboard v2 top navigation', () => {
     await expect(page.getByRole('button', { name: '定期' })).toBeVisible();
   });
 
-  test('ツール tab exposes 2 pill sub-views (ワイド リサーチ / Web App Builder (β))', async ({ page }) => {
+  test('ツール tab exposes 5 pill sub-views (リサーチ / スライド / Excel / 議事録 / 校正)', async ({ page }) => {
     const nav = page.locator('header nav').first();
     await nav.getByRole('button', { name: /その他/ }).click();
     await page.getByRole('button', { name: /ツール/ }).first().click();
 
     await expect(page.getByRole('button', { name: 'ワイド リサーチ', pressed: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Web App Builder \(β\)/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /スライドビルダー \(β\)/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Excel ?分析 \(β\)/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /音声議事録 \(β\)/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /文書校正 \(β\)/ })).toBeVisible();
   });
 
   test('設定 tab exposes 5 pill sub-views (LLMキー / 一般 / コネクタ / カスタムMCP / APIキー)', async ({ page }) => {

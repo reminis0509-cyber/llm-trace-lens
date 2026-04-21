@@ -50,8 +50,33 @@ function resolveDashboardEntry(path: string): DashboardEntry {
   if (path.startsWith('/dashboard/research') || path.startsWith('/research')) {
     return { kind: 'research' };
   }
-  if (path.startsWith('/dashboard/tools/web-app-builder') || path.startsWith('/tools/web-app-builder')) {
-    return { kind: 'web-app-builder' };
+  // v2.1 additions (2026-04-21): Slide Builder pivot + 3 new tools.
+  // /tools/web-app-builder は後方互換として slide-builder 扱いで受ける。
+  if (
+    path.startsWith('/dashboard/tools/slide-builder') ||
+    path.startsWith('/tools/slide-builder') ||
+    path.startsWith('/dashboard/tools/web-app-builder') ||
+    path.startsWith('/tools/web-app-builder')
+  ) {
+    return { kind: 'slide-builder' };
+  }
+  if (
+    path.startsWith('/dashboard/tools/excel-analyzer') ||
+    path.startsWith('/tools/excel-analyzer')
+  ) {
+    return { kind: 'excel-analyzer' };
+  }
+  if (
+    path.startsWith('/dashboard/tools/meeting-transcriber') ||
+    path.startsWith('/tools/meeting-transcriber')
+  ) {
+    return { kind: 'meeting-transcriber' };
+  }
+  if (
+    path.startsWith('/dashboard/tools/document-proofreader') ||
+    path.startsWith('/tools/document-proofreader')
+  ) {
+    return { kind: 'document-proofreader' };
   }
   if (
     path.startsWith('/dashboard/settings/custom-mcp') ||

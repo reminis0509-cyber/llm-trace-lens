@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Key, Settings as SettingsIcon, LogOut, Menu, X, Shield, Bot, Radio, HelpCircle,
   GraduationCap, Users as UsersIcon, Sun, ListChecks, Plug, Folder, Clock,
-  Activity, Search, Wand2, ChevronDown,
+  Activity, Search, Wand2, ChevronDown, FileSpreadsheet, Mic, SpellCheck,
 } from 'lucide-react';
 import { Settings } from './Settings';
 import { ApiKeys } from './ApiKeys';
@@ -27,6 +27,9 @@ import { WideResearch } from './WideResearch';
 import { CustomMcpSettings } from './CustomMcpSettings';
 import { FujiTraceApiKeys } from './FujiTraceApiKeys';
 import { WebAppBuilder } from './WebAppBuilder';
+import { ExcelAnalyzer } from './ExcelAnalyzer';
+import { MeetingTranscriber } from './MeetingTranscriber';
+import { DocumentProofreader } from './DocumentProofreader';
 
 // Tab structure (AI Employee v2, 2026-04-20):
 // Main 5 tabs: briefing (朝) → ai-clerk (依頼) → projects (永続) → tasks (進捗) → watch (監視)
@@ -90,7 +93,20 @@ function getInitialTab(override?: Tab): Tab {
  */
 type SettingsSubView = 'apikeys' | 'general' | 'connectors' | 'custom-mcp' | 'fujitrace-keys';
 
-type ToolsSubView = 'research' | 'web-app-builder';
+/**
+ * Tools sub-view (2026-04-21, v2.1):
+ *   - research            : Wide Research (SSE)
+ *   - slide-builder       : スライドビルダー (旧 Web App Builder pivot)
+ *   - excel-analyzer      : Excel 分析
+ *   - meeting-transcriber : 音声議事録
+ *   - document-proofreader: 文書校正
+ */
+type ToolsSubView =
+  | 'research'
+  | 'slide-builder'
+  | 'excel-analyzer'
+  | 'meeting-transcriber'
+  | 'document-proofreader';
 
 type TasksSubView = 'board' | 'running' | 'schedule';
 
@@ -110,7 +126,10 @@ export type DashboardEntry =
   | { kind: 'schedule' }
   | { kind: 'running' }
   | { kind: 'research' }
-  | { kind: 'web-app-builder' }
+  | { kind: 'slide-builder' }
+  | { kind: 'excel-analyzer' }
+  | { kind: 'meeting-transcriber' }
+  | { kind: 'document-proofreader' }
   | { kind: 'settings-sub'; sub: 'custom-mcp' | 'fujitrace-keys' };
 
 interface DashboardProps {
@@ -131,7 +150,10 @@ export function Dashboard({ entry = { kind: 'tab' } }: DashboardProps) {
       case 'running':
         return 'tasks';
       case 'research':
-      case 'web-app-builder':
+      case 'slide-builder':
+      case 'excel-analyzer':
+      case 'meeting-transcriber':
+      case 'document-proofreader':
         return 'tools';
       default:
         return undefined;
@@ -144,7 +166,16 @@ export function Dashboard({ entry = { kind: 'tab' } }: DashboardProps) {
     return 'apikeys';
   })();
 
-  const initialToolsSubView: ToolsSubView = entry.kind === 'web-app-builder' ? 'web-app-builder' : 'research';
+  const initialToolsSubView: ToolsSubView = (() => {
+    switch (entry.kind) {
+      case 'slide-builder': return 'slide-builder';
+      case 'excel-analyzer': return 'excel-analyzer';
+      case 'meeting-transcriber': return 'meeting-transcriber';
+      case 'document-proofreader': return 'document-proofreader';
+      case 'research': return 'research';
+      default: return 'research';
+    }
+  })();
 
   const initialTasksSubView: TasksSubView = (() => {
     if (entry.kind === 'running') return 'running';
@@ -404,7 +435,10 @@ export function Dashboard({ entry = { kind: 'tab' } }: DashboardProps) {
             <div className="space-y-6">
               <ToolsSubViewPills current={toolsSubView} onChange={setToolsSubView} />
               {toolsSubView === 'research' && <WideResearch />}
-              {toolsSubView === 'web-app-builder' && <WebAppBuilder />}
+              {toolsSubView === 'slide-builder' && <WebAppBuilder />}
+              {toolsSubView === 'excel-analyzer' && <ExcelAnalyzer />}
+              {toolsSubView === 'meeting-transcriber' && <MeetingTranscriber />}
+              {toolsSubView === 'document-proofreader' && <DocumentProofreader />}
             </div>
           )}
           {activeTab === 'learn' && (
@@ -488,7 +522,10 @@ interface ToolsPillsProps {
 function ToolsSubViewPills({ current, onChange }: ToolsPillsProps) {
   const items: { id: ToolsSubView; label: string; icon: React.ReactNode }[] = [
     { id: 'research', label: 'ワイド リサーチ', icon: <Search className="w-3.5 h-3.5" strokeWidth={1.5} /> },
-    { id: 'web-app-builder', label: 'Web App Builder (β)', icon: <Wand2 className="w-3.5 h-3.5" strokeWidth={1.5} /> },
+    { id: 'slide-builder', label: 'スライドビルダー (β)', icon: <Wand2 className="w-3.5 h-3.5" strokeWidth={1.5} /> },
+    { id: 'excel-analyzer', label: 'Excel 分析', icon: <FileSpreadsheet className="w-3.5 h-3.5" strokeWidth={1.5} /> },
+    { id: 'meeting-transcriber', label: '音声議事録', icon: <Mic className="w-3.5 h-3.5" strokeWidth={1.5} /> },
+    { id: 'document-proofreader', label: '文書校正', icon: <SpellCheck className="w-3.5 h-3.5" strokeWidth={1.5} /> },
   ];
   return (
     <div className="inline-flex items-center gap-1 p-1 bg-base-elevated rounded-card border border-border flex-wrap">
