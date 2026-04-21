@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import TutorialChatUI, { type ChatMessage } from './TutorialChatUI';
 import TutorialStepProgress, { type TutorialStep } from './TutorialStepProgress';
+import JtcDocumentViewer, { JtcTitle, JtcMetaRow, JtcClose } from './JtcDocumentViewer';
 import { TUTORIAL_FOOTNOTE } from '../../lib/tutorial-scripts';
 import { playStepSound } from '../../lib/tutorialSound';
 
@@ -15,7 +16,7 @@ const STEPS: TutorialStep[] = [
   { label: 'sales_2026.xlsx を読込中...', duration: 500 },
   { label: '「月次推移」シートを解析中...', duration: 600 },
   { label: '月次トレンドを集計中...', duration: 700 },
-  { label: 'インサイトを要約中...', duration: 500 },
+  { label: '分析報告書を整形中...', duration: 500 },
 ];
 
 const SUGGESTIONS = [
@@ -39,12 +40,7 @@ const SHEET: SheetRow[] = [
   { month: '2026-04', revenue: 4_050_000, delta: 15.7 },
 ];
 
-const INSIGHTS: string[] = [
-  '月次売上は 6 ヶ月で 2.8M → 4.05M（+44.6%）に成長。',
-  '最高の伸びは 2026-04（前月比 +15.7%）、最低は 2026-01（-4.8%）。',
-  '年始の反動減を除くと、直近 3 ヶ月は連続で前月比プラス。',
-  '季節性: 12 月と 4 月に大きな伸び。キャンペーン設計の再現性あり。',
-];
+/* ── Preview card (input) ────────────────────────────────────────── */
 
 function SheetIcon() {
   return (
@@ -89,15 +85,17 @@ function SheetPreview() {
           <tbody className="divide-y divide-slate-100">
             {SHEET.map((row) => (
               <tr key={row.month}>
-                <td className="py-2 px-4 font-mono tabular-nums text-slate-700">
-                  {row.month}
-                </td>
+                <td className="py-2 px-4 font-mono tabular-nums text-slate-700">{row.month}</td>
                 <td className="py-2 px-4 text-right font-mono tabular-nums text-slate-900">
                   {formatYen(row.revenue)}
                 </td>
                 <td
                   className={`py-2 px-4 text-right font-mono tabular-nums ${
-                    row.delta > 0 ? 'text-green-600' : row.delta < 0 ? 'text-rose-600' : 'text-slate-400'
+                    row.delta > 0
+                      ? 'text-green-600'
+                      : row.delta < 0
+                        ? 'text-rose-600'
+                        : 'text-slate-400'
                   }`}
                 >
                   {row.delta === 0 ? '—' : `${row.delta > 0 ? '+' : ''}${row.delta.toFixed(1)}%`}
@@ -111,22 +109,22 @@ function SheetPreview() {
   );
 }
 
-function MiniBarChart() {
+/* ── JTC 分析報告書 body (output) ────────────────────────────────── */
+
+function BarChart() {
   const max = Math.max(...SHEET.map((r) => r.revenue));
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <p className="text-xs font-semibold text-slate-700 mb-3">月次推移（棒グラフ）</p>
-      <div className="flex items-end gap-2 h-32">
+    <div className="mt-2 border border-[#1a1a1a] bg-white">
+      <div className="px-3 py-1.5 border-b border-[#1a1a1a] text-[11px] text-[#333] font-medium">
+        グラフ 1  月次売上推移（単位: 円）
+      </div>
+      <div className="flex items-end gap-2 h-36 px-4 pt-3 pb-2">
         {SHEET.map((r) => {
           const pct = (r.revenue / max) * 100;
           return (
             <div key={r.month} className="flex flex-col items-center flex-1 min-w-0">
-              <div
-                className="w-full rounded-t bg-blue-500/80"
-                style={{ height: `${pct}%` }}
-                title={`${r.month}: ${formatYen(r.revenue)}`}
-              />
-              <span className="mt-1 text-[9px] font-mono tabular-nums text-slate-500 truncate">
+              <div className="w-full bg-[#1a1a1a]" style={{ height: `${pct}%` }} />
+              <span className="mt-1 text-[9px] font-mono tabular-nums text-[#333]">
                 {r.month.slice(5)}
               </span>
             </div>
@@ -137,25 +135,131 @@ function MiniBarChart() {
   );
 }
 
-function InsightsCard() {
+function RankingTable() {
+  const sorted = [...SHEET].sort((a, b) => b.revenue - a.revenue);
   return (
-    <div className="rounded-xl border border-green-200 bg-green-50/60 p-5 shadow-sm space-y-3">
-      <div className="flex items-center gap-2">
-        <span className="inline-flex items-center rounded-full border border-green-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-green-700">
-          AI が読み取ったインサイト
-        </span>
+    <div className="mt-2 border border-[#1a1a1a]">
+      <div className="grid grid-cols-[50px_1fr_120px] bg-[#f3f4f6] border-b border-[#1a1a1a] text-[11px] text-[#333]">
+        <div className="px-2 py-1.5 text-center border-r border-[#333]">順位</div>
+        <div className="px-2 py-1.5 border-r border-[#333]">対象月</div>
+        <div className="px-2 py-1.5 text-right">売上</div>
       </div>
-      <ul className="space-y-2">
-        {INSIGHTS.map((line, i) => (
-          <li key={i} className="flex gap-2 text-sm text-slate-800">
-            <span className="text-green-600 font-bold flex-shrink-0">→</span>
-            <span className="flex-1 leading-relaxed">{line}</span>
-          </li>
-        ))}
-      </ul>
-      <MiniBarChart />
-      <p className="text-[11px] text-slate-400">{TUTORIAL_FOOTNOTE}</p>
+      {sorted.slice(0, 3).map((r, i) => (
+        <div
+          key={r.month}
+          className="grid grid-cols-[50px_1fr_120px] text-[12px] border-b border-[#333] last:border-b-0"
+        >
+          <div className="px-2 py-1.5 text-center border-r border-[#333] font-mono">
+            {i + 1}
+          </div>
+          <div className="px-2 py-1.5 border-r border-[#333] font-mono tabular-nums">{r.month}</div>
+          <div className="px-2 py-1.5 text-right tabular-nums">{formatYen(r.revenue)}</div>
+        </div>
+      ))}
     </div>
+  );
+}
+
+function AnalysisReportBody() {
+  return (
+    <>
+      <JtcTitle label="売上データ分析報告書" tracking="normal" />
+      <JtcMetaRow docNumber="REP-20260422-001" issuedOn="令和8年4月22日" />
+
+      <div className="mt-4 text-[12px] text-[#333]">
+        <span className="text-[#555]">対象データ: </span>
+        <span>sales_2026.xlsx（2025年11月 〜 2026年4月、6 ヶ月分）</span>
+      </div>
+
+      <section className="mt-5">
+        <p className="font-semibold text-[14px] mb-1.5 border-b border-[#1a1a1a] pb-1">
+          1. 分析概要
+        </p>
+        <p className="pl-3 text-[13px] leading-relaxed">
+          2025年11月から2026年4月までの月次売上は、2,800,000 円から 4,050,000 円へと推移した。
+          期間全体で +44.6% の成長を記録し、直近 3 ヶ月は連続で前月比プラスとなっている。
+        </p>
+      </section>
+
+      <section className="mt-5">
+        <p className="font-semibold text-[14px] mb-1.5 border-b border-[#1a1a1a] pb-1">
+          2. 月次推移
+        </p>
+        <div className="pl-3">
+          <BarChart />
+          <div className="mt-3 border border-[#1a1a1a]">
+            <div className="grid grid-cols-[110px_1fr_120px] bg-[#f3f4f6] border-b border-[#1a1a1a] text-[11px] text-[#333]">
+              <div className="px-2 py-1.5 border-r border-[#333]">対象月</div>
+              <div className="px-2 py-1.5 text-right border-r border-[#333]">売上</div>
+              <div className="px-2 py-1.5 text-right">前月比</div>
+            </div>
+            {SHEET.map((r) => (
+              <div
+                key={r.month}
+                className="grid grid-cols-[110px_1fr_120px] text-[12px] border-b border-[#333] last:border-b-0"
+              >
+                <div className="px-2 py-1.5 border-r border-[#333] font-mono tabular-nums">
+                  {r.month}
+                </div>
+                <div className="px-2 py-1.5 text-right border-r border-[#333] tabular-nums">
+                  {formatYen(r.revenue)}
+                </div>
+                <div className="px-2 py-1.5 text-right tabular-nums">
+                  {r.delta === 0
+                    ? '—'
+                    : `${r.delta > 0 ? '+' : ''}${r.delta.toFixed(1)}%`}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-5">
+        <p className="font-semibold text-[14px] mb-1.5 border-b border-[#1a1a1a] pb-1">
+          3. 売上上位月ランキング
+        </p>
+        <div className="pl-3">
+          <RankingTable />
+        </div>
+      </section>
+
+      <section className="mt-5">
+        <p className="font-semibold text-[14px] mb-1.5 border-b border-[#1a1a1a] pb-1">
+          4. 所見
+        </p>
+        <ol className="pl-5 space-y-1.5 text-[13px] list-decimal">
+          <li>
+            最高の伸び率は 2026 年 4 月（前月比 +15.7%）、最低は 2026 年 1 月（-4.8%）。
+          </li>
+          <li>
+            12 月と 4 月に大きな伸びが集中しており、季節性要因が認められる。
+          </li>
+          <li>
+            年始の反動減を除けば、期間を通して増収基調にある。
+          </li>
+        </ol>
+      </section>
+
+      <section className="mt-5">
+        <p className="font-semibold text-[14px] mb-1.5 border-b border-[#1a1a1a] pb-1">
+          5. 提案アクション
+        </p>
+        <ol className="pl-5 space-y-1.5 text-[13px] list-decimal">
+          <li>
+            12 月・4 月の伸びを再現するため、キャンペーン設計の再利用を検討する。
+          </li>
+          <li>
+            1 月の反動減について、要因分析のうえ来期の平準化施策を立案する。
+          </li>
+          <li>
+            直近 3 ヶ月のトレンドを踏まえ、次期計画の上方修正を検討する。
+          </li>
+        </ol>
+      </section>
+
+      <JtcClose />
+    </>
   );
 }
 
@@ -208,7 +312,7 @@ export default function Chapter5ExcelAnalyze({
     setPhase('done');
     onMascot(
       'happy',
-      'Excel を見て\n傾向を読み取れた。\n\n毎月の集計…\nもう全部任せよう。',
+      '分析報告書に\nまとめたよ。\n\n社内回覧に\nそのまま使える体裁だよ。',
     );
   };
 
@@ -224,7 +328,7 @@ export default function Chapter5ExcelAnalyze({
           売上データを読ませる — Excel 分析
         </h2>
         <p className="mt-2 text-sm text-slate-600">
-          Excel ファイルを渡すと、AI 社員がシートを読んで傾向やインサイトを答えます。
+          Excel ファイルを渡すと、AI 社員がシートを読んで「分析報告書」の体裁でまとめます。
         </p>
       </header>
 
@@ -280,7 +384,14 @@ export default function Chapter5ExcelAnalyze({
 
       {phase === 'done' && (
         <>
-          <InsightsCard />
+          <JtcDocumentViewer
+            kind="分析報告書"
+            filename="売上分析報告書_20260422"
+            caption="本書類は印刷を前提とした体裁で出力しています。"
+          >
+            <AnalysisReportBody />
+          </JtcDocumentViewer>
+          <p className="text-[11px] text-slate-400 text-right">{TUTORIAL_FOOTNOTE}</p>
           <div className="flex justify-end">
             <button
               type="button"

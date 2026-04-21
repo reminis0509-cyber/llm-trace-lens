@@ -336,6 +336,16 @@ export function Dashboard({ entry = { kind: 'tab' } }: DashboardProps) {
               <HelpCircle className="w-3.5 h-3.5" strokeWidth={1.5} />
               <span className="hidden xl:inline">チュートリアル</span>
             </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange('briefing')}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary border border-border hover:border-accent/40 rounded-card transition-colors duration-120"
+              title="今日のブリーフィングを開く"
+              aria-label="今日のブリーフィング"
+            >
+              <Sun className="w-3.5 h-3.5" strokeWidth={1.5} />
+              <span className="hidden xl:inline">今日のブリーフィング</span>
+            </button>
             <a
               href="/dashboard/watch"
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary border border-border hover:border-accent/40 rounded-card transition-colors duration-120"

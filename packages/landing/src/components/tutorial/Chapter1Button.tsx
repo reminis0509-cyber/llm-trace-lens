@@ -27,66 +27,81 @@ interface BriefingTask {
   source: string;
 }
 
+// Typical Japanese SME salesperson Monday morning.
+// 3 meetings, 3 tasks — visually compact, time-first layout.
 const EVENTS: BriefingEvent[] = [
   {
-    time: '10:00 - 10:45',
+    time: '10:00',
     title: '株式会社サンプル商事 定例',
     participants: '田中部長 / 佐藤様',
-    note: '前回メモ: 見積書の再提出依頼あり',
+    note: '前回: 見積書の再提出依頼あり',
   },
   {
-    time: '13:30 - 14:00',
-    title: '社内 プロダクトレビュー',
+    time: '13:30',
+    title: '社内プロダクトレビュー',
     participants: '田中 / 鈴木 / 加藤',
   },
   {
-    time: '16:00 - 17:00',
-    title: '新規問合せヒアリング (株式会社ABC)',
+    time: '16:00',
+    title: '株式会社ABC 新規問合せ',
     participants: '先方 3 名',
-    note: '初回、提案資料は仮でも OK',
+    note: '初回ヒアリング。提案資料は仮でも可',
   },
 ];
 
 const TASKS: BriefingTask[] = [
   {
     priority: 'high',
-    title: '株式会社サンプル商事様の見積書再提出',
-    source: 'Gmail「お世話になっております…」',
-  },
-  {
-    priority: 'high',
-    title: 'プロダクトレビューの議題整理',
-    source: 'Calendar 定例メモ',
+    title: '株式会社サンプル商事 御中 見積書を再提出',
+    source: 'Gmail 4/18 17:42',
   },
   {
     priority: 'mid',
-    title: '株式会社ABCの事前調査',
+    title: '株式会社ABC の事前調査',
     source: 'Calendar 備考欄',
   },
   {
     priority: 'low',
-    title: '経費精算の締め切り確認',
+    title: '経費精算（締切 4/25）',
     source: 'Gmail リマインダー',
   },
 ];
 
+const COMPLETED: string[] = [
+  '週次レポートを佐藤部長に送信',
+  'freee 仕訳 先週分を承認',
+];
+
+const PENDING: string[] = ['取引先 山田商店から返信待ち（見積条件の合意）'];
+
 function PriorityBadge({ priority }: { priority: BriefingTask['priority'] }) {
   const styles: Record<BriefingTask['priority'], string> = {
-    high: 'bg-rose-100 text-rose-800 border-rose-200',
-    mid: 'bg-amber-100 text-amber-800 border-amber-200',
-    low: 'bg-slate-100 text-slate-600 border-slate-200',
+    high: 'bg-rose-50 text-rose-700 border-rose-200',
+    mid: 'bg-amber-50 text-amber-700 border-amber-200',
+    low: 'bg-slate-50 text-slate-600 border-slate-200',
   };
   const labels: Record<BriefingTask['priority'], string> = {
     high: '最優先',
     mid: '今日中',
-    low: '余裕があれば',
+    low: '余裕時',
   };
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${styles[priority]}`}
+      className={`inline-flex flex-shrink-0 items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${styles[priority]}`}
     >
       {labels[priority]}
     </span>
+  );
+}
+
+function SectionHeading({ title, count }: { title: string; count?: number }) {
+  return (
+    <div className="flex items-baseline gap-2 mb-2">
+      <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
+      {typeof count === 'number' && (
+        <span className="text-[11px] text-slate-500 tabular-nums">{count} 件</span>
+      )}
+    </div>
   );
 }
 
@@ -158,54 +173,51 @@ export default function Chapter1Button({ onComplete, onMascot }: Chapter1ButtonP
 
       {phase === 'done' && (
         <>
-          <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-5 sm:p-6 shadow-sm space-y-5">
-            <header className="flex items-center justify-between">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
+            {/* Top bar — date / source badge */}
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
               <div>
                 <p className="text-xs font-semibold tracking-wide text-blue-700 uppercase">
                   朝のブリーフィング
                 </p>
-                <h3 className="text-lg font-bold text-slate-900">2026年4月20日（月）</h3>
+                <h3 className="text-lg font-bold text-slate-900 mt-0.5">
+                  2026年4月20日（月）
+                </h3>
               </div>
-              <span className="inline-flex items-center rounded-full bg-white border border-blue-200 px-2.5 py-0.5 text-[10px] font-semibold text-blue-700">
+              <span className="inline-flex items-center rounded-md bg-slate-50 border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
                 Calendar + Gmail
               </span>
-            </header>
+            </div>
 
-            <section aria-labelledby="ch1-events" className="space-y-2">
-              <h4 id="ch1-events" className="text-sm font-semibold text-slate-900">
-                今日の予定（{EVENTS.length} 件）
-              </h4>
-              <div className="space-y-2">
+            {/* 1. Today's schedule — time-first layout */}
+            <section aria-labelledby="ch1-events" className="mb-5">
+              <SectionHeading title="今日の予定" count={EVENTS.length} />
+              <ul className="divide-y divide-slate-100 border-y border-slate-100">
                 {EVENTS.map((ev) => (
-                  <div
-                    key={ev.time}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2.5"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-xs font-mono tabular-nums text-slate-500 flex-shrink-0">
-                        {ev.time}
-                      </span>
-                      <p className="text-sm font-semibold text-slate-900 flex-1">{ev.title}</p>
+                  <li key={ev.time} className="flex items-start gap-4 py-2.5">
+                    <span className="flex-shrink-0 w-14 pt-0.5 text-sm font-mono tabular-nums text-slate-700">
+                      {ev.time}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {ev.title}
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {ev.participants}
+                        {ev.note ? ` ・ ${ev.note}` : ''}
+                      </p>
                     </div>
-                    <p className="mt-1 text-xs text-slate-600">{ev.participants}</p>
-                    {ev.note && (
-                      <p className="mt-1 text-xs text-slate-500 italic">↳ {ev.note}</p>
-                    )}
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </section>
 
-            <section aria-labelledby="ch1-tasks" className="space-y-2">
-              <h4 id="ch1-tasks" className="text-sm font-semibold text-slate-900">
-                今日のタスク（優先順）
-              </h4>
-              <ol className="space-y-2">
+            {/* 2. Today's tasks — priority + source */}
+            <section aria-labelledby="ch1-tasks" className="mb-5">
+              <SectionHeading title="今日のタスク（優先順）" count={TASKS.length} />
+              <ul className="divide-y divide-slate-100 border-y border-slate-100">
                 {TASKS.map((t) => (
-                  <li
-                    key={t.title}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 flex items-start gap-3"
-                  >
+                  <li key={t.title} className="flex items-start gap-3 py-2.5">
                     <PriorityBadge priority={t.priority} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-slate-900">{t.title}</p>
@@ -215,10 +227,49 @@ export default function Chapter1Button({ onComplete, onMascot }: Chapter1ButtonP
                     </div>
                   </li>
                 ))}
-              </ol>
+              </ul>
             </section>
 
-            <p className="text-[11px] text-slate-400">
+            {/* 3. Yesterday done — collapsible-feel compact list */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <section aria-labelledby="ch1-done">
+                <SectionHeading title="昨日完了" count={COMPLETED.length} />
+                <ul className="space-y-1">
+                  {COMPLETED.map((c) => (
+                    <li key={c} className="flex items-start gap-2 text-[13px] text-slate-600">
+                      <svg
+                        className="w-3.5 h-3.5 text-green-600 flex-shrink-0 mt-0.5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <span className="flex-1">{c}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+              {/* 4. Pending — someone else's ball */}
+              <section aria-labelledby="ch1-pending">
+                <SectionHeading title="保留中（相手待ち）" count={PENDING.length} />
+                <ul className="space-y-1">
+                  {PENDING.map((p) => (
+                    <li key={p} className="flex items-start gap-2 text-[13px] text-slate-600">
+                      <span className="text-slate-400 font-bold flex-shrink-0">…</span>
+                      <span className="flex-1">{p}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </div>
+
+            <p className="mt-5 pt-3 border-t border-slate-100 text-[11px] text-slate-400">
               ※このチュートリアルでは関数で動いています
             </p>
           </div>

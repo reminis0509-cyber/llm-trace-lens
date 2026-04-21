@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import TutorialChatUI, { type ChatMessage } from './TutorialChatUI';
 import TutorialStepProgress, { type TutorialStep } from './TutorialStepProgress';
+import JtcDocumentViewer from './JtcDocumentViewer';
 import { TUTORIAL_FOOTNOTE } from '../../lib/tutorial-scripts';
 import { playStepSound, playCompleteSound } from '../../lib/tutorialSound';
 
@@ -15,111 +16,334 @@ const STEPS: TutorialStep[] = [
   { label: 'テーマを解析中...', duration: 400 },
   { label: '構成（アジェンダ）を組立中...', duration: 700 },
   { label: '10 枚分のスライドを生成中...', duration: 800 },
-  { label: 'Marp → HTML / PPTX 変換中...', duration: 500 },
+  { label: 'PowerPoint 体裁に整形中...', duration: 500 },
 ];
 
 const SUGGESTIONS = [
-  '新サービス紹介のスライド 10 枚',
-  '月次報告のスライド 5 枚作って',
-  '営業向けにサービス紹介スライドを',
+  'FujiTrace の営業スライドを作って',
+  '中小企業向けのサービス紹介スライド',
+  '10 枚で提案資料お願い',
 ];
 
-interface SlideSummary {
+/* ───── Slide model — FujiTrace 自身の営業資料 ───────────────────── */
+
+type SlideLayout = 'cover' | 'section' | 'bullets' | 'cta';
+
+interface Slide {
   index: number;
+  layout: SlideLayout;
   title: string;
-  bullets: string[];
+  subtitle?: string;
+  eyebrow?: string;
+  bullets?: string[];
+  footerRight?: string;
 }
 
-const SLIDES: SlideSummary[] = [
+const DECK_TITLE = 'FujiTrace — 日本企業のためのAI社員プラットフォーム';
+
+const SLIDES: Slide[] = [
   {
     index: 1,
-    title: '表紙 — FujiTrace ご提案',
-    bullets: ['日本企業のための AI 社員', '株式会社サンプル商事 御中'],
+    layout: 'cover',
+    title: DECK_TITLE,
+    subtitle: '中小企業のバックオフィスに、24時間働くAI社員を。',
+    footerRight: '合同会社 Reminis  /  2026',
   },
   {
     index: 2,
-    title: 'なぜ今 AI 社員か',
-    bullets: ['人手不足の常態化', '書類業務の属人化', 'DX が止まる中小企業'],
+    layout: 'bullets',
+    eyebrow: '01  課題',
+    title: '机上業務に追われる、日本の中小企業',
+    bullets: [
+      '見積書・請求書・議事録の作成に月 60 時間以上',
+      '属人化した Excel 集計とリサーチ業務',
+      '「DX したいが人が足りない」という現場の声',
+    ],
   },
   {
     index: 3,
-    title: '課題 — 事務作業の 3 大ペイン',
-    bullets: ['書類ごとの手戻り', '議事録の書き起こし', 'Excel の手動集計'],
+    layout: 'bullets',
+    eyebrow: '02  ソリューション',
+    title: 'AI社員が 3 カテゴリの仕事を代行',
+    bullets: [
+      '書類作成: 見積書 / 請求書 / 納品書 / 発注書 / 送付状',
+      '分析・調査: Excel 分析 / 議事録 / Wide Research',
+      '業務連携: Calendar / Gmail / Slack / freee 他',
+    ],
   },
   {
     index: 4,
-    title: 'FujiTrace の解決策',
-    bullets: ['AI 社員が書類・議事録・集計をまとめて担当', 'Gmail / Calendar と自動連携'],
+    layout: 'bullets',
+    eyebrow: '03  主要機能 (1/3)',
+    title: '書類作成 — 正式体裁で即出力',
+    bullets: [
+      '5 種類の基本書類を和文ビジネス様式で生成',
+      '金額・税率・振込先をAIが自動検証',
+      '議事録は印刷を前提とした JTC 体裁',
+    ],
   },
   {
     index: 5,
-    title: '主要機能 (1/2)',
-    bullets: ['書類作成 5 種', '議事録自動化', 'Wide Research で業界調査'],
+    layout: 'bullets',
+    eyebrow: '03  主要機能 (2/3)',
+    title: '分析・調査 — 現場の時間を取り戻す',
+    bullets: [
+      'Excel を読ませて月次推移を言語化',
+      'スライドを 1 行の指示から 10 枚構成で生成',
+      'Wide Research で業界動向を出典付きでレポート化',
+    ],
   },
   {
     index: 6,
-    title: '主要機能 (2/2)',
-    bullets: ['スライド生成', 'Excel 分析', 'Gmail 下書き自動生成'],
+    layout: 'bullets',
+    eyebrow: '03  主要機能 (3/3)',
+    title: '業務連携 — 9 つのコネクタ',
+    bullets: [
+      'Google Calendar / Gmail / Drive',
+      'Slack / Microsoft Teams',
+      'freee / マネーフォワード / Sansan / Notion',
+    ],
   },
   {
     index: 7,
-    title: '導入事例',
-    bullets: ['株式会社A: 月次報告の作成時間を 1/5 に', '株式会社B: 議事録の属人化を解消'],
+    layout: 'bullets',
+    eyebrow: '04  差別化',
+    title: '日本企業のための設計',
+    bullets: [
+      '国内リージョン保管 — 顧客データは海外に出ない',
+      '商慣習適合 — 月末締め / 御中 / 捺印欄',
+      '承認後実行 — 自動化しつつも判断は人が握る',
+    ],
   },
   {
     index: 8,
-    title: '料金プラン',
-    bullets: ['Free / Pro ¥3,000 / Max ¥15,000', '利用回数 無制限 / チーム共有対応'],
+    layout: 'bullets',
+    eyebrow: '05  料金',
+    title: '無料から始められる 5 プラン',
+    bullets: [
+      'Free: ¥0 / 月 — 個人の試用',
+      'Pro: ¥3,000 / 月 — 中小企業の定番',
+      'Max: ¥15,000 / 月 — チーム共有 / 利用回数無制限',
+      'Enterprise: 年契約 — 商習慣・監査対応',
+    ],
   },
   {
     index: 9,
-    title: '導入までの流れ',
-    bullets: ['Day 0: アカウント作成', 'Day 1: チュートリアル', 'Day 7: 定着支援'],
+    layout: 'bullets',
+    eyebrow: '06  導入',
+    title: '最短 1 日で使い始められる',
+    bullets: [
+      'Day 0: アカウント作成（無料）',
+      'Day 1: 4 章チュートリアル完了',
+      'Day 7: 定着支援ミーティング',
+      'Day 30: 月次クロージングを AI 社員に任せる',
+    ],
   },
   {
     index: 10,
-    title: 'まとめ — AI 社員、雇いませんか',
-    bullets: ['月 ¥3,000 で始められる', 'まずは無料で 4 章チュートリアル'],
+    layout: 'cta',
+    title: 'AI社員、雇いませんか。',
+    subtitle: 'まずは無料で、月曜朝のブリーフィングから。',
+    footerRight: 'fujitrace.jp',
   },
 ];
 
-function SlideCard({ slide }: { slide: SlideSummary }) {
+/* ─── Slide visual components ────────────────────────────────────── */
+
+function SlideHeader({ eyebrow, index }: { eyebrow?: string; index: number }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-3 py-3 hover:border-blue-300 transition-colors">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-[10px] font-bold tabular-nums text-slate-600">
-          {slide.index}
-        </span>
-        <p className="text-sm font-semibold text-slate-900 flex-1 truncate">{slide.title}</p>
-      </div>
-      <ul className="mt-1.5 space-y-0.5 ml-7">
-        {slide.bullets.map((b, i) => (
-          <li key={i} className="text-[11px] text-slate-600 flex gap-1.5">
-            <span className="text-slate-400">•</span>
-            <span className="flex-1">{b}</span>
-          </li>
-        ))}
-      </ul>
+    <div className="flex items-baseline justify-between text-[10px] text-[#666] font-mono tabular-nums">
+      <span className="uppercase tracking-[0.2em]">{eyebrow ?? 'FujiTrace'}</span>
+      <span>{String(index).padStart(2, '0')} / 10</span>
     </div>
   );
 }
 
-function DownloadIcon() {
+function SlideFooter({ right }: { right?: string }) {
   return (
-    <svg
-      className="w-4 h-4"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
+    <div className="mt-auto pt-3 border-t border-[#1a1a1a] flex items-baseline justify-between text-[9px] text-[#666]">
+      <span>FujiTrace — AI 社員プラットフォーム</span>
+      <span className="font-mono">{right ?? '合同会社 Reminis'}</span>
+    </div>
+  );
+}
+
+function CoverSlide({ slide }: { slide: Slide }) {
+  return (
+    <>
+      <SlideHeader eyebrow="COVER" index={slide.index} />
+      <div className="flex-1 flex flex-col justify-center items-center text-center px-4">
+        <div className="w-12 h-1 bg-[#1d3557] mb-5" aria-hidden="true" />
+        <h3 className="text-[22px] sm:text-[26px] font-bold leading-snug text-[#1a1a1a] max-w-[80%]">
+          {slide.title}
+        </h3>
+        {slide.subtitle && (
+          <p className="mt-3 text-[12px] sm:text-[14px] text-[#444]">{slide.subtitle}</p>
+        )}
+      </div>
+      <SlideFooter right={slide.footerRight} />
+    </>
+  );
+}
+
+function BulletSlide({ slide }: { slide: Slide }) {
+  return (
+    <>
+      <SlideHeader eyebrow={slide.eyebrow} index={slide.index} />
+      <div className="mt-3">
+        <h3 className="text-[18px] sm:text-[20px] font-semibold text-[#1a1a1a] border-b border-[#1a1a1a] pb-1.5">
+          {slide.title}
+        </h3>
+      </div>
+      <ul className="mt-4 space-y-2.5">
+        {(slide.bullets ?? []).map((b, i) => (
+          <li key={i} className="flex items-baseline gap-2.5 text-[12px] sm:text-[13px]">
+            <span
+              className="inline-flex flex-shrink-0 items-center justify-center w-4 h-4 text-[10px] font-mono bg-[#1d3557] text-white rounded-sm"
+              aria-hidden="true"
+            >
+              {i + 1}
+            </span>
+            <span className="flex-1 text-[#1a1a1a] leading-snug">{b}</span>
+          </li>
+        ))}
+      </ul>
+      <SlideFooter right={slide.footerRight} />
+    </>
+  );
+}
+
+function CtaSlide({ slide }: { slide: Slide }) {
+  return (
+    <>
+      <SlideHeader eyebrow="CTA" index={slide.index} />
+      <div className="flex-1 flex flex-col justify-center items-center text-center px-4">
+        <h3 className="text-[24px] sm:text-[32px] font-bold text-[#1a1a1a] leading-snug">
+          {slide.title}
+        </h3>
+        {slide.subtitle && (
+          <p className="mt-4 text-[13px] sm:text-[15px] text-[#444]">{slide.subtitle}</p>
+        )}
+        <div className="mt-6 inline-flex items-center gap-2 px-4 py-1.5 border border-[#1a1a1a] text-[12px] tracking-[0.15em]">
+          お問い合わせ: fujitrace.jp
+        </div>
+      </div>
+      <SlideFooter right={slide.footerRight} />
+    </>
+  );
+}
+
+function SlideCanvas({ slide }: { slide: Slide }) {
+  return (
+    <div className="jtc-slide">
+      {slide.layout === 'cover' && <CoverSlide slide={slide} />}
+      {slide.layout === 'bullets' && <BulletSlide slide={slide} />}
+      {slide.layout === 'cta' && <CtaSlide slide={slide} />}
+      {slide.layout === 'section' && <BulletSlide slide={slide} />}
+    </div>
+  );
+}
+
+function SlideThumb({
+  slide,
+  active,
+  onClick,
+}: {
+  slide: Slide;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={`スライド ${slide.index} に切替`}
+      className={`group text-left transition-colors ${
+        active ? 'ring-2 ring-blue-500' : 'hover:ring-1 hover:ring-slate-300'
+      } bg-white border border-slate-300 rounded-sm p-1.5 flex flex-col aspect-[16/9]`}
     >
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
+      <span className="text-[7px] text-slate-400 font-mono tabular-nums">
+        {slide.index}
+      </span>
+      <span className="text-[8px] font-semibold text-slate-700 mt-1 line-clamp-2 leading-tight">
+        {slide.title}
+      </span>
+      <span className="mt-auto flex flex-col gap-0.5">
+        {slide.bullets?.slice(0, 2).map((_, i) => (
+          <span key={i} className="h-[2px] bg-slate-200" style={{ width: `${70 - i * 10}%` }} />
+        ))}
+      </span>
+    </button>
+  );
+}
+
+/* ─── Carousel + print target ───────────────────────────────────── */
+
+function SlideDeckViewer() {
+  const [idx, setIdx] = useState(0);
+  const active = SLIDES[idx];
+
+  return (
+    <JtcDocumentViewer
+      kind="営業スライド"
+      filename="FujiTrace_営業資料_10枚"
+      caption={`${SLIDES.length} 枚構成 / 16:9 / PowerPoint 体裁`}
+    >
+      {/* When previewed: main slide + thumbnails.
+          When printed: each slide becomes its own page via .jtc-slide-page. */}
+      <div className="jtc-deck-preview">
+        {/* Main slide — visible in preview, also part of the print flow. */}
+        <div className="jtc-slide-page">
+          <SlideCanvas slide={active} />
+        </div>
+
+        {/* Thumbnails — hidden from print via .jtc-ui */}
+        <div className="jtc-ui mt-4 grid grid-cols-5 gap-2">
+          {SLIDES.map((s, i) => (
+            <SlideThumb
+              key={s.index}
+              slide={s}
+              active={i === idx}
+              onClick={() => setIdx(i)}
+            />
+          ))}
+        </div>
+
+        {/* Prev/next controls — hidden from print */}
+        <div className="jtc-ui mt-3 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setIdx((v) => Math.max(0, v - 1))}
+            disabled={idx === 0}
+            className="px-3 py-1.5 text-xs rounded border border-slate-300 text-slate-700 disabled:opacity-40"
+          >
+            ← 前へ
+          </button>
+          <span className="text-xs text-slate-500 font-mono tabular-nums">
+            {idx + 1} / {SLIDES.length}
+          </span>
+          <button
+            type="button"
+            onClick={() => setIdx((v) => Math.min(SLIDES.length - 1, v + 1))}
+            disabled={idx === SLIDES.length - 1}
+            className="px-3 py-1.5 text-xs rounded border border-slate-300 text-slate-700 disabled:opacity-40"
+          >
+            次へ →
+          </button>
+        </div>
+
+        {/* Print-only: the remaining slides. Hidden in preview, visible in print. */}
+        <div className="jtc-print-only-slides">
+          {SLIDES.map((s, i) =>
+            i === idx ? null : (
+              <div key={s.index} className="jtc-slide-page">
+                <SlideCanvas slide={s} />
+              </div>
+            ),
+          )}
+        </div>
+      </div>
+    </JtcDocumentViewer>
   );
 }
 
@@ -138,7 +362,7 @@ export default function Chapter4SlideBuilder({
       announced.current = true;
       onMascot(
         'talk',
-        '水曜日。\n営業資料、\n急ぎで欲しいって…\n言われたでしょ？\n\n1 行で十分だよ。',
+        '水曜日。\nFujiTrace の営業資料を\n作ってみよう。\n\n実際の提案にも\n使える内容だよ。',
         '下のチップで OK',
       );
     }
@@ -167,7 +391,7 @@ export default function Chapter4SlideBuilder({
     playCompleteSound();
     onMascot(
       'happy',
-      '1 行の指示で\n10 枚のスライドに\nなったね。\n\nPPTX で\n保存もできるよ。',
+      '10 枚できたよ。\n\nプレビューで\n順番に確認して、\n必要ならそのまま\nPDF 保存してね。',
     );
   };
 
@@ -180,10 +404,11 @@ export default function Chapter4SlideBuilder({
           第 4 章 / 8 — 水曜
         </p>
         <h2 id="ch4-title" className="mt-1 text-2xl font-bold text-slate-900">
-          営業資料をスライドに — 1 行から 10 枚
+          営業資料をスライドに — FujiTrace 提案 10 枚
         </h2>
         <p className="mt-2 text-sm text-slate-600">
-          「新サービス紹介のスライド 10 枚」と伝えるだけで、AI 社員が構成から作成まで全部やります。
+          1 行の指示で、FujiTrace を顧客に提案するためのスライド一式を生成します。
+          明日の商談でそのまま使える体裁です。
         </p>
       </header>
 
@@ -192,7 +417,7 @@ export default function Chapter4SlideBuilder({
         onSend={handleSend}
         suggestions={SUGGESTIONS}
         isTyping={isTyping}
-        placeholder="例: 新サービス紹介のスライド 10 枚"
+        placeholder="例: FujiTrace の営業スライドを作って"
         disabled={phase !== 'chat'}
       />
 
@@ -215,50 +440,8 @@ export default function Chapter4SlideBuilder({
 
       {phase === 'done' && (
         <>
-          <div className="rounded-xl border border-green-200 bg-green-50/60 p-5 sm:p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold tracking-wide text-green-700 uppercase">
-                  生成されたスライド
-                </p>
-                <h3 className="text-base sm:text-lg font-bold text-slate-900">
-                  新サービス紹介（10 枚構成）
-                </h3>
-              </div>
-              <span className="inline-flex items-center rounded-full border border-green-200 bg-white px-2.5 py-0.5 text-[10px] font-semibold text-green-700">
-                Marp + PPTX
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {SLIDES.map((s) => (
-                <SlideCard key={s.index} slide={s} />
-              ))}
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-green-100">
-              <button
-                type="button"
-                disabled
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-white border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 cursor-not-allowed"
-                title="チュートリアルでは実ファイル出力を行いません"
-              >
-                <DownloadIcon />
-                PPTX をダウンロード
-              </button>
-              <button
-                type="button"
-                disabled
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-white border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 cursor-not-allowed"
-                title="チュートリアルでは実ファイル出力を行いません"
-              >
-                HTML プレビューを開く
-              </button>
-            </div>
-
-            <p className="text-[11px] text-slate-400">{TUTORIAL_FOOTNOTE}</p>
-          </div>
-
+          <SlideDeckViewer />
+          <p className="text-[11px] text-slate-400 text-right">{TUTORIAL_FOOTNOTE}</p>
           <div className="flex justify-end">
             <button
               type="button"

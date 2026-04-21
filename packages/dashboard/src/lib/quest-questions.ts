@@ -130,7 +130,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 1,
     estimatedTime: '2分',
     sampleAnswer:
-      '宛先: 株式会社山田商事 御中 / 件名: 新規Webサイト制作 / 合計 ¥1,320,000（税込）の見積書 PDF が生成されます。',
+      '御見積書（JTC 体裁）を生成。宛先「株式会社山田商事 御中」、件名「新規Webサイト制作」、合計 ¥1,320,000（税込）。プレビューと PDF ダウンロードが可能。',
     steps: [
       {
         instruction: '以下のヒントをコピーして AI 社員に送信',
@@ -157,7 +157,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 2,
     estimatedTime: '3分',
     sampleAnswer:
-      '請求書 INV-2026-001 / 振込先: みずほ銀行 渋谷支店 / 支払期限: 翌月末 / 合計 ¥165,000（税込）',
+      '請求書（JTC 体裁、PDF 出力）。文書番号 INV-2026-001、振込先「みずほ銀行 渋谷支店 普通 1234567」、支払期限 翌月末、登録番号 T1234567890123、合計 ¥165,000（税込）。',
     steps: [
       {
         instruction: '複合条件を 1 回で指示（下のヒントをコピー）',
@@ -184,7 +184,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 2,
     estimatedTime: '5分',
     sampleAnswer:
-      '1. 見積書（株式会社ABC 田中様・ロゴデザイン 15万円）→ 2. 同じ条件で発注書 → 3. 2 点を同封する送付状。',
+      '3 件の JTC 体裁 PDF。(1) 御見積書（株式会社ABC 田中様、ロゴデザイン 15 万円）/ (2) 同条件の発注書 / (3) 2 点同封の送付状。いずれもプレビュー + PDF ダウンロード可。',
     steps: [
       {
         instruction: 'まず見積書を作成',
@@ -213,7 +213,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 3,
     estimatedTime: '4分',
     sampleAnswer:
-      '支払期日 60 日は下請法違反の可能性あり、書面交付の記載漏れなど、リスク 3 点を指摘して修正版を提示。',
+      'リスク指摘 3 点: (1) 支払期日 60 日は下請法 2 条の 2 に抵触の可能性 / (2) 書面交付事項の記載漏れ / (3) 品目記載の粒度不足。併せて、支払期日を 30 日以内に改めた修正版発注書（JTC 体裁 PDF）を出力。',
     steps: [
       {
         instruction: '下請法違反を含む発注書を AI に検証依頼',
@@ -241,7 +241,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 2,
     estimatedTime: '3分',
     sampleAnswer:
-      'メモリ保存後の新規会話では、「見積書作って」だけでも敬称「御中」・支払条件「月末締翌月末払い」が自動適用。',
+      'メモリ保存後は、新規会話で「見積書作って」だけでも敬称「御中」・支払条件「月末締翌月末払い」・消費税 10% が自動反映された御見積書（JTC 体裁 PDF）が出力される。',
     steps: [
       {
         instruction: 'デフォルト設定をメモリに保存',
@@ -271,7 +271,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 1,
     estimatedTime: '3分',
     sampleAnswer:
-      '1. 開催情報 / 2. 報告事項 / 3. 決定事項 / 4. ToDo（担当者つき）/ 5. 次回予定 / 6. 備考 の 6 セクションで整形。',
+      'JTC Word 議事録体裁で出力（プレビュー + PDF 可）。構成は 1.日時 / 2.場所 / 3.参加者 / 4.議題 / 5.決定事項 / 6.懸案事項・ToDo（担当・期限を表形式）/ 7.次回開催。末尾に「以上」。',
     steps: [
       {
         instruction: '走り書きメモを AI 社員に渡す',
@@ -298,7 +298,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 2,
     estimatedTime: '5分',
     sampleAnswer:
-      '文字起こし全文 + 発言者別の要約 + 決定事項 + ToDo（担当者つき）が出力されます。',
+      '文字起こし全文に加えて、JTC 議事録体裁の PDF を出力（プレビュー + ダウンロード可）。発言者別要約・決定事項・ToDo（担当・期限）を表形式で整理。',
     steps: [
       {
         instruction: 'ダッシュボードの「ツール > 議事録」を開く',
@@ -324,7 +324,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 2,
     estimatedTime: '3分',
     sampleAnswer:
-      '佐藤さん担当の ToDo（見積書作成・先方との日程調整）のみを箇条書きで抽出。',
+      '佐藤担当の ToDo のみを抽出: (1) 見積書作成 / (2) 先方との日程調整。画面上に箇条書きで表示（紙化不要）。',
     steps: [
       {
         instruction: '議事録生成の後、自分宛の ToDo だけ抽出',
@@ -349,7 +349,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 1,
     estimatedTime: '3分',
     sampleAnswer:
-      '表紙 / なぜ今 / 課題 / 解決策 / 機能 2 枚 / 事例 / 料金 / 導入フロー / まとめ の 10 枚構成 + PPTX DL。',
+      '16:9 PowerPoint 体裁のスライド 10 枚。表紙 / なぜ今 / 課題 / 解決策 / 機能 2 枚 / 事例 / 料金 / 導入フロー / まとめ。プレビュー + PDF ダウンロード（1 枚 1 ページ）可。',
     steps: [
       {
         instruction: 'ツール > スライド生成で新規生成',
@@ -376,7 +376,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 2,
     estimatedTime: '5分',
     sampleAnswer:
-      'エグゼクティブサマリ / KPI ダッシュボード / 成果 / 課題と対策 / 次月アクション の 5 枚。',
+      '16:9 PowerPoint 体裁のスライド 5 枚（プレビュー + PDF 可）。エグゼクティブサマリ / KPI ダッシュボード / 成果 / 課題と対策 / 次月アクション。',
     steps: [
       {
         instruction: '数値 + 構成指示を一度に',
@@ -399,7 +399,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 3,
     estimatedTime: '6分',
     sampleAnswer:
-      '議事録の「決定事項」と「ToDo」から、提案背景 → 提案内容 → スケジュール の 8 枚を自動組立。',
+      '議事録の「決定事項」と「ToDo」を材料に、提案背景 → 課題 → 提案内容 → スケジュール → 料金 → まとめ の 8 枚スライド（16:9 PowerPoint 体裁、PDF 可）。',
     steps: [
       {
         instruction: '既存の議事録を参照して依頼',
@@ -424,7 +424,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 1,
     estimatedTime: '3分',
     sampleAnswer:
-      '月次売上は 6 ヶ月で +44.6%、最高の伸びは 4 月（+15.7%）、最低は 1 月（-4.8%）等。',
+      '「売上データ分析報告書」（JTC 体裁、プレビュー + PDF 可）を出力。月次売上は 6 ヶ月で +44.6%、最高の伸びは 4 月（+15.7%）、最低は 1 月（-4.8%）等。',
     steps: [
       {
         instruction: 'ツール > Excel 分析で sales.xlsx をアップロード',
@@ -451,7 +451,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 2,
     estimatedTime: '4分',
     sampleAnswer:
-      '1位 人件費 / 2位 外注費 / 3位 SaaS 費 / 上位 3 費目で総額の 78% を占める、等。',
+      '「費目別支出分析報告書」（JTC 体裁 PDF）を出力。順位表 1.人件費 / 2.外注費 / 3.SaaS 費、上位 3 費目で総額の 78% を占める等の所見を併記。',
     steps: [
       {
         instruction: '経費シートを Excel 分析にアップロード',
@@ -478,7 +478,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 3,
     estimatedTime: '5分',
     sampleAnswer:
-      '広告費が予算比 +43%、人件費が -8% など差異 3 点。原因仮説と次アクション案つき。',
+      '「予実差異分析報告書」（JTC 体裁 PDF）。広告費 +43%、人件費 -8% など差異 3 点を表形式で、原因仮説と次アクション案を各項目ごとに併記。',
     steps: [
       {
         instruction: '予算シート + 実績シートの両方をアップロード',
@@ -496,18 +496,18 @@ export const QUESTS: readonly Quest[] = [
     ],
   },
 
-  // ── Wide Research (2) ──
+  // ── Wide Research (2) — 画面出力でOK、入力により出力が分岐 ──
   {
     id: 'res-1',
     category: 'research',
     number: 15,
     title: 'SaaS 業界の 2026 年動向',
-    description: '複数ソースを横断して、出典付きの業界レポートを生成。',
+    description: '複数ソースを横断して、出典付きの業界レポートを生成（画面表示）。',
     objective: 'Wide Research の所要時間と質感を体感',
     difficulty: 2,
     estimatedTime: '5分',
     sampleAnswer:
-      '市場規模 / 主要プレイヤー / 競争軸の変化 / 日本市場の差別化要因 / 中小企業示唆 の 5 セクション + 出典 10 件。',
+      '入力テーマにより出力構成が変化します。例えば「SaaS 業界動向」を指定した場合: 市場規模 / 主要プレイヤー / 競争軸の変化 / 日本市場の差別化要因 / 中小企業示唆 の 5 セクション + 出典 10 件。画面上の構造化レポートとして表示（紙化不要）。',
     steps: [
       {
         instruction: 'ツール > Wide Research に切り替え',
@@ -529,12 +529,12 @@ export const QUESTS: readonly Quest[] = [
     category: 'research',
     number: 16,
     title: '競合 3 社の比較レポート',
-    description: '指名した 3 社の機能・料金・強みを横並び比較。',
+    description: '指名した 3 社の機能・料金・強みを横並び比較（画面表示）。',
     objective: '比較軸を指定してリサーチを誘導',
     difficulty: 3,
     estimatedTime: '6分',
     sampleAnswer:
-      '3 社の機能マトリクス + 料金比較 + 強みと弱み + 自社との差別化ポイント提案。',
+      '入力で指名した 3 社についての比較レポートを画面表示。機能マトリクス / 料金比較 / 強み弱み / 自社との差別化ポイント提案。紙化は不要（画面の構造化表示）。',
     steps: [
       {
         instruction: '比較対象を指名してリサーチ',
@@ -559,7 +559,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 1,
     estimatedTime: '2分',
     sampleAnswer:
-      '「お疲れ様です」→「いつもお世話になっております」など 5 箇所を修正、修正理由つき。',
+      '画面に修正差分を表示（紙化不要）。「お疲れ様です」→「いつもお世話になっております」など 5 箇所を before/after 併記、修正理由を各項目に明記。',
     steps: [
       {
         instruction: 'ラフなメール原文で校正依頼',
@@ -582,7 +582,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 2,
     estimatedTime: '4分',
     sampleAnswer:
-      '「発注者」と「甲」の混在を「甲」に統一、該当箇所 7 件を差分で提示。',
+      '画面に差分を表示（紙化不要）。「発注者」と「甲」の混在を「甲」に統一、該当箇所 7 件を行単位の before/after で提示。',
     steps: [
       {
         instruction: '契約書のドラフトをコピペして校正依頼',
@@ -607,7 +607,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 1,
     estimatedTime: '2分',
     sampleAnswer:
-      '今日の予定 3 件 + 未読メールから抽出したタスク 4 件を、優先度つきで表示。',
+      '朝のブリーフィング画面（紙化不要）。今日の予定 3 件 + 未読メールから抽出したタスク 4 件を、優先度つきで表示。昨日完了と保留中（相手待ち）も併記。',
     steps: [
       {
         instruction: '設定 > 連携で Google Calendar / Gmail を接続',
@@ -634,7 +634,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 2,
     estimatedTime: '3分',
     sampleAnswer:
-      'Gmail の下書きに宛先・件名・本文が入った状態で作成される。送信直前まで AI 社員が準備。',
+      'Gmail 下書きフォルダに、宛先・件名・本文・添付予定を含んだ下書きが保存される。画面で内容を確認可能（紙化不要・送信は人が判断）。',
     steps: [
       {
         instruction: '下書きを依頼',
@@ -657,7 +657,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 3,
     estimatedTime: '4分',
     sampleAnswer:
-      'Calendar から明日の会議を特定 → 議題を箇条書き化 → Drive の関連ファイル 2 点をリンク添付してメール下書き。',
+      'Calendar から明日の会議を特定 → 議題を箇条書き化 → Drive の関連ファイル 2 点をリンク添付したメール下書きを Gmail に保存。画面で確認（紙化不要）。',
     steps: [
       {
         instruction: '会議情報を元に依頼',
@@ -682,7 +682,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 3,
     estimatedTime: '8分',
     sampleAnswer:
-      '1. 業界調査レポート / 2. 提案スライド 12 枚 / 3. 会議設定メール下書き / 4. Calendar 仮予定、計 4 成果物。',
+      '4 成果物。紙化対象: (1) 提案スライド 12 枚（PDF 可）/ (2) 業界調査レポート（画面表示、紙化任意）。紙化不要: (3) 会議設定メール下書き / (4) Calendar 仮予定。各成果物はプレビュー or 詳細モーダルで確認できる。',
     steps: [
       {
         instruction: '複合指示を送信',
@@ -709,7 +709,7 @@ export const QUESTS: readonly Quest[] = [
     difficulty: 3,
     estimatedTime: '10分',
     sampleAnswer:
-      'Excel から集計 → 月次報告書（文書）→ 役員向けスライド 5 枚 → 役員 3 名宛のメール下書き。',
+      '成果物 3 種。紙化対象: (1) 月次分析報告書（JTC 体裁 PDF）/ (2) 役員向けスライド 5 枚（16:9 PDF）。紙化不要: (3) 役員 3 名宛 Gmail 下書き（PDF・スライドを添付予定）。',
     steps: [
       {
         instruction: '月次の Excel を事前にアップロード',
