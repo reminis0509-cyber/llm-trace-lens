@@ -283,18 +283,21 @@ function SlideShell({
   children: ReactNode;
 }) {
   return (
-    <div className="jtc-slide-v2 relative flex flex-col">
+    <div
+      className="jtc-slide-v2 relative flex flex-col"
+      style={{ color: '#ffffff' }}
+    >
       {/* Gold accent line — top-left */}
       <div className="jtc-slide-v2-accent-line" aria-hidden="true" />
       {/* Dot pattern — top-right */}
       <CornerDots className="jtc-slide-v2-dots" />
 
       {/* Header: eyebrow + index */}
-      <div className="flex items-baseline justify-between text-[10px] font-mono tabular-nums text-[#d9c79a]">
+      <div className="flex items-baseline justify-between text-[10px] font-mono tabular-nums" style={{ color: '#d9c79a' }}>
         <span className="uppercase tracking-[0.3em]">
           {slide.eyebrow ?? (slide.layout === 'cover' ? 'Cover' : 'FujiTrace')}
         </span>
-        <span className="text-[#9fb1c4]">
+        <span style={{ color: '#9fb1c4' }}>
           {String(slide.index).padStart(2, '0')} / 10
         </span>
       </div>
@@ -302,7 +305,7 @@ function SlideShell({
       {children}
 
       {/* Footer */}
-      <div className="mt-auto pt-3 border-t border-[#2b4566] flex items-baseline justify-between text-[9px] text-[#9fb1c4]">
+      <div className="mt-auto pt-3 border-t border-[#2b4566] flex items-baseline justify-between text-[9px]" style={{ color: '#9fb1c4' }}>
         <span className="tracking-wider">FujiTrace — AI 社員プラットフォーム</span>
         <span className="font-mono">{slide.footerRight ?? '合同会社 Reminis'}</span>
       </div>
@@ -312,7 +315,10 @@ function SlideShell({
 
 function HighlightChip({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 border border-[#c9a96e] text-[9px] font-mono uppercase tracking-[0.25em] text-[#c9a96e]">
+    <span
+      className="inline-flex items-center gap-1 px-2 py-0.5 border border-[#c9a96e] text-[9px] font-mono uppercase tracking-[0.25em]"
+      style={{ color: '#c9a96e' }}
+    >
       {label}
     </span>
   );
@@ -324,11 +330,17 @@ function CoverSlide({ slide }: { slide: Slide }) {
       <div className="flex-1 flex flex-col justify-center items-center text-center px-4">
         {slide.highlight && <HighlightChip label={slide.highlight} />}
         <div className="w-14 h-[2px] bg-[#c9a96e] mt-5 mb-5" aria-hidden="true" />
-        <h3 className="text-[22px] sm:text-[28px] font-bold leading-snug text-white max-w-[86%]">
+        <h3
+          className="text-[22px] sm:text-[28px] font-bold leading-snug max-w-[86%]"
+          style={{ color: '#ffffff' }}
+        >
           {slide.title}
         </h3>
         {slide.subtitle && (
-          <p className="mt-4 text-[12px] sm:text-[14px] text-[#c6d3e4] max-w-[70%] leading-relaxed">
+          <p
+            className="mt-4 text-[12px] sm:text-[14px] max-w-[70%] leading-relaxed"
+            style={{ color: '#c6d3e4' }}
+          >
             {slide.subtitle}
           </p>
         )}
@@ -343,11 +355,17 @@ function BulletSlide({ slide }: { slide: Slide }) {
       <div className="mt-3 flex items-start justify-between gap-4">
         <div className="flex items-center gap-2.5">
           {slide.icon && (
-            <span className="inline-flex items-center justify-center w-8 h-8 rounded-sm border border-[#c9a96e] text-[#c9a96e]">
+            <span
+              className="inline-flex items-center justify-center w-8 h-8 rounded-sm border border-[#c9a96e]"
+              style={{ color: '#c9a96e' }}
+            >
               <SlideIconSvg name={slide.icon} className="w-4 h-4" />
             </span>
           )}
-          <h3 className="text-[17px] sm:text-[21px] font-semibold text-white leading-tight">
+          <h3
+            className="text-[17px] sm:text-[21px] font-semibold leading-tight"
+            style={{ color: '#ffffff' }}
+          >
             {slide.title}
           </h3>
         </div>
@@ -361,12 +379,13 @@ function BulletSlide({ slide }: { slide: Slide }) {
             className="flex items-baseline gap-2.5 text-[12px] sm:text-[13px]"
           >
             <span
-              className="inline-flex flex-shrink-0 items-center justify-center w-5 h-5 text-[10px] font-mono bg-[#c9a96e] text-[#0f2847] rounded-sm font-semibold"
+              className="inline-flex flex-shrink-0 items-center justify-center w-5 h-5 text-[10px] font-mono rounded-sm font-semibold"
+              style={{ backgroundColor: '#c9a96e', color: '#0f2847' }}
               aria-hidden="true"
             >
               {i + 1}
             </span>
-            <span className="flex-1 text-[#e9eef5] leading-relaxed">{b}</span>
+            <span className="flex-1 leading-relaxed" style={{ color: '#e9eef5' }}>{b}</span>
           </li>
         ))}
       </ul>
@@ -380,15 +399,24 @@ function CtaSlide({ slide }: { slide: Slide }) {
       <div className="flex-1 flex flex-col justify-center items-center text-center px-4">
         {slide.highlight && <HighlightChip label={slide.highlight} />}
         <div className="w-14 h-[2px] bg-[#c9a96e] mt-5 mb-5" aria-hidden="true" />
-        <h3 className="text-[26px] sm:text-[34px] font-bold text-white leading-snug">
+        <h3
+          className="text-[26px] sm:text-[34px] font-bold leading-snug"
+          style={{ color: '#ffffff' }}
+        >
           {slide.title}
         </h3>
         {slide.subtitle && (
-          <p className="mt-4 text-[13px] sm:text-[15px] text-[#c6d3e4]">
+          <p
+            className="mt-4 text-[13px] sm:text-[15px]"
+            style={{ color: '#c6d3e4' }}
+          >
             {slide.subtitle}
           </p>
         )}
-        <div className="mt-6 inline-flex items-center gap-2 px-5 py-2 border border-[#c9a96e] text-[12px] tracking-[0.2em] text-[#c9a96e]">
+        <div
+          className="mt-6 inline-flex items-center gap-2 px-5 py-2 border border-[#c9a96e] text-[12px] tracking-[0.2em]"
+          style={{ color: '#c9a96e' }}
+        >
           お問い合わせ: fujitrace.jp
         </div>
       </div>
@@ -421,11 +449,12 @@ function SlideThumb({
           ? 'ring-2 ring-[#c9a96e] shadow-md'
           : 'hover:ring-1 hover:ring-[#c9a96e]/60'
       } bg-gradient-to-br from-[#0f2847] to-[#1e3a5f] border border-[#2b4566] rounded-sm p-1.5 flex flex-col aspect-[16/9]`}
+      style={{ color: '#ffffff' }}
     >
-      <span className="text-[7px] text-[#c9a96e] font-mono tabular-nums tracking-wider">
+      <span className="text-[7px] font-mono tabular-nums tracking-wider" style={{ color: '#c9a96e' }}>
         {String(slide.index).padStart(2, '0')}
       </span>
-      <span className="text-[8px] font-semibold text-white mt-1 line-clamp-2 leading-tight">
+      <span className="text-[8px] font-semibold mt-1 line-clamp-2 leading-tight" style={{ color: '#ffffff' }}>
         {slide.title}
       </span>
       <span className="mt-auto flex flex-col gap-0.5">
