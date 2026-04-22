@@ -25,6 +25,7 @@ import type { DocumentKind } from './lib/tutorial-scripts';
 import EstimateDemo from './components/EstimateDemo';
 import MidPageCTA from './components/MidPageCTA';
 import EducationShowcase from './components/EducationShowcase';
+import Capabilities from './components/Capabilities';
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -70,46 +71,50 @@ export default function App() {
         <Hero />
         <div className="section-divider" />
 
-        {/* 2. 課題共感 — 中小企業 DX ペイン */}
+        {/* 2. できること一覧 — 15機能を Before→After で具体化 (2026-04-22 新設) */}
+        <Capabilities />
+        <div className="section-divider" />
+
+        {/* 3. 課題共感 — 中小企業 DX ペイン */}
         <Problems />
         <div className="section-divider" />
 
-        {/* 3. 解決策 — AI 社員の 3 カテゴリ */}
+        {/* 4. 解決策 — AI 社員の 3 カテゴリ */}
         <Solution />
         <div className="section-divider" />
 
-        {/* 4. 差別化 — ChatGPT/海外AI との比較 */}
+        {/* 5. 差別化 — ChatGPT/海外AI との比較 */}
         <Differentiation />
         <div className="section-divider" />
 
-        {/* 5. デモ見積書フォーム — 即体験 */}
+        {/* 6. デモ見積書フォーム — 即体験 */}
         <EstimateDemo />
         <div className="section-divider" />
 
-        {/* 6. 出力サンプル — 実書類の雰囲気 */}
+        {/* 7. 出力サンプル — 実書類の雰囲気 */}
         <DemoShowcase />
         <div className="section-divider" />
 
-        {/* 7. 中間CTA */}
+        {/* 8. 中間CTA */}
         <MidPageCTA />
         <div className="section-divider" />
 
-        {/* 8. 安心材料 — セキュリティ・法令遵守 */}
+        {/* 9. 安心材料 — セキュリティ・法令遵守 */}
         <TrustSection />
         <div className="section-divider" />
 
-        {/* 9. 教育ショーケース — チュートリアル訴求 */}
+        {/* 10. 教育ショーケース — チュートリアル訴求 */}
         <EducationShowcase />
         <div className="section-divider" />
 
-        {/* 10. 料金 */}
+        {/* 11. 料金 */}
         <Pricing />
         <div className="section-divider" />
 
-        {/* 11. FAQ */}
+        {/* 12. FAQ */}
         <FAQ />
 
-        {/* 12. 最終CTA */}
+        {/* 13. 最終CTA */}
         <CTA />
       </>
     );

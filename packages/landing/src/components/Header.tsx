@@ -16,6 +16,7 @@ type AiToolItem = {
 type AiMenuEntry = AiToolItem | { isDivider: true };
 
 const navItems: NavItem[] = [
+  { label: 'できること', href: '#capabilities' },
   { label: '課題', href: '#problems' },
   { label: '解決策', href: '#solution' },
   { label: '比較', href: '#differentiation' },
