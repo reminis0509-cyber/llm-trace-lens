@@ -5,6 +5,16 @@ interface CompletionCertificateProps {
   initialUserName?: string;
   onUserNameChange?: (name: string) => void;
   onRestart: () => void;
+  /**
+   * True when rendered inside the LINE in-app browser (LIFF). When set,
+   * a prominent "LINEに戻る" button is shown at the top so the Founder can
+   * demo the loop-back flow to the 相談員.
+   */
+  inLiff?: boolean;
+  /**
+   * Invoked when the user taps the LIFF-exit button. No-op if inLiff=false.
+   */
+  onLiffExit?: () => void;
 }
 
 const SHARE_URL = 'https://fujitrace.jp/tutorial';
@@ -135,6 +145,8 @@ export default function CompletionCertificate({
   initialUserName = '',
   onUserNameChange,
   onRestart,
+  inLiff = false,
+  onLiffExit,
 }: CompletionCertificateProps) {
   const [name, setName] = useState(initialUserName);
   const [pngUrl, setPngUrl] = useState<string | null>(null);
@@ -197,6 +209,25 @@ export default function CompletionCertificate({
         message={'お疲れさま！\n\nこれで基本は\n完璧だよ。'}
         actionHint="お名前を入れて修了証を発行できます"
       />
+
+      {inLiff && onLiffExit && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-5 text-center space-y-3">
+          <p className="text-sm font-semibold text-emerald-800">
+            修了おめでとうございます
+          </p>
+          <p className="text-xs text-emerald-700">
+            このままLINEトークに戻れます。
+          </p>
+          <button
+            type="button"
+            onClick={onLiffExit}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-md bg-[#1d3557] px-8 py-3 text-base font-semibold text-white hover:bg-[#16263f]"
+            aria-label="LINEに戻る"
+          >
+            LINE に戻る
+          </button>
+        </div>
+      )}
 
       <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
         <label className="block">

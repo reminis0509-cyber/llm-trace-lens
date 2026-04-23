@@ -22,6 +22,7 @@ import {
   type TutorialProgress as TProgress,
 } from '../lib/tutorial-progress';
 import { getChapterMeta } from '../lib/tutorial-chapters';
+import { isInLiff, closeLiffWindow } from '../lib/liff-detect';
 
 interface MascotMessage {
   state: DachshundState;
@@ -113,6 +114,7 @@ export default function TutorialPage() {
   const [mascot, setMascot] = useState<MascotMessage>(INITIAL_MASCOT);
   const [splashChapter, setSplashChapter] = useState<ChapterId | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const inLiff = isInLiff();
 
   useEffect(() => {
     const existing = loadProgress();
@@ -181,6 +183,10 @@ export default function TutorialPage() {
   };
 
   const handleClose = () => {
+    if (inLiff) {
+      closeLiffWindow();
+      return;
+    }
     window.location.href = '/';
   };
 
@@ -266,6 +272,8 @@ export default function TutorialPage() {
         initialUserName={progress.userName ?? ''}
         onUserNameChange={handleUserNameChange}
         onRestart={handleHardRestart}
+        inLiff={inLiff}
+        onLiffExit={closeLiffWindow}
       />
     );
   };
@@ -282,11 +290,21 @@ export default function TutorialPage() {
       <button
         type="button"
         onClick={handleClose}
-        aria-label="チュートリアルを閉じる"
-        className="fixed top-3 right-3 sm:top-4 sm:right-4 z-[60] inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white/95 backdrop-blur px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900"
+        aria-label={inLiff ? 'LINEに戻る' : 'チュートリアルを閉じる'}
+        className={
+          inLiff
+            ? 'fixed top-3 right-3 sm:top-4 sm:right-4 z-[60] inline-flex items-center gap-1.5 rounded-full bg-[#1d3557] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#16263f]'
+            : 'fixed top-3 right-3 sm:top-4 sm:right-4 z-[60] inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white/95 backdrop-blur px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900'
+        }
       >
-        <CloseIcon className="w-4 h-4" />
-        <span className="hidden sm:inline">閉じる</span>
+        {inLiff ? (
+          <span>LINE に戻る</span>
+        ) : (
+          <>
+            <CloseIcon className="w-4 h-4" />
+            <span className="hidden sm:inline">閉じる</span>
+          </>
+        )}
       </button>
 
       <TutorialModeBadge />

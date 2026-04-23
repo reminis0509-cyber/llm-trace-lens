@@ -23,6 +23,7 @@ import billingRoutes from '../src/routes/billing.js';
 import chatbotPlatformRoutes from '../src/routes/chatbot-platform.js';
 import toolsRoutes from '../src/routes/tools/index.js';
 import agentRoutes from '../src/routes/agent/index.js';
+import lineWebhookRoutes from '../src/routes/line-webhook.js';
 import rbacPlugin from '../src/middleware/rbac.js';
 import { budgetGuardMiddleware } from '../src/middleware/budget-guard.js';
 
@@ -32,6 +33,18 @@ async function getApp() {
   if (!app) {
     app = Fastify({
       logger: process.env.NODE_ENV !== 'production',
+    });
+
+    // Raw body preservation for Stripe + LINE webhook signature verification.
+    // Must be registered BEFORE any route that needs rawBody.
+    app.addContentTypeParser('application/json', { parseAs: 'string' }, (req: unknown, body: string | Buffer, done: (err: Error | null, json?: unknown) => void) => {
+      try {
+        (req as { rawBody?: string }).rawBody = body as string;
+        const json = JSON.parse(body as string);
+        done(null, json);
+      } catch (err) {
+        done(err as Error, undefined);
+      }
     });
 
     await app.register(cors, {
@@ -69,6 +82,7 @@ async function getApp() {
     await chatbotPlatformRoutes(app);
     await toolsRoutes(app);
     await agentRoutes(app);
+    await lineWebhookRoutes(app);
     await registerRoutes(app);
 
     await app.ready();

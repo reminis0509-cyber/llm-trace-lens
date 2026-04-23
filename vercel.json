@@ -13,6 +13,7 @@
     { "source": "/api/(.*)", "destination": "/api/index.ts" },
     { "source": "/v1/(.*)", "destination": "/api/index.ts" },
     { "source": "/health", "destination": "/api/index.ts" },
+    { "source": "/webhook/(.*)", "destination": "/api/index.ts" },
     { "source": "/terms", "destination": "/index.html" },
     { "source": "/privacy", "destination": "/index.html" },
     { "source": "/company", "destination": "/index.html" },
@@ -24,6 +25,8 @@
     { "source": "/tutorial/(.*)", "destination": "/index.html" },
     { "source": "/blog", "destination": "/index.html" },
     { "source": "/blog/(.*)", "destination": "/index.html" },
+    { "source": "/liff/tutorial", "destination": "/index.html" },
+    { "source": "/liff/quest", "destination": "/dashboard/index.html" },
     { "source": "/dashboard/(.*)", "destination": "/dashboard/index.html" },
     { "source": "/dashboard", "destination": "/dashboard/index.html" }
   ]

@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@line/liff": "^2.25.1",
     "@react-three/drei": "^9.92.7",
     "@react-three/fiber": "^8.15.12",
     "jszip": "^3.10.1",

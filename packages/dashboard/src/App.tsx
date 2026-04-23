@@ -6,6 +6,9 @@ import { Dashboard, DashboardEntry } from './pages/Dashboard';
 import { InviteAccept } from './pages/InviteAccept';
 import { AdminRoute } from './pages/AdminRoute';
 import { WatchRoom } from './pages/WatchRoom';
+import { LiffLayout } from './layouts/LiffLayout';
+import { QuestSystem } from './components/QuestSystem';
+import { closeLiffWindow } from './lib/liff-detect';
 
 function isAdminPath(path: string): boolean {
   return path.startsWith('/dashboard/admin') || path.startsWith('/admin');
@@ -13,6 +16,10 @@ function isAdminPath(path: string): boolean {
 
 function isWatchRoomPath(path: string): boolean {
   return path.startsWith('/dashboard/watch') || path.startsWith('/watch');
+}
+
+function isLiffQuestPath(path: string): boolean {
+  return path.startsWith('/liff/quest') || path.startsWith('/dashboard/liff/quest');
 }
 
 /**
@@ -114,6 +121,21 @@ function AppContent() {
   // Supports both /dashboard/invite/accept (production) and /invite/accept (dev)
   if (path.startsWith('/dashboard/invite/accept') || path.startsWith('/invite/accept')) {
     return <InviteAccept />;
+  }
+
+  // LIFF quest route: /liff/quest — public access, no auth, no dashboard
+  // chrome. Rendered inside the LINE in-app browser (Monday demo). The
+  // QuestSystem stores progress in localStorage so it works without a
+  // Supabase user. "LINEに戻る" closes the LIFF window when applicable.
+  if (isLiffQuestPath(path)) {
+    const handleExit = () => {
+      closeLiffWindow();
+    };
+    return (
+      <LiffLayout>
+        <QuestSystem onSwitchToClerk={handleExit} />
+      </LiffLayout>
+    );
   }
 
   // Watch Room demo mode: public access, synthesized traces only, zero real data.

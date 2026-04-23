@@ -9,6 +9,7 @@ import {
   type Quest,
   type QuestCategory,
 } from '../lib/quest-questions';
+import { isInLiff, closeLiffWindow } from '../lib/liff-detect';
 
 // ---------------------------------------------------------------------------
 // Types / constants
@@ -77,6 +78,7 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
   const [progress, setProgress] = useState<QuestProgress>(loadProgress);
   const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const inLiff = isInLiff();
 
   const selectedQuest = useMemo(
     () => (selectedQuestId ? QUESTS.find((q) => q.id === selectedQuestId) ?? null : null),
@@ -162,8 +164,10 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
     const categoryMeta = getCategoryMeta(selectedQuest.category);
 
     return (
-      <div className="max-w-2xl mx-auto py-8">
+      <div className="max-w-2xl mx-auto px-4 sm:px-0 py-8">
         {toast && <Toast message={toast} />}
+
+        {inLiff && <LiffReturnButton />}
 
         <button
           type="button"
@@ -315,9 +319,13 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
   ).length;
   const totalAvailable = QUESTS.length;
 
+  const allCompleted = totalCompleted === totalAvailable && totalAvailable > 0;
+
   return (
-    <div className="max-w-2xl mx-auto py-8">
+    <div className="max-w-2xl mx-auto px-4 sm:px-0 py-8">
       {toast && <Toast message={toast} />}
+
+      {inLiff && <LiffReturnButton />}
 
       {/* Header */}
       <div className="mb-8">
@@ -329,6 +337,25 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
           {totalCompleted} / {totalAvailable} 完了・8 カテゴリ・23 問
         </p>
       </div>
+
+      {inLiff && allCompleted && (
+        <div className="mb-8 rounded-card border border-emerald-200 bg-emerald-50/60 px-5 py-4 text-center">
+          <p className="text-sm font-semibold text-emerald-800">
+            すべてのクエストを完了しました
+          </p>
+          <p className="mt-1 text-xs text-emerald-700">
+            下のボタンから LINE に戻れます。
+          </p>
+          <button
+            type="button"
+            onClick={closeLiffWindow}
+            className="mt-3 inline-flex items-center gap-2 rounded-card bg-[#1d3557] px-5 py-2 text-sm font-semibold text-white hover:bg-[#16263f]"
+            aria-label="LINEに戻る"
+          >
+            LINE に戻る
+          </button>
+        </div>
+      )}
 
       {/* Category sections */}
       {CATEGORY_META.map((cat) => (
@@ -469,6 +496,27 @@ function Toast({ message }: ToastProps) {
       aria-live="polite"
     >
       {message}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// LIFF return button — always-visible "LINEに戻る" CTA shown only when the
+// QuestSystem is rendered inside a LIFF session. In a regular browser this
+// component is never mounted.
+// ---------------------------------------------------------------------------
+
+function LiffReturnButton() {
+  return (
+    <div className="mb-4 flex justify-end">
+      <button
+        type="button"
+        onClick={closeLiffWindow}
+        className="inline-flex items-center gap-1.5 rounded-card bg-[#1d3557] px-4 py-2 text-xs font-semibold text-white hover:bg-[#16263f]"
+        aria-label="LINEに戻る"
+      >
+        LINE に戻る
+      </button>
     </div>
   );
 }

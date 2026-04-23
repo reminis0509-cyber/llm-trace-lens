@@ -62,7 +62,7 @@ export default function App() {
   } else if (/^\/tutorial\/(estimate|invoice|purchase-order|delivery-note|cover-letter)$/.test(currentPath)) {
     const scenarioSlug = currentPath.replace('/tutorial/', '') as DocumentKind;
     pageContent = <ScenarioTutorialPage scenario={scenarioSlug} />;
-  } else if (currentPath === '/tutorial') {
+  } else if (currentPath === '/tutorial' || currentPath === '/liff/tutorial') {
     pageContent = <TutorialPage />;
   } else {
     pageContent = (
@@ -122,7 +122,11 @@ export default function App() {
 
   // Tutorial is a full-screen modal experience — it paints its own chrome
   // and must not be framed by the LP Header/Footer.
-  const isTutorial = currentPath === '/tutorial' || /^\/tutorial\/(estimate|invoice|purchase-order|delivery-note|cover-letter)$/.test(currentPath);
+  // /liff/tutorial is the LINE in-app browser variant and also chromeless.
+  const isTutorial =
+    currentPath === '/tutorial' ||
+    currentPath === '/liff/tutorial' ||
+    /^\/tutorial\/(estimate|invoice|purchase-order|delivery-note|cover-letter)$/.test(currentPath);
 
   if (isTutorial) {
     return (

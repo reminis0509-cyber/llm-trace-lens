@@ -48,6 +48,7 @@ import apiKeyRoutes from './routes/api-keys.js';
 import externalApiRoutes from './routes/external-api/index.js';
 import sandboxRoutes from './routes/sandbox.js';
 import slideBuilderRoutes from './routes/slide-builder.js';
+import lineWebhookRoutes from './routes/line-webhook.js';
 import {
   startScheduledTaskRunner,
   stopScheduledTaskRunner,
@@ -251,6 +252,10 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
   // Also keeps /api/agent/web-app-builder alive as a deprecated alias so the
   // dashboard does not 404 during the rename rollout.
   await slideBuilderRoutes(fastify);
+
+  // LINE Messaging API webhook — /webhook/line (see src/routes/line-webhook.ts).
+  // Disabled at runtime when LINE_* env vars are unset (returns 503).
+  await lineWebhookRoutes(fastify);
 
   // Register main routes
   await registerRoutes(fastify);

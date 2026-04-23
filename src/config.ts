@@ -49,6 +49,11 @@ const envSchema = z.object({
   API_KEY_CACHE_TTL: z.string().default(DEFAULT_API_KEY_CACHE_TTL).transform(Number),
   API_KEY_EXPIRY_DAYS: z.string().default(DEFAULT_API_KEY_EXPIRY_DAYS).transform(Number),
   ENABLE_API_KEY_CACHE: z.string().optional(),
+  // LINE Messaging API (FujiTrace Official Account integration)
+  // Absent values disable the LINE webhook route without affecting other features.
+  LINE_CHANNEL_SECRET: z.string().optional(),
+  LINE_CHANNEL_ACCESS_TOKEN: z.string().optional(),
+  LINE_LIFF_ID: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -90,6 +95,30 @@ export const config = {
   apiKeyCacheTtl: parsed.data.API_KEY_CACHE_TTL,
   apiKeyExpiryDays: parsed.data.API_KEY_EXPIRY_DAYS,
   enableApiKeyCache: parsed.data.ENABLE_API_KEY_CACHE !== 'false',
+  // LINE Messaging API
+  lineChannelSecret: parsed.data.LINE_CHANNEL_SECRET,
+  lineChannelAccessToken: parsed.data.LINE_CHANNEL_ACCESS_TOKEN,
+  lineLiffId: parsed.data.LINE_LIFF_ID,
+} as const;
+
+/**
+ * LINE integration enablement summary.
+ *
+ * The LINE feature is active only when all three values are present. Missing
+ * values emit a startup warning (see `src/routes/line-webhook.ts`) but do not
+ * abort process startup — the rest of the application keeps working.
+ */
+export const lineConfig = {
+  channelSecret: config.lineChannelSecret,
+  channelAccessToken: config.lineChannelAccessToken,
+  liffId: config.lineLiffId,
+  get enabled(): boolean {
+    return Boolean(
+      config.lineChannelSecret &&
+        config.lineChannelAccessToken &&
+        config.lineLiffId,
+    );
+  },
 } as const;
 
 export type Config = typeof config;
