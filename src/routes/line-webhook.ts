@@ -13,13 +13,34 @@
  *   - 401 on invalid / missing signature.
  *   - 503 if LINE integration is not configured (all three env vars unset).
  *
- * The handler spawns the event dispatcher via `setImmediate` so the HTTP
- * reply flushes before any third-party API calls fire. Errors in the async
- * dispatch are logged but never reach the response.
+ * Async dispatch strategy:
+ *   On Vercel serverless, the function execution context is torn down the
+ *   moment the HTTP response flushes. A bare `setImmediate(...)` therefore
+ *   silently drops `dispatchLineEvents`, `replyLineMessage`, and the
+ *   Contract Agent run — which is exactly the bug we hit 2026-04-23 (friend
+ *   follow ACK never delivered, message replies never sent).
+ *
+ *   The fix is `waitUntil` from `@vercel/functions`: it registers a Promise
+ *   with the platform so the function instance stays alive until the Promise
+ *   settles, while still letting us return 200 OK to LINE immediately (LINE
+ *   retries on anything other than 2xx within 10s, so we MUST respond fast).
+ *
+ *   On non-Vercel runtimes (local `npm run dev`, Node test runner) `waitUntil`
+ *   is a no-op that merely invokes the Promise — which is the correct
+ *   behaviour there because the Node event loop naturally keeps the process
+ *   alive until all Promises settle.
+ *
+ *   Fallback (unused as of 2026-04-23): if `waitUntil` ever fails to keep the
+ *   function alive, split the heavy work into a second internal endpoint
+ *   (e.g. POST /api/internal/line-heavy-task) and fire it via `void fetch(...)`
+ *   from the webhook with an internal-secret header. The second endpoint then
+ *   awaits the full pipeline and only returns 200 after completion. This was
+ *   considered and rejected in favour of `waitUntil` for simplicity.
  */
 import type { FastifyInstance } from 'fastify';
 import { validateSignature } from '@line/bot-sdk';
 import type { webhook as lineWebhook } from '@line/bot-sdk';
+import { waitUntil } from '@vercel/functions';
 import { lineConfig } from '../config.js';
 import { dispatchLineEvents } from '../line/event-handler.js';
 
@@ -81,12 +102,14 @@ export default async function lineWebhookRoutes(
 
     // ── 200 OK first, process later ─────────────────────────────────────
     // LINE retries on anything other than 2xx, so we absolutely must reply
-    // before kicking off the LLM / tool work.
-    setImmediate(() => {
+    // before kicking off the LLM / tool work. `waitUntil` keeps the Vercel
+    // serverless instance alive until the dispatch Promise settles, which
+    // `setImmediate` cannot guarantee (see module docstring above).
+    waitUntil(
       dispatchLineEvents(fastify, body.events).catch((err: unknown) => {
         fastify.log.error({ err }, '[LINE] dispatchLineEvents crashed');
-      });
-    });
+      }),
+    );
 
     return reply.code(200).send({ success: true });
   });
