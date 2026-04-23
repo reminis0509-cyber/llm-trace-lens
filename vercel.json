@@ -1,7 +1,7 @@
 {
   "version": 2,
   "installCommand": "npm install && cd packages/landing && npm install && cd ../dashboard && npm install",
-  "buildCommand": "npm run migrate:latest && npm run build:all",
+  "buildCommand": "npm run build:all",
   "outputDirectory": "build",
   "functions": {
     "api/index.ts": {
