@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "installCommand": "npm install && npm install --prefix packages/landing && npm install --prefix packages/dashboard",
+  "installCommand": "npm install --include=dev && npm install --include=dev --prefix packages/landing && npm install --include=dev --prefix packages/dashboard",
   "buildCommand": "npm run build:all",
   "outputDirectory": "build",
   "functions": {
