@@ -7,6 +7,7 @@ import { PLANS, PLAN_ORDER, type PlanType, getPlanNameJa, getEffectiveLimits, is
 import { getWorkspacePlan, updateWorkspacePlan } from '../plans/storage.js';
 import { getUsageStats, getDailyUsageStats, getUsageStatsForMonth, getNextJSTMidnight, getNextMonthStart } from '../plans/usage.js';
 import { cleanupExpiredTraces } from '../plans/retention.js';
+import { getSignupCreditStatus } from '../plans/signup-credit.js';
 import { getKnex } from '../storage/knex-client.js';
 
 /**
@@ -63,17 +64,36 @@ export default async function planRoutes(fastify: FastifyInstance) {
 
   /**
    * GET /api/plan - 現在のワークスペースのプラン情報と使用量を取得
+   *
+   * Response shape:
+   *   {
+   *     plan: { type, name, startedAt, expiresAt },
+   *     limits: PlanLimits,
+   *     usage: { ... },
+   *     signupCredit: {
+   *       signup_credit_jpy:        number,         // current balance in integer yen
+   *       signup_credit_expires_at: string | null,  // ISO timestamp, null = never granted
+   *       signup_credit_active:     boolean,        // balance > 0 AND not yet expired
+   *     }
+   *   }
    */
   fastify.get('/api/plan', async (request: FastifyRequest) => {
     const workspaceId = await resolveWorkspaceId(request);
     const plan = await getWorkspacePlan(workspaceId);
     const limits = getEffectiveLimits(plan);
+    const credit = await getSignupCreditStatus(workspaceId);
 
     const planInfo = {
       type: plan.planType,
       name: getPlanNameJa(plan.planType),
       startedAt: plan.startedAt,
       expiresAt: plan.expiresAt,
+    };
+
+    const signupCredit = {
+      signup_credit_jpy: credit.balanceJpy,
+      signup_credit_expires_at: credit.expiresAt,
+      signup_credit_active: credit.active,
     };
 
     // Free plan: daily usage tracking
@@ -99,6 +119,7 @@ export default async function planRoutes(fastify: FastifyInstance) {
             resetsAt: getNextJSTMidnight(),
           },
         },
+        signupCredit,
       };
     }
 
@@ -125,6 +146,7 @@ export default async function planRoutes(fastify: FastifyInstance) {
           resetsAt: getNextMonthStart(),
         },
       },
+      signupCredit,
     };
   });
 

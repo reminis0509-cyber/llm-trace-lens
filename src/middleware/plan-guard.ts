@@ -14,6 +14,23 @@ import {
   getNextJSTMidnight,
 } from '../plans/usage.js';
 import { getEffectiveLimits, getPlanNameJa, getRecommendedUpgrade, PLANS } from '../plans/index.js';
+import { consumeSignupCredit, getSignupCreditStatus } from '../plans/signup-credit.js';
+
+/**
+ * Estimated JPY cost debited from signup credit per Free-tier overage request.
+ *
+ * Rationale: Plan-guard runs BEFORE the LLM call, so exact tokens/cost are
+ * unknown at this point. We reserve a conservative fixed estimate per request
+ * (~¥2, roughly $0.013 at 150 JPY/USD — equivalent to a small gpt-4o-mini
+ * call). The ¥10,000 grant therefore covers ~5,000 overage requests, which
+ * matches Free-tier economics for the 90-day runway.
+ *
+ * If a future iteration moves credit consumption to post-request (enforcer
+ * hook, using actual tokens via `usdToJpy(calculateCost(...))`), update this
+ * constant's usage accordingly. For now the simple reserve model keeps the
+ * hot path synchronous.
+ */
+const SIGNUP_CREDIT_RESERVE_PER_REQUEST_JPY = 2;
 
 /**
  * プラン制限チェック対象のパス
@@ -68,12 +85,26 @@ export async function planGuardMiddleware(
         // Downgraded to Free — check daily limits
         const dailyUsage = await getDailyUsageStats(workspaceId);
         if (dailyUsage.traceCount >= downgradedLimits.dailyTraces) {
+          // Free tier exceeded after trial downgrade — try signup credit first.
+          const creditResult = await consumeSignupCredit(
+            workspaceId,
+            SIGNUP_CREDIT_RESERVE_PER_REQUEST_JPY
+          );
+          if (creditResult.consumed) {
+            reply.header('X-Plan-Type', downgradedPlan.planType);
+            reply.header('X-Usage-Traces-Today', dailyUsage.traceCount.toString());
+            reply.header('X-Limit-Traces-Daily', downgradedLimits.dailyTraces.toString());
+            reply.header('X-Signup-Credit-Remaining-Jpy', creditResult.remainingJpy.toString());
+            return; // Allow the request through.
+          }
+
           const planName = getPlanNameJa(downgradedPlan.planType);
           const resetsAt = getNextJSTMidnight();
 
           reply.header('X-Plan-Type', downgradedPlan.planType);
           reply.header('X-Usage-Traces-Today', dailyUsage.traceCount.toString());
           reply.header('X-Limit-Traces-Daily', downgradedLimits.dailyTraces.toString());
+          reply.header('X-Signup-Credit-Remaining-Jpy', creditResult.remainingJpy.toString());
 
           const downgradeUpgrade = getRecommendedUpgrade(downgradedPlan.planType);
           return reply.code(429).send({
@@ -119,6 +150,23 @@ export async function planGuardMiddleware(
       const newCount = await incrementDailyTraceCount(workspaceId);
 
       if (newCount > limits.dailyTraces) {
+        // Free tier exceeded — before blocking, try to consume signup credit.
+        // The credit (¥10,000 granted at workspace creation, 90-day expiry) is
+        // the runway between trial end and paid upgrade. `consumeSignupCredit`
+        // returns `consumed:false` for expired/empty credit, which falls
+        // through to the 429 below.
+        const creditResult = await consumeSignupCredit(
+          workspaceId,
+          SIGNUP_CREDIT_RESERVE_PER_REQUEST_JPY
+        );
+        if (creditResult.consumed) {
+          reply.header('X-Plan-Type', plan.planType);
+          reply.header('X-Usage-Traces-Today', newCount.toString());
+          reply.header('X-Limit-Traces-Daily', limits.dailyTraces.toString());
+          reply.header('X-Signup-Credit-Remaining-Jpy', creditResult.remainingJpy.toString());
+          return; // Allow the request through.
+        }
+
         const planName = getPlanNameJa(plan.planType);
         const resetsAt = getNextJSTMidnight();
         const dailyUsage = await getDailyUsageStats(workspaceId);
@@ -126,6 +174,7 @@ export async function planGuardMiddleware(
         reply.header('X-Plan-Type', plan.planType);
         reply.header('X-Usage-Traces-Today', newCount.toString());
         reply.header('X-Limit-Traces-Daily', limits.dailyTraces.toString());
+        reply.header('X-Signup-Credit-Remaining-Jpy', creditResult.remainingJpy.toString());
 
         const freeUpgrade = getRecommendedUpgrade(plan.planType);
         return reply.code(429).send({

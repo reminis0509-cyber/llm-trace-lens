@@ -451,6 +451,7 @@ import {
 } from '../storage/models.js';
 
 import { updateWorkspacePlan } from '../plans/storage.js';
+import { grantSignupCredit } from '../plans/signup-credit.js';
 
 const DEFAULT_WORKSPACE_ID = 'default';
 
@@ -509,6 +510,17 @@ export async function createWorkspace(
     expiresAt: trialExpiresAt.toISOString(),
     trialStartedAt: now.toISOString(),
   });
+
+  // Grant ¥10,000 signup credit (90-day expiry). This covers Free-tier
+  // overage requests after the Pro trial ends, giving new users a runway
+  // before they must upgrade to paid. Credit is per-workspace and never
+  // re-granted for the same workspace id (see grantSignupCredit).
+  // Failures here must not break signup — wrap in try/catch.
+  try {
+    await grantSignupCredit(workspace.id);
+  } catch (error) {
+    console.error('[createWorkspace] Signup credit grant failed (non-fatal):', error);
+  }
 
   return workspace;
 }
