@@ -9,6 +9,7 @@ import { WatchRoom } from './pages/WatchRoom';
 import { LiffLayout } from './layouts/LiffLayout';
 import { QuestSystem } from './components/QuestSystem';
 import { LiffDoc } from './components/LiffDoc';
+import { LiffBusinessInfo } from './components/LiffBusinessInfo';
 import { closeLiffWindow } from './lib/liff-detect';
 
 function isAdminPath(path: string): boolean {
@@ -25,6 +26,15 @@ function isLiffQuestPath(path: string): boolean {
 
 function isLiffDocPath(path: string): boolean {
   return path.startsWith('/liff/doc/') || path.startsWith('/dashboard/liff/doc/');
+}
+
+function isLiffBusinessInfoPath(path: string): boolean {
+  return (
+    path === '/liff/business-info' ||
+    path === '/liff/business-info/' ||
+    path === '/dashboard/liff/business-info' ||
+    path === '/dashboard/liff/business-info/'
+  );
 }
 
 /**
@@ -154,6 +164,20 @@ function AppContent() {
     return (
       <LiffLayout>
         <LiffDoc />
+      </LiffLayout>
+    );
+  }
+
+  // LIFF business-info route: /liff/business-info — public access, no auth,
+  // no dashboard chrome. Opens from the LINE Rich Menu's "会社情報" button
+  // so a LINE user can set/update their company's basic info without
+  // logging into the main dashboard. The component reads `lineUserId` via
+  // liff.getProfile() and talks to the backend's liff-business-info
+  // endpoints directly.
+  if (isLiffBusinessInfoPath(path)) {
+    return (
+      <LiffLayout>
+        <LiffBusinessInfo />
       </LiffLayout>
     );
   }

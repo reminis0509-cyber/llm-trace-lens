@@ -278,6 +278,61 @@ async function handlePostback(event: webhook.PostbackEvent): Promise<void> {
     return;
   }
 
+  // Rich Menu entries — each delivers a short pre-baked prompt telling the
+  // user exactly what to type. All document-creation actions intentionally
+  // converge on the same chat input pattern so the Contract Runtime's
+  // Planner gets deterministic text to route on.
+  if (action === 'start_estimate') {
+    await replyLineMessage(event.replyToken, [
+      textMessage(
+        '見積書を作成します。\n' +
+          '宛先(相手先会社名)、品目、金額、必要なら納期・支払条件を1通のメッセージで送ってください。\n\n' +
+          '例: 「見積書 株式会社テスト宛 コンサルティング料 月額10万円 納期4/30 支払は月末締翌月末払い」',
+      ),
+    ]);
+    return;
+  }
+  if (action === 'start_invoice') {
+    await replyLineMessage(event.replyToken, [
+      textMessage(
+        '請求書を作成します。\n' +
+          '宛先(相手先会社名)、品目、金額、期日を送ってください。\n\n' +
+          '例: 「請求書 株式会社テスト宛 コンサルティング料 10万円 支払期日5/31」',
+      ),
+    ]);
+    return;
+  }
+  if (action === 'start_delivery_note') {
+    await replyLineMessage(event.replyToken, [
+      textMessage(
+        '納品書を作成します。\n' +
+          '宛先(相手先会社名)、納品物、数量、納品日を送ってください。\n\n' +
+          '例: 「納品書 株式会社テスト宛 Webデザイン一式 納品日4/25」',
+      ),
+    ]);
+    return;
+  }
+  if (action === 'start_purchase_order') {
+    await replyLineMessage(event.replyToken, [
+      textMessage(
+        '発注書を作成します。\n' +
+          '発注先、品目、数量、金額、希望納期を送ってください。\n\n' +
+          '例: 「発注書 株式会社サプライヤー宛 部材A 100個 単価500円 納期5/10」',
+      ),
+    ]);
+    return;
+  }
+  if (action === 'start_cover_letter') {
+    await replyLineMessage(event.replyToken, [
+      textMessage(
+        '送付状を作成します。\n' +
+          '宛先、同封物、簡単な挨拶文の希望を送ってください。\n\n' +
+          '例: 「送付状 株式会社テスト宛 見積書1部を送付 平素よりお世話になっております」',
+      ),
+    ]);
+    return;
+  }
+
   // Unknown postback — swallow silently so a stale Flex button never spams
   // the user with an error.
 }
