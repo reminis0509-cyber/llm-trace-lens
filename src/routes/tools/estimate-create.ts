@@ -188,6 +188,46 @@ interface CreateLlmOutput {
 }
 
 /**
+ * Guard against the "宛先 = 自社" failure class — a recurring LINE-side bug
+ * where the LLM, lacking an explicit recipient in the conversation, grabs
+ * the issuer's own company name (via business_info) and writes it into
+ * `client.company_name`. Shipping such an estimate to the customer would
+ * be a商習慣違反 embarrassment, so we neutralise it here on the server:
+ *
+ *   - LLM returned client.company_name that equals (trimmed, case-sensitive
+ *     exact) the issuer's company_name, OR is blank / missing.
+ *   - We clear `estimate` to null and raise a next_question.
+ *   - Caller returns "needs-clarification" shape.
+ *
+ * This runs AFTER the prompt-level 禁止 in `create.md` so it catches the
+ * minority of runs where the LLM slips through. Belt and braces.
+ */
+function detectRecipientIssuerClash(
+  estimate: EstimateData,
+  issuerCompanyName: string,
+): { clashed: true; question: string } | { clashed: false } {
+  const normalise = (s: unknown): string =>
+    typeof s === 'string' ? s.trim() : '';
+  const client = (estimate as { client?: { company_name?: unknown } }).client;
+  const recipient = normalise(client?.company_name);
+  const issuer = normalise(issuerCompanyName);
+  if (!recipient) {
+    return {
+      clashed: true,
+      question: '宛先（相手先の会社名）を教えてください。',
+    };
+  }
+  if (issuer && recipient === issuer) {
+    return {
+      clashed: true,
+      question:
+        '宛先が自社と同じになっています。相手先の会社名を明示して再度ご依頼ください。',
+    };
+  }
+  return { clashed: false };
+}
+
+/**
  * POST /api/tools/estimate/create-stream
  *
  * SSE streaming variant of `/api/tools/estimate/create`.
@@ -328,6 +368,28 @@ async function estimateCreateStreamRoute(fastify: FastifyInstance): Promise<void
         });
         reply.raw.end();
         return reply;
+      }
+
+      // Defensive clash check — clear the estimate if the LLM accidentally
+      // wrote the issuer's own company name into `client.company_name`.
+      // See `detectRecipientIssuerClash` JSDoc for rationale.
+      if (output.estimate && businessInfo) {
+        const clash = detectRecipientIssuerClash(
+          output.estimate,
+          String(businessInfo.company_name ?? ''),
+        );
+        if (clash.clashed) {
+          request.log.warn(
+            {
+              workspaceId,
+              businessInfoId: business_info_id,
+              suppliedClient: output.estimate.client?.company_name,
+              issuer: businessInfo.company_name,
+            },
+            '[estimate/create] recipient/issuer clash — clearing estimate',
+          );
+          output = { estimate: undefined, next_question: clash.question };
+        }
       }
 
       if (!output.estimate) {
@@ -587,6 +649,27 @@ export default async function estimateCreateRoute(fastify: FastifyInstance): Pro
           success: false,
           error: 'AIの出力を解析できませんでした。もう一度お試しください。',
         });
+      }
+
+      // Defensive clash check — mirrors the streaming path. If the LLM
+      // pasted issuer's company name into `client`, clear and ask again.
+      if (output.estimate && businessInfo) {
+        const clash = detectRecipientIssuerClash(
+          output.estimate,
+          String(businessInfo.company_name ?? ''),
+        );
+        if (clash.clashed) {
+          request.log.warn(
+            {
+              workspaceId,
+              businessInfoId: business_info_id,
+              suppliedClient: output.estimate.client?.company_name,
+              issuer: businessInfo.company_name,
+            },
+            '[estimate/create] recipient/issuer clash — clearing estimate',
+          );
+          output = { estimate: undefined, next_question: clash.question };
+        }
       }
 
       if (!output.estimate) {
