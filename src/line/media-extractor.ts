@@ -18,9 +18,18 @@
  * at {@link MAX_EXTRACTED_CHARS}.
  */
 import type { FastifyInstance } from 'fastify';
-import { PDFParse } from 'pdf-parse';
 import { callLlmViaProxy } from '../routes/tools/_shared.js';
 import type { LlmMessage } from '../routes/tools/_shared.js';
+
+// NOTE: `pdf-parse` is deliberately NOT imported at module scope. The v2
+// package relies on `pdfjs-dist`, which in turn references `DOMMatrix`
+// and `@napi-rs/canvas` during module init — both of which are absent
+// in Vercel's Node.js serverless runtime. A static `import { PDFParse }
+// from 'pdf-parse'` caused the entire `/webhook/line` function to 500
+// on every request, including text messages, because event-handler.ts
+// imports this module. Load pdf-parse lazily inside `extractPdfText` —
+// and treat any failure as "unsupported format" so a broken PDF path
+// never takes down the LINE bridge again.
 
 /** Hard cap on extracted text fed back into the Runtime. ≈ 10 k tokens for JA text. */
 const MAX_EXTRACTED_CHARS = 8000;
@@ -112,37 +121,19 @@ export async function extractImageText(
 }
 
 /**
- * Extract text from a PDF attachment via `pdf-parse` v2 (PDFParse class).
+ * Extract text from a PDF attachment.
  *
- * Scanned-image PDFs return empty / near-empty text — callers should
- * detect that and fall back to asking the user for a clearer format.
+ * CURRENTLY DISABLED on Vercel serverless (see module-level NOTE): the
+ * `pdf-parse` / `pdfjs-dist` stack requires `DOMMatrix` and
+ * `@napi-rs/canvas` which are not present in the runtime. Until we move
+ * to a polyfilled approach or a different parser, return null so the
+ * caller shows "対応していない形式" rather than crashing the webhook.
  *
- * `PDFParse.getText()` returns a `TextResult` with a concatenated `text`
- * string across all pages. We destroy the parser explicitly to release
- * pdf.js worker resources in the serverless environment.
+ * Tracking: Phase 3 polish — evaluate `pdfjs-serverless` or call an
+ * external parsing service.
  */
-export async function extractPdfText(buffer: Buffer): Promise<string | null> {
-  // `PDFParse` expects the raw bytes as `data`. Node.js `Buffer` is a
-  // `Uint8Array` subtype, but the type definitions want `Uint8Array`
-  // explicitly; cast via .buffer slice to keep the type checker happy
-  // without an extra copy.
-  const parser = new PDFParse({
-    data: new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength),
-  });
-  try {
-    const result = await parser.getText();
-    const text = (result.text ?? '').trim();
-    if (!text) return null;
-    return truncate(text);
-  } catch {
-    return null;
-  } finally {
-    try {
-      await parser.destroy();
-    } catch {
-      // Non-fatal — worker cleanup only.
-    }
-  }
+export async function extractPdfText(_buffer: Buffer): Promise<string | null> {
+  return null;
 }
 
 /** Extract text from UTF-8 / ASCII text files (.txt / .md / .csv). */

@@ -229,7 +229,7 @@ async function handleMessage(
         textMessage(
           message.type === 'image'
             ? '画像の内容を読み取れませんでした。もう一度、鮮明な画像でお送りください。'
-            : 'ファイルの内容を読み取れませんでした。対応形式: PDF / 画像(jpeg, png) / テキスト(.txt, .md, .csv)',
+            : 'ファイルの内容を読み取れませんでした。対応形式: 画像(jpeg, png) / テキスト(.txt, .md, .csv) (PDFは現在対応検討中です)',
         ),
       ]);
       return;
