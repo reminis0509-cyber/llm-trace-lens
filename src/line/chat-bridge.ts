@@ -29,6 +29,16 @@ import {
   loadConversationHistory,
 } from '../agent/conversation-history.js';
 import {
+  extractCompanyFields,
+  finishOnboarding,
+  isOnboarding,
+  isPlaceholderCompany,
+  ONBOARDING_PROMPT_TEXT,
+  ONBOARDING_RETRY_TEXT,
+  saveCompanyInfo,
+  startOnboarding,
+} from './onboarding.js';
+import {
   flexMessage,
   pushLineMessage,
   replyLineMessage,
@@ -209,6 +219,61 @@ export async function runChatBridge(
     return;
   }
 
+  const companyInfo = await loadCompanyInfo(resolved.workspaceId);
+
+  // ── Company-info onboarding detour ────────────────────────────────────
+  //
+  // When the persisted company info is still the "デモユーザー" placeholder
+  // seeded for new LINE workspaces, we take the conversation out of the
+  // Runtime path and collect real values before the LLM gets a chance to
+  // hallucinate plausible-looking details. See `src/line/onboarding.ts`
+  // for the full rationale and state machine.
+  if (isPlaceholderCompany(companyInfo)) {
+    const collecting = await isOnboarding(resolved.workspaceId);
+    if (collecting) {
+      // User is replying to our onboarding ask — try to extract fields.
+      const extracted = await extractCompanyFields(fastify, input.userText);
+      if (extracted && extracted.company_name) {
+        await saveCompanyInfo(resolved.workspaceId, extracted);
+        await finishOnboarding(resolved.workspaceId);
+        const successText =
+          `「${extracted.company_name}」様として会社情報を登録しました。\n` +
+          'ご依頼をどうぞ。例: 「見積書 A社 品目 月額10万円」';
+        if (input.replyToken) {
+          await replyLineMessage(input.replyToken, [textMessage(successText)]);
+        } else {
+          await pushLineMessage(input.lineUserId, [textMessage(successText)]);
+        }
+        // Persist onboarding exchange so Runtime sees it on the NEXT turn.
+        await appendConversationTurn(input.lineUserId, 'user', input.userText);
+        await appendConversationTurn(input.lineUserId, 'assistant', successText);
+        return;
+      }
+      // Extraction failed — ask again. Keep the onboarding flag set so the
+      // next reply is tried the same way.
+      if (input.replyToken) {
+        await replyLineMessage(input.replyToken, [textMessage(ONBOARDING_RETRY_TEXT)]);
+      } else {
+        await pushLineMessage(input.lineUserId, [textMessage(ONBOARDING_RETRY_TEXT)]);
+      }
+      return;
+    }
+    // Not yet onboarding — start now and ask.
+    await startOnboarding(resolved.workspaceId);
+    if (input.replyToken) {
+      await replyLineMessage(input.replyToken, [textMessage(ONBOARDING_PROMPT_TEXT)]);
+    } else {
+      await pushLineMessage(input.lineUserId, [textMessage(ONBOARDING_PROMPT_TEXT)]);
+    }
+    // We intentionally do NOT persist `input.userText` to history here —
+    // that message (e.g. "見積書作って") should be repeated by the user
+    // AFTER onboarding so the Runtime gets a clean, unambiguous request.
+    await appendConversationTurn(input.lineUserId, 'assistant', ONBOARDING_PROMPT_TEXT);
+    return;
+  }
+
+  // ── Normal path: ack + Contract Runtime ───────────────────────────────
+
   // Ack within 1 minute (LINE reply_token rule). We intentionally do NOT
   // await showLineLoading here — it is best-effort and must not gate the
   // real reply.
@@ -218,8 +283,6 @@ export async function runChatBridge(
     ]);
   }
   void showLineLoading(input.lineUserId, 30);
-
-  const companyInfo = await loadCompanyInfo(resolved.workspaceId);
   // Load PAST turns only — the current `input.userText` is passed as
   // `message` and the runtime appends it internally as the last user
   // message. After the run completes we persist both user + assistant
