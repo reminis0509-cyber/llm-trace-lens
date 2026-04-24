@@ -49,6 +49,7 @@ import externalApiRoutes from './routes/external-api/index.js';
 import sandboxRoutes from './routes/sandbox.js';
 import slideBuilderRoutes from './routes/slide-builder.js';
 import lineWebhookRoutes from './routes/line-webhook.js';
+import lineLiffRoutes from './routes/line-liff.js';
 import {
   startScheduledTaskRunner,
   stopScheduledTaskRunner,
@@ -256,6 +257,9 @@ export async function build(options?: { enableAuth?: boolean; enableRateLimit?: 
   // LINE Messaging API webhook — /webhook/line (see src/routes/line-webhook.ts).
   // Disabled at runtime when LINE_* env vars are unset (returns 503).
   await lineWebhookRoutes(fastify);
+  // LIFF-facing JSON endpoint: /api/line/liff-doc/:shortId
+  // Serves structured document data to the LIFF PDF page.
+  await lineLiffRoutes(fastify);
 
   // Register main routes
   await registerRoutes(fastify);

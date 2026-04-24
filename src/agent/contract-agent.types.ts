@@ -59,11 +59,29 @@ export interface AgentRunInput {
   conversationHistory?: LlmMessage[];
 }
 
-/** An attachment surfaced in the `final` event (PDF link, etc.). */
+/** An attachment surfaced in the `final` event.
+ *
+ * `kind: 'pdf'` carries a direct PDF url (server-hosted rendering).
+ *
+ * `kind: 'document'` carries the STRUCTURED document data (estimate /
+ * invoice / …) verbatim. Surfaces without a native PDF viewer (LINE)
+ * persist this to KV and hand the user a LIFF link that re-renders the
+ * PDF client-side via `packages/dashboard/src/lib/pdf/`. That path keeps
+ * 100% parity with the Web dashboard's PDF generation.
+ */
 export interface AgentAttachment {
-  kind: string;
+  kind: 'pdf' | 'document' | string;
   url?: string;
   filename?: string;
+  /** Document kind — matches `LiffDocType` in `src/line/doc-store.ts`. */
+  docType?:
+    | 'estimate'
+    | 'invoice'
+    | 'delivery-note'
+    | 'purchase-order'
+    | 'cover-letter';
+  /** Raw structured payload ready to feed into the corresponding PDF module. */
+  docData?: Record<string, unknown>;
 }
 
 /** The SSE event contract yielded by `executeContractAgent`. */

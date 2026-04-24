@@ -8,6 +8,7 @@ import { AdminRoute } from './pages/AdminRoute';
 import { WatchRoom } from './pages/WatchRoom';
 import { LiffLayout } from './layouts/LiffLayout';
 import { QuestSystem } from './components/QuestSystem';
+import { LiffDoc } from './components/LiffDoc';
 import { closeLiffWindow } from './lib/liff-detect';
 
 function isAdminPath(path: string): boolean {
@@ -20,6 +21,10 @@ function isWatchRoomPath(path: string): boolean {
 
 function isLiffQuestPath(path: string): boolean {
   return path.startsWith('/liff/quest') || path.startsWith('/dashboard/liff/quest');
+}
+
+function isLiffDocPath(path: string): boolean {
+  return path.startsWith('/liff/doc/') || path.startsWith('/dashboard/liff/doc/');
 }
 
 /**
@@ -134,6 +139,21 @@ function AppContent() {
     return (
       <LiffLayout>
         <QuestSystem onSwitchToClerk={handleExit} />
+      </LiffLayout>
+    );
+  }
+
+  // LIFF doc route: /liff/doc/:shortId — public access via unguessable
+  // capability token (24-char base64url, 1-hour TTL). Rendered inside the
+  // LINE in-app browser when the user taps the Flex button produced by
+  // chat-bridge after an office-task run. The shortId resolves to
+  // structured document data in KV; the LiffDoc component fetches it and
+  // renders a PDF with the existing packages/dashboard/src/lib/pdf/
+  // modules, then exposes a prominent download button.
+  if (isLiffDocPath(path)) {
+    return (
+      <LiffLayout>
+        <LiffDoc />
       </LiffLayout>
     );
   }

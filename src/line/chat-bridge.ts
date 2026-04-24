@@ -17,6 +17,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { messagingApi } from '@line/bot-sdk';
 import { getKnex } from '../storage/knex-client.js';
+import { lineConfig } from '../config.js';
 
 type FlexContainer = messagingApi.FlexContainer;
 import { executeContractAgent } from '../agent/contract-agent.js';
@@ -28,6 +29,7 @@ import {
   appendConversationTurn,
   loadConversationHistory,
 } from '../agent/conversation-history.js';
+import { saveDocForLiff } from './doc-store.js';
 import {
   extractCompanyFields,
   finishOnboarding,
@@ -181,17 +183,64 @@ export function firstPdfAttachment(
 }
 
 /**
+ * Pick the first `kind: 'document'` attachment carrying structured data
+ * for LIFF-side PDF rendering. Returns null when the runtime didn't
+ * surface one (e.g. the tool was office_task with unstructured output).
+ */
+export function firstDocumentAttachment(
+  attachments: AgentAttachment[] | undefined,
+): { docType: NonNullable<AgentAttachment['docType']>; docData: Record<string, unknown> } | null {
+  if (!attachments) return null;
+  for (const a of attachments) {
+    if (
+      a.kind === 'document' &&
+      a.docType &&
+      a.docData &&
+      typeof a.docData === 'object'
+    ) {
+      return { docType: a.docType, docData: a.docData };
+    }
+  }
+  return null;
+}
+
+/**
+ * Compose a LIFF URL that opens the PDF preview page on the user's phone.
+ *
+ * LINE rewrites `https://liff.line.me/{liffId}/…` into the LIFF app's
+ * configured endpoint URL, so the fragment after the liffId is appended
+ * to the endpoint. Our endpoint is `https://fujitrace.jp`, so passing
+ * `/liff/doc/{shortId}` lands on the dashboard's LIFF doc route.
+ */
+export function buildLiffDocUrl(shortId: string): string | null {
+  if (!lineConfig.liffId || !shortId) return null;
+  return `https://liff.line.me/${lineConfig.liffId}/liff/doc/${shortId}`;
+}
+
+/**
  * Decide the final push-message payload given the reviewer reply and the
  * attachments the runtime surfaced. Exported for unit tests.
+ *
+ * Priority order for the Flex bubble URL:
+ *   1. `liffDocUrl` — LIFF-backed PDF (client-side render of structured data)
+ *   2. `pdf.url`    — direct server-hosted PDF (legacy path, currently unused)
+ *   3. neither      — text-only reply
  */
 export function composeFinalMessages(
   userText: string,
   finalEvent: Extract<AgentSseEvent, { type: 'final' }>,
+  liffDocUrl?: string,
 ): ReturnType<typeof textMessage>[] | Array<ReturnType<typeof textMessage> | ReturnType<typeof flexMessage>> {
   const pdf = firstPdfAttachment(finalEvent.attachments);
   const replyText = finalEvent.reply || '処理が完了しました。';
+  const fileName = inferFileName(userText);
+  if (liffDocUrl) {
+    return [
+      textMessage(replyText),
+      flexMessage(fileName, buildPdfFlex(fileName, liffDocUrl)),
+    ];
+  }
   if (pdf) {
-    const fileName = inferFileName(userText);
     return [
       textMessage(replyText),
       flexMessage(fileName, buildPdfFlex(fileName, pdf.url)),
@@ -350,9 +399,31 @@ export async function runChatBridge(
         finalEvent.reply,
       );
     }
+
+    // If the runtime surfaced a structured document, stash it in KV and
+    // build a LIFF URL that re-renders the PDF client-side. The LIFF page
+    // reuses `packages/dashboard/src/lib/pdf/` so the output matches the
+    // Web dashboard exactly. Failing to save (KV outage, config missing)
+    // degrades to a text-only reply — the Reviewer's Markdown summary
+    // still tells the user what was produced.
+    let liffDocUrl: string | undefined;
+    const docAtt = firstDocumentAttachment(finalEvent.attachments);
+    if (docAtt) {
+      const shortId = await saveDocForLiff({
+        type: docAtt.docType,
+        data: docAtt.docData,
+        issuer: (companyInfo ?? {}) as Record<string, unknown>,
+        workspaceId: resolved.workspaceId,
+      });
+      if (shortId) {
+        const url = buildLiffDocUrl(shortId);
+        if (url) liffDocUrl = url;
+      }
+    }
+
     await pushLineMessage(
       input.lineUserId,
-      composeFinalMessages(input.userText, finalEvent),
+      composeFinalMessages(input.userText, finalEvent, liffDocUrl),
     );
     return;
   }

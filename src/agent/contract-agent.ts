@@ -355,18 +355,115 @@ async function runReviewer(
   }
 }
 
-/** Extract possible PDF/url attachments from a tool result. */
-function extractAttachments(result: unknown): AgentAttachment[] {
-  if (!result || typeof result !== 'object') return [];
+/**
+ * Map a whitelisted tool id to the LiffDocType it produces. The agent-
+ * whitelist is narrow enough that a static switch is the right tool — any
+ * new tool has to be consciously added here to unlock LIFF PDF rendering.
+ */
+function docTypeForTool(toolId: string): AgentAttachment['docType'] | null {
+  if (toolId === 'estimate.create' || toolId === 'estimate.check') return 'estimate';
+  if (toolId === 'accounting.invoice_create' || toolId === 'accounting.invoice_check')
+    return 'invoice';
+  if (toolId === 'accounting.delivery_note_create') return 'delivery-note';
+  if (toolId === 'accounting.purchase_order_create') return 'purchase-order';
+  if (toolId === 'general_affairs.cover_letter_create') return 'cover-letter';
+  return null;
+}
+
+/**
+ * Pick the structured document payload out of a tool result for a given
+ * document type. Handles three shapes the current tool fleet emits:
+ *   - `estimate.create`   → `result.data.estimate = {...}`
+ *   - `office-task.*`     → `result.data.structured_result = {...}`
+ *   - fenced markdown     → tool returns `{ text: "...```json{...}```..." }`
+ *
+ * Returns null when nothing usable is found — caller falls back to a
+ * markdown-only reply.
+ */
+function extractDocumentPayload(
+  result: unknown,
+  docType: NonNullable<AgentAttachment['docType']>,
+): Record<string, unknown> | null {
+  if (!result || typeof result !== 'object') return null;
+  const root = result as Record<string, unknown>;
+  const dataObj =
+    root['data'] && typeof root['data'] === 'object'
+      ? (root['data'] as Record<string, unknown>)
+      : root;
+
+  // Preferred: document type-specific key (e.g. `data.estimate`).
+  const typeKey =
+    docType === 'estimate'
+      ? 'estimate'
+      : docType === 'invoice'
+        ? 'invoice'
+        : docType === 'delivery-note'
+          ? 'delivery_note'
+          : docType === 'purchase-order'
+            ? 'purchase_order'
+            : 'cover_letter';
+  const direct = dataObj[typeKey];
+  if (direct && typeof direct === 'object') return direct as Record<string, unknown>;
+
+  // Generic office-task fallback.
+  const structured = dataObj['structured_result'];
+  if (structured && typeof structured === 'object') {
+    return structured as Record<string, unknown>;
+  }
+
+  // Last resort: tool returned a markdown blob containing fenced JSON.
+  const text =
+    typeof dataObj['text'] === 'string'
+      ? (dataObj['text'] as string)
+      : typeof root['text'] === 'string'
+        ? (root['text'] as string)
+        : '';
+  if (text) {
+    const fence = text.match(/```json\s*([\s\S]*?)```/);
+    if (fence) {
+      try {
+        const parsed = JSON.parse(fence[1]);
+        if (parsed && typeof parsed === 'object') {
+          return parsed as Record<string, unknown>;
+        }
+      } catch {
+        // fall through
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Extract every useful attachment from the final tool result:
+ *   - `kind: 'pdf'`      — direct url (server-hosted pdf, currently unused
+ *                          because `/api/tools/estimate/pdf` was removed)
+ *   - `kind: 'document'` — structured payload the LIFF page will render
+ *                          into a PDF client-side. `finalTool` lets us map
+ *                          tool id → doc type precisely instead of
+ *                          heuristically sniffing the result shape.
+ */
+function extractAttachments(result: unknown, finalTool: string): AgentAttachment[] {
+  const attachments: AgentAttachment[] = [];
+  if (!result || typeof result !== 'object') return attachments;
   const root = result as Record<string, unknown>;
   const data = root['data'] && typeof root['data'] === 'object'
     ? (root['data'] as Record<string, unknown>)
     : root;
-  const attachments: AgentAttachment[] = [];
+
   const pdfUrl =
     (typeof data['pdf_url'] === 'string' && data['pdf_url']) ||
     (typeof data['pdfUrl'] === 'string' && (data['pdfUrl'] as string));
   if (pdfUrl) attachments.push({ kind: 'pdf', url: pdfUrl });
+
+  const docType = docTypeForTool(finalTool);
+  if (docType) {
+    const docData = extractDocumentPayload(result, docType);
+    if (docData) {
+      attachments.push({ kind: 'document', docType, docData });
+    }
+  }
+
   return attachments;
 }
 
@@ -614,7 +711,7 @@ export async function* executeContractAgent(
   yield {
     type: 'final',
     reply: reviewer.reply,
-    attachments: extractAttachments(lastOkResult),
+    attachments: extractAttachments(lastOkResult, lastOkTool),
   };
 
   // Best-effort usage bookkeeping (Free-plan quota bucket).
