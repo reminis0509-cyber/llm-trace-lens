@@ -22,6 +22,11 @@ import {
   textMessage,
 } from './client.js';
 import { runChatBridge } from './chat-bridge.js';
+import { downloadLineMessageContent } from './client.js';
+import {
+  extractMediaText,
+  inferMimeFromFilename,
+} from './media-extractor.js';
 
 type FlexContainer = messagingApi.FlexContainer;
 
@@ -112,8 +117,46 @@ async function handleFollow(event: webhook.FollowEvent): Promise<void> {
 }
 
 /**
- * Handle a text `message` event by delegating to the chat bridge.
- * Non-text messages (sticker / image / file / …) receive a gentle nudge.
+ * Pull text out of an image / file / text attachment and shape it into a
+ * synthetic "user message" that the chat bridge can process exactly like
+ * a typed text. Returns null when the attachment is unsupported or the
+ * extractor produced nothing.
+ *
+ * The returned string is deliberately tagged with a `[添付ファイル内容]`
+ * header so the Runtime's prompts know this text came from OCR / PDF
+ * parsing and should be treated as context rather than as a direct
+ * instruction. When a filename is available we also surface it so the
+ * user can see which file was processed.
+ */
+async function mediaMessageToUserText(
+  fastify: FastifyInstance,
+  messageId: string,
+  mimeType: string,
+  fileName?: string,
+): Promise<string | null> {
+  const buffer = await downloadLineMessageContent(messageId);
+  if (!buffer) return null;
+  const text = await extractMediaText(fastify, buffer, mimeType);
+  if (!text) return null;
+  const header = fileName
+    ? `[添付ファイル「${fileName}」の内容]`
+    : '[添付画像の内容]';
+  return `${header}\n${text}`;
+}
+
+/**
+ * Handle a message event — text, image, or file. Stickers / audio / video
+ * remain out of scope and receive a gentle nudge.
+ *
+ * Image / file flow (Phase 2 — 自律AI 同等化):
+ *   1. Reply-ack within the 1-minute replyToken window.
+ *   2. Download content via `getLineBlobClient` and run through
+ *      `extractMediaText` (GPT-4o Vision for images, pdf-parse for PDFs).
+ *   3. Synthesise a user text (`[添付ファイル内容]...`) and hand it to the
+ *      normal chat bridge, which resumes the Contract Runtime with full
+ *      conversation history.
+ *   4. Unsupported formats / failed OCR → push a friendly error so the
+ *      user knows to retry with a different file.
  */
 async function handleMessage(
   fastify: FastifyInstance,
@@ -128,23 +171,87 @@ async function handleMessage(
   }
 
   const message = event.message;
-  if (message.type !== 'text') {
-    if (event.replyToken) {
-      await replyLineMessage(event.replyToken, [
-        textMessage('テキストでご指示ください（例: 見積書作って 株式会社テスト宛）。'),
-      ]);
-    }
+
+  if (message.type === 'text') {
+    const text = typeof message.text === 'string' ? message.text : '';
+    if (!text.trim()) return;
+    await runChatBridge(fastify, {
+      lineUserId: userId,
+      replyToken: event.replyToken,
+      userText: text,
+    });
     return;
   }
 
-  const text = typeof message.text === 'string' ? message.text : '';
-  if (!text.trim()) return;
+  if (message.type === 'image' || message.type === 'file') {
+    const messageId = typeof message.id === 'string' ? message.id : '';
+    if (!messageId) return;
 
-  await runChatBridge(fastify, {
-    lineUserId: userId,
-    replyToken: event.replyToken,
-    userText: text,
-  });
+    // Ack so the user sees progress during OCR / PDF parsing.
+    if (event.replyToken) {
+      await replyLineMessage(event.replyToken, [
+        textMessage(
+          message.type === 'image'
+            ? '画像を受け取りました。内容を読み取ります…'
+            : 'ファイルを受け取りました。内容を読み取ります…',
+        ),
+      ]);
+    }
+
+    // Infer MIME. For images LINE does not surface the MIME directly, but
+    // the user message type is `image` and the content endpoint always
+    // returns JPEG for LINE images. For files the filename tells us.
+    let mimeType: string;
+    let fileName: string | undefined;
+    if (message.type === 'image') {
+      mimeType = 'image/jpeg';
+    } else {
+      // message.type === 'file'
+      fileName =
+        typeof (message as { fileName?: unknown }).fileName === 'string'
+          ? ((message as { fileName?: string }).fileName as string)
+          : undefined;
+      mimeType = inferMimeFromFilename(fileName);
+    }
+
+    const userText = await mediaMessageToUserText(
+      fastify,
+      messageId,
+      mimeType,
+      fileName,
+    );
+
+    if (!userText) {
+      // Extraction failed — tell the user plainly. No replyToken available
+      // here (already consumed by ack) so push.
+      const { pushLineMessage } = await import('./client.js');
+      await pushLineMessage(userId, [
+        textMessage(
+          message.type === 'image'
+            ? '画像の内容を読み取れませんでした。もう一度、鮮明な画像でお送りください。'
+            : 'ファイルの内容を読み取れませんでした。対応形式: PDF / 画像(jpeg, png) / テキスト(.txt, .md, .csv)',
+        ),
+      ]);
+      return;
+    }
+
+    // Feed OCR/PDF text to the Contract Runtime. replyToken is already
+    // consumed, so `runChatBridge` will push the final response.
+    await runChatBridge(fastify, {
+      lineUserId: userId,
+      userText,
+    });
+    return;
+  }
+
+  // Sticker / audio / video / location / … — gentle nudge.
+  if (event.replyToken) {
+    await replyLineMessage(event.replyToken, [
+      textMessage(
+        'テキスト・画像・PDFでご指示ください（例: 見積書作って 株式会社テスト宛）。',
+      ),
+    ]);
+  }
 }
 
 /**
