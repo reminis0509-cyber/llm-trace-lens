@@ -269,65 +269,42 @@ async function handlePostback(event: webhook.PostbackEvent): Promise<void> {
   if (action === 'start_chat') {
     await replyLineMessage(event.replyToken, [
       textMessage(
-        'どんな書類をお作りしますか？\n' +
-          '対応: 見積書・請求書・納品書・発注書・送付状\n\n' +
-          '例: 「見積書 株式会社テスト宛 コンサルティング料 月額10万円」のように、' +
-          '宛先・品目・金額をまとめて書くとそのまま作成できます。',
+        '何でもお気軽にご相談ください。\n\n' +
+          '- 業務で迷ったときのセカンドオピニオン\n' +
+          '- メール文案の下書き\n' +
+          '- 見積書・請求書の書き方相談\n' +
+          '- アイデア出し、議論の整理\n\n' +
+          '※ 見積書やPDF書類の自動生成は準備中です。まずはチャットで相談にお使いください。',
       ),
     ]);
     return;
   }
 
-  // Rich Menu entries — each delivers a short pre-baked prompt telling the
-  // user exactly what to type. All document-creation actions intentionally
-  // converge on the same chat input pattern so the Contract Runtime's
-  // Planner gets deterministic text to route on.
-  if (action === 'start_estimate') {
+  // Rich Menu entries — Phase A では書類生成機能を一時停止中のため、
+  // 「準備中です」を明記しつつ、AIチャットで相談はできることを案内する。
+  // Phase C で自動生成が復活したらこれらを実機能に差し戻す予定。
+  if (
+    action === 'start_estimate' ||
+    action === 'start_invoice' ||
+    action === 'start_delivery_note' ||
+    action === 'start_purchase_order' ||
+    action === 'start_cover_letter'
+  ) {
+    const label =
+      action === 'start_estimate'
+        ? '見積書'
+        : action === 'start_invoice'
+          ? '請求書'
+          : action === 'start_delivery_note'
+            ? '納品書'
+            : action === 'start_purchase_order'
+              ? '発注書'
+              : '送付状';
     await replyLineMessage(event.replyToken, [
       textMessage(
-        '見積書を作成します。\n' +
-          '宛先(相手先会社名)、品目、金額、必要なら納期・支払条件を1通のメッセージで送ってください。\n\n' +
-          '例: 「見積書 株式会社テスト宛 コンサルティング料 月額10万円 納期4/30 支払は月末締翌月末払い」',
-      ),
-    ]);
-    return;
-  }
-  if (action === 'start_invoice') {
-    await replyLineMessage(event.replyToken, [
-      textMessage(
-        '請求書を作成します。\n' +
-          '宛先(相手先会社名)、品目、金額、期日を送ってください。\n\n' +
-          '例: 「請求書 株式会社テスト宛 コンサルティング料 10万円 支払期日5/31」',
-      ),
-    ]);
-    return;
-  }
-  if (action === 'start_delivery_note') {
-    await replyLineMessage(event.replyToken, [
-      textMessage(
-        '納品書を作成します。\n' +
-          '宛先(相手先会社名)、納品物、数量、納品日を送ってください。\n\n' +
-          '例: 「納品書 株式会社テスト宛 Webデザイン一式 納品日4/25」',
-      ),
-    ]);
-    return;
-  }
-  if (action === 'start_purchase_order') {
-    await replyLineMessage(event.replyToken, [
-      textMessage(
-        '発注書を作成します。\n' +
-          '発注先、品目、数量、金額、希望納期を送ってください。\n\n' +
-          '例: 「発注書 株式会社サプライヤー宛 部材A 100個 単価500円 納期5/10」',
-      ),
-    ]);
-    return;
-  }
-  if (action === 'start_cover_letter') {
-    await replyLineMessage(event.replyToken, [
-      textMessage(
-        '送付状を作成します。\n' +
-          '宛先、同封物、簡単な挨拶文の希望を送ってください。\n\n' +
-          '例: 「送付状 株式会社テスト宛 見積書1部を送付 平素よりお世話になっております」',
+        `${label}の自動作成(PDF出力)は現在準備中です。\n\n` +
+          `今は「${label}の書き方」「${label}文案の下書き」などの相談をチャットでお受けできます。` +
+          `例: 「${label}に書くべき項目を教えて」「株式会社テスト宛の${label}の本文を作って」のようにお尋ねください。`,
       ),
     ]);
     return;
