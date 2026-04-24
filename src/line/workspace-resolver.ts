@@ -24,6 +24,7 @@
 import { kv } from '@vercel/kv';
 import { createWorkspace } from '../kv/client.js';
 import { getKnex } from '../storage/knex-client.js';
+import { ensureAiToolsTables } from '../routes/tools/_shared.js';
 import { randomUUID } from 'crypto';
 
 /** KV key for the `lineUserId → workspaceId` mapping. */
@@ -76,6 +77,66 @@ async function ensureWorkspaceUserRow(
 }
 
 /**
+ * Seed a placeholder `user_business_info` row for a brand-new LINE workspace.
+ *
+ * Background: the dashboard forces a 会社基本情報モーダル on first login, so
+ * every Web workspace has at least one row in `user_business_info`. LINE has
+ * no such modal, so `loadCompanyInfo()` in `chat-bridge.ts` returns
+ * `undefined` and the Contract Runtime's `buildToolInput` LLM produces an
+ * empty `business_info_id` — which then fails the `z.string().min(1)` check
+ * in `/api/tools/estimate/create` with HTTP 400, surfacing to the user as
+ * "申し訳ありません、もう一度お試しください。".
+ *
+ * Seeding a placeholder row guarantees that `business_info_id` is always
+ * non-empty for LINE-origin workspaces. The user can later overwrite it
+ * through the dashboard (the UPSERT by `workspace_id + created_at asc`
+ * already picks the oldest row, so late edits win via the update path —
+ * see `src/routes/tools/business-info.ts`).
+ *
+ * All errors are swallowed — if the insert fails (missing table, race on
+ * simultaneous first message, etc.) the agent still runs; the only cost is
+ * that the user sees a slightly less helpful estimate draft.
+ *
+ * Column names MUST match `migrations/010_add_ai_tools.ts` exactly:
+ *   id, workspace_id, company_name, address, phone, email, invoice_number,
+ *   bank_name, bank_branch, account_type, account_number, account_holder,
+ *   created_at, updated_at.
+ */
+async function ensureDefaultBusinessInfo(
+  workspaceId: string,
+  lineUserId: string,
+): Promise<void> {
+  try {
+    await ensureAiToolsTables();
+    const db = getKnex();
+    const existing = await db('user_business_info')
+      .where({ workspace_id: workspaceId })
+      .first();
+    if (existing) return;
+    const now = new Date();
+    await db('user_business_info').insert({
+      id: randomUUID(),
+      workspace_id: workspaceId,
+      company_name: 'デモユーザー',
+      address: '',
+      phone: '',
+      email: buildLinePseudoEmail(lineUserId),
+      invoice_number: null,
+      bank_name: null,
+      bank_branch: null,
+      account_type: null,
+      account_number: null,
+      account_holder: null,
+      created_at: now,
+      updated_at: now,
+    });
+  } catch {
+    // Non-fatal — agent can still run without this row, it will just
+    // surface as an empty-company-info fallback downstream.
+  }
+}
+
+/**
  * Return an existing workspace id for the LINE user, or create a brand new
  * one (with 30-day Pro trial + signup credit) on first contact.
  *
@@ -106,6 +167,11 @@ export async function resolveLineWorkspace(
     const workspace = await createWorkspace(`LINE ${lineUserId.slice(0, 8)}`);
     await kv.set(key, workspace.id);
     await ensureWorkspaceUserRow(workspace.id, buildLinePseudoEmail(lineUserId));
+    // Seed a placeholder user_business_info row so that the Contract
+    // Runtime's tool-input-builder LLM always has a non-empty
+    // `business_info_id` to pass to `/api/tools/estimate/create`.
+    // Non-fatal on failure — see helper JSDoc.
+    await ensureDefaultBusinessInfo(workspace.id, lineUserId);
     return { workspaceId: workspace.id, isNew: true };
   } catch {
     return null;

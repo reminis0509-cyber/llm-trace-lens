@@ -241,9 +241,26 @@ export async function runChatBridge(
       }
     }
   } catch (err) {
-    fastify.log.error({ err }, '[LINE] Contract agent crashed');
+    // Surface as much detail as Vercel's log viewer can ingest — error
+    // name / message / stack are pulled onto individual fields so the
+    // Founder can filter on them without enabling verbose JSON output.
+    const errObj = err instanceof Error ? err : new Error(String(err));
+    fastify.log.error(
+      {
+        err: errObj,
+        errName: errObj.name,
+        errMessage: errObj.message,
+        errStack: errObj.stack,
+        workspaceId: resolved.workspaceId,
+        lineUserId: input.lineUserId,
+        userText: input.userText,
+      },
+      '[LINE] Contract agent crashed',
+    );
     await pushLineMessage(input.lineUserId, [
-      textMessage('申し訳ありません、もう一度お試しください。'),
+      textMessage(
+        '申し訳ありません、処理中にエラーが発生しました。管理者に調査を依頼しました。',
+      ),
     ]);
     return;
   }
@@ -258,16 +275,33 @@ export async function runChatBridge(
 
   if (errorEvent) {
     fastify.log.warn(
-      { code: errorEvent.code, message: errorEvent.message },
+      {
+        code: errorEvent.code,
+        message: errorEvent.message,
+        stepIndex: errorEvent.stepIndex,
+        workspaceId: resolved.workspaceId,
+        lineUserId: input.lineUserId,
+        userText: input.userText,
+      },
       '[LINE] Contract agent reported error',
     );
     await pushLineMessage(input.lineUserId, [
-      textMessage('申し訳ありません、もう一度お試しください。'),
+      textMessage(
+        '申し訳ありません、処理中にエラーが発生しました。管理者に調査を依頼しました。',
+      ),
     ]);
     return;
   }
 
   // Neither final nor error — runtime ended without yielding a result.
+  fastify.log.warn(
+    {
+      workspaceId: resolved.workspaceId,
+      lineUserId: input.lineUserId,
+      userText: input.userText,
+    },
+    '[LINE] Contract agent ended without final/error event',
+  );
   await pushLineMessage(input.lineUserId, [
     textMessage('処理を完了できませんでした。もう一度お試しください。'),
   ]);
