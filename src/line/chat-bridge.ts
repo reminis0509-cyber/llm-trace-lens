@@ -40,8 +40,8 @@ import {
   textMessage,
 } from './client.js';
 import { resolveLineWorkspace } from './workspace-resolver.js';
-import { callLlmViaProxy } from '../routes/tools/_shared.js';
 import type { LlmMessage } from '../routes/tools/_shared.js';
+import { webSearch } from '../agent/web-search.js';
 
 /** Internal input shape for the bridge, produced by the event handler. */
 export interface ChatBridgeInput {
@@ -55,11 +55,43 @@ export interface ChatBridgeInput {
   userText: string;
 }
 
-/** Model used for all LINE chat replies. Cost-optimised, Japanese-capable. */
-const CHAT_MODEL = 'gpt-4o-mini';
+/** Model used for all LINE chat replies. Mini supports tool calling and
+ * handles Japanese reliably at a fraction of gpt-4o's cost. */
+const CHAT_TOOL_MODEL = 'gpt-4o-mini';
+
+/** Max iterations through the web-search tool loop. 1 search per turn is
+ * usually enough; the loop cap guards against a runaway LLM. */
+const MAX_TOOL_ITERS = 2;
+
+/** How many DuckDuckGo results to feed back to the LLM per search call. */
+const WEB_SEARCH_RESULTS = 5;
 
 /** Maximum reply length LINE accepts in a single text message (LINE cap 5000). */
 const MAX_REPLY_CHARS = 4800;
+
+/**
+ * OpenAI function-calling tool declaration for web search. Kept extremely
+ * narrow on purpose — the LLM should only invoke it when the user wants
+ * current/external info, and the description says so.
+ */
+const WEB_SEARCH_TOOL = {
+  type: 'function' as const,
+  function: {
+    name: 'web_search',
+    description:
+      '最新のニュース・会社情報・製品情報・一般的なウェブ情報を検索します。ユーザーが「調べて」「最新の」「今の」などリアルタイムの情報を求めている時だけ使用。一般知識で答えられる時は使わない。',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: '検索クエリ(日本語可)。短く具体的に。',
+        },
+      },
+      required: ['query'],
+    },
+  },
+};
 
 /**
  * The system prompt that defines フジ's persona on LINE. Kept deliberately
@@ -81,11 +113,14 @@ const SYSTEM_PROMPT = [
   '- 箇条書きや番号リストは LINE では見づらいので、必要な時だけ最小限に使う。',
   '- 絵文字は原則使わない(日本のビジネスLINEの慣習に合わせる)。',
   '',
+  '使えるツール:',
+  '- `web_search` — 最新のニュース・会社情報・製品情報などを調べたい時に使う。ユーザーが「調べて」「最新の」などリアルタイム情報を求める時だけ。',
+  '',
   '現時点で「準備中」の機能(聞かれたら正直に伝える):',
   '- 見積書・請求書・納品書・発注書・送付状の作成/PDF出力',
   '- 画像からの請求書OCR、入金管理などの業務自動化',
   '',
-  '上記の自動化機能は順次追加していきますが、今は「AIと相談して考えを整理する」ことに特化しています。ビジネス全般の相談、メール文案の下書き、アイデア出し、業務の進め方相談などに気軽にお使いいただけます。',
+  '上記の自動化機能は順次追加していきますが、今は「AIと相談して考えを整理する」「ネット情報を調べて要約する」ことに特化しています。ビジネス全般の相談、メール文案の下書き、アイデア出し、業務の進め方相談などに気軽にお使いいただけます。',
 ].join('\n');
 
 /** Tidy the LLM reply for LINE — strip stray whitespace and truncate. */
@@ -96,6 +131,170 @@ function normaliseReply(raw: string | null | undefined): string {
   }
   if (text.length <= MAX_REPLY_CHARS) return text;
   return `${text.slice(0, MAX_REPLY_CHARS)}…`;
+}
+
+/**
+ * Serialise search results into a compact Japanese text block the LLM can
+ * cite. Truncated aggressively — 5 results × ~300 chars = ~1500 chars is
+ * plenty for a LINE-sized reply and keeps the follow-up tokens cheap.
+ */
+function formatSearchResults(
+  query: string,
+  results: Array<{ title: string; url: string; snippet: string }>,
+): string {
+  if (results.length === 0) {
+    return `検索クエリ「${query}」の結果は見つかりませんでした。`;
+  }
+  const lines = [`検索クエリ: ${query}`, '検索結果:'];
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    const snip = r.snippet.length > 220 ? `${r.snippet.slice(0, 220)}…` : r.snippet;
+    lines.push(`[${i + 1}] ${r.title}`);
+    lines.push(`URL: ${r.url}`);
+    lines.push(`概要: ${snip}`);
+  }
+  return lines.join('\n');
+}
+
+/**
+ * Direct OpenAI call with function-calling + web_search tool loop.
+ *
+ * Why a bespoke helper (instead of the shared `callLlmWithTools`):
+ *   - We need multi-iteration — the user might ask "最新のX" and the
+ *     model should: (1) call web_search, (2) read results, (3) answer.
+ *     `callLlmWithTools` is a single shot.
+ *   - We want to carry `tool` / `assistant-with-tool_calls` messages back
+ *     into the next iteration, which means mutating the message list in
+ *     a way the shared `LlmMessage` type doesn't model.
+ *
+ * Intentionally narrow — only `web_search` is known. Any other tool the
+ * LLM invents is ignored (treated as no-op and the loop continues).
+ *
+ * Returns the final assistant text. Throws on OpenAI API errors so the
+ * caller can log + surface a friendly error.
+ */
+async function runChatWithSearch(
+  systemPrompt: string,
+  priorHistory: LlmMessage[],
+  userText: string,
+  logger: { info: (obj: unknown, msg: string) => void; warn: (obj: unknown, msg: string) => void },
+): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');
+
+  // OpenAI's chat/completions message type is broader than our LlmMessage;
+  // we use a local structural type here so tool-call round trips work.
+  type OaMessage =
+    | { role: 'system' | 'user'; content: string }
+    | { role: 'assistant'; content: string | null; tool_calls?: Array<{ id: string; type: 'function'; function: { name: string; arguments: string } }> }
+    | { role: 'tool'; tool_call_id: string; content: string };
+
+  const messages: OaMessage[] = [
+    { role: 'system', content: systemPrompt },
+    ...priorHistory.map((m): OaMessage => ({
+      role: m.role as 'user' | 'assistant' | 'system',
+      content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+    })),
+    { role: 'user', content: userText },
+  ];
+
+  for (let iter = 0; iter < MAX_TOOL_ITERS + 1; iter++) {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: CHAT_TOOL_MODEL,
+        messages,
+        tools: [WEB_SEARCH_TOOL],
+        tool_choice: 'auto',
+        temperature: 0.5,
+        max_tokens: 1200,
+      }),
+    });
+    if (!res.ok) {
+      throw new Error(`OpenAI API ${res.status}: ${await res.text()}`);
+    }
+    const parsed = (await res.json()) as {
+      choices?: Array<{
+        message?: {
+          content?: string | null;
+          tool_calls?: Array<{
+            id: string;
+            type: 'function';
+            function: { name: string; arguments: string };
+          }>;
+        };
+      }>;
+    };
+    const msg = parsed.choices?.[0]?.message;
+    const toolCalls = msg?.tool_calls ?? [];
+    const content = msg?.content ?? '';
+
+    // No tool call → final answer.
+    if (toolCalls.length === 0) {
+      return content;
+    }
+
+    // Loop budget exhausted → give up on more searches and synthesise
+    // whatever content the model already produced.
+    if (iter >= MAX_TOOL_ITERS) {
+      logger.warn({ iter, toolCalls: toolCalls.length }, '[LINE chat] tool-loop cap hit — returning partial');
+      return content || '申し訳ありません、検索結果をまとめられませんでした。もう一度お試しください。';
+    }
+
+    // Push the assistant message (with tool_calls) into the history so
+    // OpenAI's subsequent call knows what we asked.
+    messages.push({
+      role: 'assistant',
+      content,
+      tool_calls: toolCalls,
+    });
+
+    // Execute each tool call. Currently only `web_search` is known.
+    for (const tc of toolCalls) {
+      if (tc.function.name !== 'web_search') {
+        messages.push({
+          role: 'tool',
+          tool_call_id: tc.id,
+          content: JSON.stringify({ error: `unknown tool ${tc.function.name}` }),
+        });
+        continue;
+      }
+      let query = '';
+      try {
+        const args = JSON.parse(tc.function.arguments) as { query?: unknown };
+        query = typeof args.query === 'string' ? args.query.trim() : '';
+      } catch {
+        // malformed args — give the model a chance to try again
+      }
+      if (!query) {
+        messages.push({
+          role: 'tool',
+          tool_call_id: tc.id,
+          content: 'エラー: 検索クエリが空でした。',
+        });
+        continue;
+      }
+      logger.info({ query }, '[LINE chat] web_search');
+      let blob: string;
+      try {
+        const results = await webSearch(query, WEB_SEARCH_RESULTS);
+        blob = formatSearchResults(query, results);
+      } catch (err) {
+        blob = `検索に失敗しました: ${err instanceof Error ? err.message : 'unknown'}`;
+      }
+      messages.push({
+        role: 'tool',
+        tool_call_id: tc.id,
+        content: blob,
+      });
+    }
+  }
+
+  return '申し訳ありません、想定外のループ状態になりました。もう一度お試しください。';
 }
 
 /**
@@ -256,20 +455,14 @@ export async function runChatBridge(
   void showLineLoading(input.lineUserId, 20);
 
   const history = await loadConversationHistory(input.lineUserId);
-  const messages: LlmMessage[] = [
-    { role: 'system', content: SYSTEM_PROMPT },
-    ...history,
-    { role: 'user', content: input.userText },
-  ];
 
   let reply: string;
   try {
-    const { content } = await callLlmViaProxy(fastify, messages, {
-      model: CHAT_MODEL,
-      temperature: 0.6,
-      maxTokens: 1200,
+    const raw = await runChatWithSearch(SYSTEM_PROMPT, history, input.userText, {
+      info: (obj, msg) => fastify.log.info(obj, msg),
+      warn: (obj, msg) => fastify.log.warn(obj, msg),
     });
-    reply = normaliseReply(typeof content === 'string' ? content : null);
+    reply = normaliseReply(raw);
   } catch (err) {
     const errObj = err instanceof Error ? err : new Error(String(err));
     fastify.log.error(
