@@ -159,6 +159,12 @@ export async function resolveLineWorkspace(
       // could have been reset in a dev environment while KV still holds
       // the mapping.
       await ensureWorkspaceUserRow(existing, buildLinePseudoEmail(lineUserId));
+      // Also re-assert the business_info placeholder row. Workspaces
+      // created before this seed logic landed (or rows wiped in dev) still
+      // need one, otherwise /api/tools/estimate/create fails Zod
+      // `business_info_id: min(1)`. The helper itself is idempotent —
+      // skips insertion when a row already exists.
+      await ensureDefaultBusinessInfo(existing, lineUserId);
       return { workspaceId: existing, isNew: false };
     }
 
