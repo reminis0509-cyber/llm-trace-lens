@@ -64,9 +64,15 @@ function buildWelcomeFlex(liffId: string): FlexContainer {
           style: 'primary',
           color: '#2563eb',
           action: {
-            type: 'message',
+            // `postback` は LINE 側に「このボタンが押された」という
+            // イベントだけを送る種別。`type: 'message'` のように
+            // 勝手にユーザー発話として送信してしまう事故を防ぐため、
+            // 本ボタンは必ず postback で扱う。data は dispatcher が
+            // `action=start_chat` を見て Bot 側からの案内返信にルーティングする。
+            type: 'postback',
             label: 'チャットで頼む',
-            text: '何をお手伝いしましょうか?',
+            data: 'action=start_chat',
+            displayText: 'チャットで頼む',
           },
         },
         {
@@ -142,6 +148,34 @@ async function handleMessage(
 }
 
 /**
+ * Handle a `postback` event — currently only the welcome-flex
+ * "チャットで頼む" button. Adding more postback actions later is as simple
+ * as extending the `action=...` switch below. All postback payloads use
+ * URL-query-style strings so we can grep them in logs.
+ */
+async function handlePostback(event: webhook.PostbackEvent): Promise<void> {
+  if (!event.replyToken) return;
+  const data = typeof event.postback?.data === 'string' ? event.postback.data : '';
+  const params = new URLSearchParams(data);
+  const action = params.get('action');
+
+  if (action === 'start_chat') {
+    await replyLineMessage(event.replyToken, [
+      textMessage(
+        'どんな書類をお作りしますか？\n' +
+          '対応: 見積書・請求書・納品書・発注書・送付状\n\n' +
+          '例: 「見積書 株式会社テスト宛 コンサルティング料 月額10万円」のように、' +
+          '宛先・品目・金額をまとめて書くとそのまま作成できます。',
+      ),
+    ]);
+    return;
+  }
+
+  // Unknown postback — swallow silently so a stale Flex button never spams
+  // the user with an error.
+}
+
+/**
  * Dispatch a single webhook event to the correct handler.
  * Exported for unit tests.
  */
@@ -158,7 +192,11 @@ export async function dispatchLineEvent(
       await handleMessage(fastify, event);
       return;
     }
-    // unfollow / sticker / postback / … — no-op.
+    if (event.type === 'postback') {
+      await handlePostback(event);
+      return;
+    }
+    // unfollow / sticker / … — no-op.
   } catch (err) {
     fastify.log.error(
       { err, eventType: event.type },
