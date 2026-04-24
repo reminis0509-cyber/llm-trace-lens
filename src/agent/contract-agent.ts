@@ -137,8 +137,14 @@ async function runPlanner(
     company_info: JSON.stringify(input.companyInfo ?? {}),
   });
 
+  // Prepend past turns so the Planner sees the full conversation. On LINE
+  // this is essential — users reply piece-wise ("数量 2 / 単価 20000") and
+  // the Planner would otherwise treat the reply as a standalone request.
+  // Web autonomous callers can still pass an empty/absent history; behaviour
+  // matches the previous single-shot implementation.
   const messages: LlmMessage[] = [
     { role: 'system', content: systemPrompt },
+    ...(input.conversationHistory ?? []),
     { role: 'user', content: input.message },
   ];
 
@@ -183,8 +189,13 @@ async function buildToolInput(
     company_info: JSON.stringify(input.companyInfo ?? {}),
   });
 
+  // History → current message → "output JSON" sentinel. The system prompt
+  // still templates the current `user_message`, but exposing the full
+  // transcript lets the builder LLM pull missing fields (宛先, 品目, 納期…)
+  // from earlier turns when the current reply is a partial answer.
   const messages: LlmMessage[] = [
     { role: 'system', content: systemPrompt },
+    ...(input.conversationHistory ?? []),
     { role: 'user', content: 'payload JSON のみを出力してください。' },
   ];
 
@@ -295,6 +306,7 @@ async function runReviewer(
     finalResult: unknown;
     arithmeticStatus: 'ok' | 'skipped' | 'failed';
     arithmeticNotes: string;
+    conversationHistory?: LlmMessage[];
   },
   tracker: RunSpendTracker,
 ): Promise<ReviewerOutput> {
@@ -308,8 +320,11 @@ async function runReviewer(
     arithmetic_notes: args.arithmeticNotes,
   });
 
+  // History context lets the reviewer write a natural reply that references
+  // earlier turns ("先ほどお伺いした宛先で…") rather than a stiff one-shot.
   const messages: LlmMessage[] = [
     { role: 'system', content: systemPrompt },
+    ...(args.conversationHistory ?? []),
     { role: 'user', content: '最終レビュー JSON を出力してください。' },
   ];
 
@@ -581,6 +596,7 @@ export async function* executeContractAgent(
       finalResult: lastOkResult,
       arithmeticStatus,
       arithmeticNotes,
+      conversationHistory: input.conversationHistory,
     }, tracker);
   } catch (err) {
     if (err instanceof CostBudgetExceededError) {

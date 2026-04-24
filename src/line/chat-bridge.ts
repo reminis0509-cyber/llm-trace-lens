@@ -25,6 +25,10 @@ import type {
   AgentSseEvent,
 } from '../agent/contract-agent.types.js';
 import {
+  appendConversationTurn,
+  loadConversationHistory,
+} from '../agent/conversation-history.js';
+import {
   flexMessage,
   pushLineMessage,
   replyLineMessage,
@@ -216,6 +220,11 @@ export async function runChatBridge(
   void showLineLoading(input.lineUserId, 30);
 
   const companyInfo = await loadCompanyInfo(resolved.workspaceId);
+  // Load PAST turns only — the current `input.userText` is passed as
+  // `message` and the runtime appends it internally as the last user
+  // message. After the run completes we persist both user + assistant
+  // turns so the next request sees full context.
+  const conversationHistory = await loadConversationHistory(input.lineUserId);
 
   // Drive the Contract Runtime. We capture the final / error event; all
   // other events (plan, step_start, step_result, review) are observability
@@ -233,6 +242,7 @@ export async function runChatBridge(
       conversationId: input.lineUserId,
       workspaceId: resolved.workspaceId,
       companyInfo,
+      conversationHistory,
     })) {
       if (isFinalEvent(event)) {
         finalEvent = event;
@@ -266,6 +276,17 @@ export async function runChatBridge(
   }
 
   if (finalEvent) {
+    // Persist both turns so the next user message sees full context. Order
+    // matters: user first (chronological), then assistant. Failures are
+    // swallowed inside the helper — history is nice-to-have, not critical.
+    await appendConversationTurn(input.lineUserId, 'user', input.userText);
+    if (finalEvent.reply) {
+      await appendConversationTurn(
+        input.lineUserId,
+        'assistant',
+        finalEvent.reply,
+      );
+    }
     await pushLineMessage(
       input.lineUserId,
       composeFinalMessages(input.userText, finalEvent),

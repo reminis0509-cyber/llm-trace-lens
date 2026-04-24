@@ -3,6 +3,7 @@
  *
  * Corresponds to the SSE event contract documented in the plan.
  */
+import type { LlmMessage } from '../routes/tools/_shared.js';
 
 /** A single step in the LLM-generated Plan. */
 export interface AgentPlanStep {
@@ -38,7 +39,7 @@ export interface AgentStepState {
 
 /** Caller input to `executeContractAgent`. */
 export interface AgentRunInput {
-  /** User free-text message. */
+  /** User free-text message (the CURRENT turn only). */
   message: string;
   /** Optional existing conversation id (future multi-turn). */
   conversationId?: string;
@@ -46,6 +47,16 @@ export interface AgentRunInput {
   workspaceId: string;
   /** Cached company basics (address, bank, invoice_number, …). */
   companyInfo?: Record<string, unknown>;
+  /**
+   * Prior turns in chronological order — past user/assistant messages only,
+   * no system. The runtime prepends these to each LLM call so Planner /
+   * ToolInputBuilder / Reviewer all share context. Empty array means
+   * "this is the first turn".
+   *
+   * Storage is the caller's responsibility — see
+   * `src/agent/conversation-history.ts` for the canonical KV-backed impl.
+   */
+  conversationHistory?: LlmMessage[];
 }
 
 /** An attachment surfaced in the `final` event (PDF link, etc.). */
