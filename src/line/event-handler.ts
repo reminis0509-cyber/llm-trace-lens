@@ -7,17 +7,21 @@
  * from Fastify — the caller already responded 200 OK by the time we run.
  *
  * Handled events:
- *   - `follow`     — a user adds our Official Account as a friend.
- *   - `message` / text — the core AI 事務員 entrypoint.
+ *   - `follow`           — start the 3-step Welcome Journey
+ *                          (`welcome-journey.ts`).
+ *   - `message` / text   — if a journey is active, drive the journey;
+ *                          otherwise hand off to the standard chat bridge.
+ *   - `message` / image  — same gating as text. Outside the journey, OCR
+ *                          via `media-extractor` and feed into the bridge.
+ *   - `message` / file   — text/PDF extraction → bridge.
+ *   - `postback`         — Rich Menu cheat-sheet text, keyed on `action`.
  *
- * Everything else (unfollow, sticker / image / audio messages, postback, …)
- * is a no-op for now — the Monday demo only needs follow + text.
+ * Anything else (unfollow, sticker, audio, video, location, …) is silently
+ * ignored.
  */
 import type { FastifyInstance } from 'fastify';
-import type { webhook, messagingApi } from '@line/bot-sdk';
-import { lineConfig } from '../config.js';
+import type { webhook } from '@line/bot-sdk';
 import {
-  flexMessage,
   replyLineMessage,
   textMessage,
 } from './client.js';
@@ -27,93 +31,33 @@ import {
   extractMediaText,
   inferMimeFromFilename,
 } from './media-extractor.js';
-
-type FlexContainer = messagingApi.FlexContainer;
-
-/**
- * Compose the welcome Flex bubble shown on `follow`. Three action buttons
- * mirror the dashboard onboarding (chat / tutorial / quest).
- */
-function buildWelcomeFlex(liffId: string): FlexContainer {
-  const tutorialUri = `https://liff.line.me/${liffId}/tutorial`;
-  const questUri = `https://liff.line.me/${liffId}/quest`;
-  return {
-    type: 'bubble',
-    body: {
-      type: 'box',
-      layout: 'vertical',
-      spacing: 'md',
-      contents: [
-        {
-          type: 'text',
-          text: 'FujiTraceへようこそ',
-          weight: 'bold',
-          size: 'lg',
-        },
-        {
-          type: 'text',
-          text: '見積書・請求書・議事録など、事務作業はAI社員「フジ」にお任せください。',
-          wrap: true,
-          size: 'sm',
-          color: '#555555',
-        },
-      ],
-    },
-    footer: {
-      type: 'box',
-      layout: 'vertical',
-      spacing: 'sm',
-      contents: [
-        {
-          type: 'button',
-          style: 'primary',
-          color: '#2563eb',
-          action: {
-            // `postback` は LINE 側に「このボタンが押された」という
-            // イベントだけを送る種別。`type: 'message'` のように
-            // 勝手にユーザー発話として送信してしまう事故を防ぐため、
-            // 本ボタンは必ず postback で扱う。data は dispatcher が
-            // `action=start_chat` を見て Bot 側からの案内返信にルーティングする。
-            type: 'postback',
-            label: 'チャットで頼む',
-            data: 'action=start_chat',
-            displayText: 'チャットで頼む',
-          },
-        },
-        {
-          type: 'button',
-          style: 'secondary',
-          action: {
-            type: 'uri',
-            label: 'チュートリアルで学ぶ',
-            uri: tutorialUri,
-          },
-        },
-        {
-          type: 'button',
-          style: 'secondary',
-          action: {
-            type: 'uri',
-            label: 'クエストに挑戦',
-            uri: questUri,
-          },
-        },
-      ],
-    },
-  };
-}
+import {
+  getJourneyState,
+  handleJourneyMessage,
+  startWelcomeJourney,
+} from './welcome-journey.js';
 
 /**
- * Handle a `follow` event — send greeting text + action-button Flex.
+ * Handle a `follow` event — start the Welcome Journey scripted flow.
+ *
+ * Phase A1 (2026-04-25 pivot) — the previous `flexMessage` welcome with
+ * tutorial / quest buttons created decision paralysis ("どれを押せば？")
+ * for AI 初体験 users. The new design is a single guided text journey:
+ * one CTA at a time, 3 turns total, ending with the fujitrace.jp Web
+ * funnel. See `welcome-journey.ts` and the
+ * `line_gateway_journey_2026-04-25` memory for the rationale.
+ *
+ * Idempotency note — LINE may re-deliver `follow` events on transient
+ * delivery failures. `startWelcomeJourney` always overwrites the KV state
+ * to step 1, so a duplicate follow simply restarts the journey rather
+ * than producing two messages.
  */
 async function handleFollow(event: webhook.FollowEvent): Promise<void> {
-  if (!event.replyToken) return;
-  const liffId = lineConfig.liffId ?? '';
-  const greeting = textMessage(
-    'フォローありがとうございます。FujiTraceのAI社員です。書類作成もチェックもお任せください。',
-  );
-  const menu = flexMessage('FujiTraceメニュー', buildWelcomeFlex(liffId));
-  await replyLineMessage(event.replyToken, [greeting, menu]);
+  const source = event.source;
+  const userId =
+    source && source.type === 'user' && source.userId ? source.userId : null;
+  if (!userId) return;
+  await startWelcomeJourney(userId, event.replyToken);
 }
 
 /**
@@ -171,6 +115,52 @@ async function handleMessage(
   }
 
   const message = event.message;
+
+  // ─── Welcome Journey gate (Phase A1) ─────────────────────────────────
+  // If the user is currently in the 3-step journey, the journey owns this
+  // turn end-to-end (ack + reply + state advance). Falling through to the
+  // chat bridge would double-respond and confuse the scripted flow.
+  const journeyState = await getJourneyState(userId);
+  if (journeyState) {
+    if (message.type === 'text') {
+      const text = typeof message.text === 'string' ? message.text : '';
+      if (!text.trim()) return;
+      await handleJourneyMessage(
+        fastify,
+        {
+          lineUserId: userId,
+          replyToken: event.replyToken,
+          userText: text,
+        },
+        journeyState,
+      );
+      return;
+    }
+    if (message.type === 'image') {
+      const messageId = typeof message.id === 'string' ? message.id : '';
+      if (!messageId) return;
+      const buffer = await downloadLineMessageContent(messageId);
+      await handleJourneyMessage(
+        fastify,
+        {
+          lineUserId: userId,
+          replyToken: event.replyToken,
+          imageBuffer: buffer ?? undefined,
+          imageMimeType: 'image/jpeg',
+        },
+        journeyState,
+      );
+      return;
+    }
+    // Unsupported message type during journey — gentle nudge keeps the
+    // user on the rails without aborting the journey.
+    if (event.replyToken) {
+      await replyLineMessage(event.replyToken, [
+        textMessage('テキストか写真でお送りください。'),
+      ]);
+    }
+    return;
+  }
 
   if (message.type === 'text') {
     const text = typeof message.text === 'string' ? message.text : '';
@@ -255,63 +245,94 @@ async function handleMessage(
 }
 
 /**
- * Handle a `postback` event — currently only the welcome-flex
- * "チャットで頼む" button. Adding more postback actions later is as simple
- * as extending the `action=...` switch below. All postback payloads use
- * URL-query-style strings so we can grep them in logs.
+ * Postback messages shown on Rich Menu taps (Phase A2 — 2026-04-25).
+ *
+ * Each entry is a "what to send" cheat sheet rather than a feature
+ * trigger — the bot's job at this stage is to TEACH the AI 初体験 user
+ * what kind of message will yield a useful reply. The closing line is the
+ * actual prompt template they can copy-paste.
+ *
+ * Keep these texts under ~6 lines each. LINE messages > 8 lines start
+ * scrolling and the visual "lift" of the rich menu is lost.
+ */
+const RICH_MENU_POSTBACK_TEXTS: Record<string, string> = {
+  // 1段目左 — 写真で聞く
+  rm_photo: [
+    '写真を1枚送ってみてください。',
+    '私が中身を読み取って、要約や使い方を提案します。',
+    '',
+    '例: レシート、商品ラベル、取扱説明書、手書きメモ、英文の書類など。',
+  ].join('\n'),
+  // 1段目中央 — 文案作成
+  rm_mail: [
+    'メール・連絡文の下書きをお手伝いします。',
+    '宛先と用件をひとことで送ってください。',
+    '',
+    '例:',
+    '・「子供の風邪で保育園に欠席連絡」',
+    '・「取引先に納期遅れのお詫び」',
+    '・「請求書の但し書きを丁寧に」',
+  ].join('\n'),
+  // 1段目右 — 翻訳
+  rm_translate: [
+    '翻訳・要約します。',
+    '訳したい文章をそのまま送ってください。日本語⇄英語どちらもOKです。',
+    '',
+    '例:「以下を日本語に訳して: We are pleased to confirm…」',
+  ].join('\n'),
+  // 2段目左 — アイデア
+  rm_idea: [
+    'アイデア出し・整理をお手伝いします。',
+    'テーマや状況を一行で送ってください。',
+    '',
+    '例:',
+    '・「30代女性向けのギフト案を5つ」',
+    '・「来週の会議のアジェンダを整理」',
+    '・「予算3万円で社員へのプチプレゼント」',
+  ].join('\n'),
+  // 2段目中央 — お話しする
+  rm_chat: [
+    '何でもお話しください☺',
+    '今日あったこと、ちょっとした愚痴、迷っていること、何でも構いません。',
+    '',
+    '例:「今日は会議が3つで疲れた」「献立どうしようかな」など、気軽にどうぞ。',
+  ].join('\n'),
+  // 2段目右 — 本格作業
+  rm_web: [
+    '見積書・請求書のPDFまで本格的に作りたい時は、Web版をお使いください。',
+    '',
+    'https://fujitrace.jp',
+    '',
+    'LINEと同じAI社員のフジが、PCで書類作成・チェックまでお手伝いします。',
+  ].join('\n'),
+};
+
+/**
+ * Handle a `postback` event. Postback is LINE's "the user tapped a button
+ * but didn't actually type anything" event — used by both Rich Menu taps
+ * and any future Flex-bubble buttons. We dispatch on the `action=` query
+ * parameter so the wire format is greppable in webhook logs.
+ *
+ * Phase A2 (2026-04-25) — only the Rich Menu's six rm_* actions are live.
+ * Older actions (start_chat / start_estimate / …) are intentionally
+ * removed; Rich Menus are versioned by name so an old tap firing a stale
+ * action is impossible once `setup-line-rich-menu.ts` has run against
+ * production.
  */
 async function handlePostback(event: webhook.PostbackEvent): Promise<void> {
   if (!event.replyToken) return;
   const data = typeof event.postback?.data === 'string' ? event.postback.data : '';
   const params = new URLSearchParams(data);
-  const action = params.get('action');
+  const action = params.get('action') ?? '';
 
-  if (action === 'start_chat') {
-    await replyLineMessage(event.replyToken, [
-      textMessage(
-        '何でもお気軽にご相談ください。\n\n' +
-          '- 業務で迷ったときのセカンドオピニオン\n' +
-          '- メール文案の下書き\n' +
-          '- 見積書・請求書の書き方相談\n' +
-          '- アイデア出し、議論の整理\n\n' +
-          '※ 見積書やPDF書類の自動生成は準備中です。まずはチャットで相談にお使いください。',
-      ),
-    ]);
+  const text = RICH_MENU_POSTBACK_TEXTS[action];
+  if (text) {
+    await replyLineMessage(event.replyToken, [textMessage(text)]);
     return;
   }
 
-  // Rich Menu entries — Phase A では書類生成機能を一時停止中のため、
-  // 「準備中です」を明記しつつ、AIチャットで相談はできることを案内する。
-  // Phase C で自動生成が復活したらこれらを実機能に差し戻す予定。
-  if (
-    action === 'start_estimate' ||
-    action === 'start_invoice' ||
-    action === 'start_delivery_note' ||
-    action === 'start_purchase_order' ||
-    action === 'start_cover_letter'
-  ) {
-    const label =
-      action === 'start_estimate'
-        ? '見積書'
-        : action === 'start_invoice'
-          ? '請求書'
-          : action === 'start_delivery_note'
-            ? '納品書'
-            : action === 'start_purchase_order'
-              ? '発注書'
-              : '送付状';
-    await replyLineMessage(event.replyToken, [
-      textMessage(
-        `${label}の自動作成(PDF出力)は現在準備中です。\n\n` +
-          `今は「${label}の書き方」「${label}文案の下書き」などの相談をチャットでお受けできます。` +
-          `例: 「${label}に書くべき項目を教えて」「株式会社テスト宛の${label}の本文を作って」のようにお尋ねください。`,
-      ),
-    ]);
-    return;
-  }
-
-  // Unknown postback — swallow silently so a stale Flex button never spams
-  // the user with an error.
+  // Unknown postback — swallow silently so a stale Rich Menu tap from an
+  // older bot version never spams the user with an error.
 }
 
 /**

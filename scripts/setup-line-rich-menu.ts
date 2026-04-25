@@ -1,31 +1,34 @@
 /**
- * Provision the FujiTrace LINE Official Account Rich Menu.
- *
- * The Rich Menu is a persistent 2-row × 3-column grid of tap targets that
- * sits above the LINE message composer. It lets the user start any of the
- * 5 document-creation flows in one tap, plus jump to the company-info
- * form, tutorial, and quest LIFF apps.
+ * Provision the FujiTrace LINE Official Account Rich Menu (Phase A2,
+ * 2026-04-25). Gateway AI 戦略では LINE は「身近な相談相手」であり、
+ * 業務色を消した 6 機能のメニューに刷新する。
  *
  *   ┌───────────────┬───────────────┬───────────────┐
- *   │  見積書を作る   │  請求書を作る   │  納品書を作る   │
+ *   │ 📷 写真で聞く   │ ✉ 文案作成    │ 🌐 翻訳        │
  *   │ (postback)     │ (postback)     │ (postback)     │
  *   ├───────────────┼───────────────┼───────────────┤
- *   │  会社情報      │  使い方        │  クエスト      │
- *   │ (URI: LIFF)    │ (URI: LIFF)    │ (URI: LIFF)    │
+ *   │ 💡 アイデア    │ 💬 お話しする  │ 📄 本格作業    │
+ *   │ (postback)     │ (postback)     │ (postback)     │
  *   └───────────────┴───────────────┴───────────────┘
  *
- * Postback payloads are handled in `src/line/event-handler.ts` —
- * `action=start_estimate`, `start_invoice`, `start_delivery_note`.
+ * すべて postback で統一しているのは、ボタン押下時に bot が「何を送れば
+ * いいか」の使い方ガイドを返すスタイルにしているため(URI でいきなり外部に
+ * 飛ばさない)。「📄 本格作業」だけは fujitrace.jp への送客だが、bot から
+ * 案内文 + URL を返すことで「LINE で話してた相手に紹介された」という
+ * 文脈を保つ。
+ *
+ * Postback dispatch は `src/line/event-handler.ts` の
+ * `RICH_MENU_POSTBACK_TEXTS` を参照(action 名: rm_photo / rm_mail /
+ * rm_translate / rm_idea / rm_chat / rm_web)。
  *
  * Usage:
  *
- *   LINE_CHANNEL_ACCESS_TOKEN=xxx LINE_LIFF_ID=yyy \
+ *   LINE_CHANNEL_ACCESS_TOKEN=xxx \
  *     tsx scripts/setup-line-rich-menu.ts <path-to-image.png>
  *
  * The image must be 2500 × 1686 px (LINE's "Large" template size) and
- * ≤ 1 MB. Use a designed asset; layout must match the grid above. A
- * minimal placeholder image can be checked in later if we stabilise the
- * design.
+ * ≤ 1 MB. デザインは Founder 側で Canva 等で準備。レイアウトは上記
+ * グリッドに必ず一致させること(座標は下記 buildRichMenuDefinition 参照)。
  *
  * The script is idempotent:
  *   1. Lists existing Rich Menus and deletes any whose name starts with
@@ -38,18 +41,15 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN ?? '';
-const LIFF_ID = process.env.LINE_LIFF_ID ?? '';
 
 if (!CHANNEL_ACCESS_TOKEN) {
   // eslint-disable-next-line no-console
   console.error('LINE_CHANNEL_ACCESS_TOKEN is required');
   process.exit(1);
 }
-if (!LIFF_ID) {
-  // eslint-disable-next-line no-console
-  console.error('LINE_LIFF_ID is required');
-  process.exit(1);
-}
+// LINE_LIFF_ID is no longer required: Phase A2 menu is all postbacks. Kept
+// here as informational so devs running the old command line still get a
+// hint without a hard failure.
 
 const imagePath = process.argv[2];
 if (!imagePath) {
@@ -106,18 +106,18 @@ async function api<T>(
  * Rich Menu definition. The `size` 2500x1686 is LINE's "Large" template —
  * the only one that fits 6 regions at a comfortable tap size.
  *
- * Each `bounds` entry maps to a region of the image; the `action` is
- * what fires when the user taps that region. Coordinates are in image
- * pixels, origin at top-left.
+ * Phase A2 では 6 マスすべて postback。タップ時に bot が「何を送れば
+ * いいか」の使い方ガイドを返す。`displayText` は LINE のチャット欄に
+ * "あなた: ◯◯" として表示される文言で、ユーザーが「自分が今何を依頼
+ * したか」を視覚的に追えるようにする。
+ *
+ * Coordinates are in image pixels, origin at top-left.
  */
 function buildRichMenuDefinition(): object {
   const W = 2500;
   const H = 1686;
   const cellW = Math.floor(W / 3);
   const cellH = Math.floor(H / 2);
-  const liffBusinessInfoUrl = `https://liff.line.me/${LIFF_ID}/liff/business-info`;
-  const liffTutorialUrl = `https://liff.line.me/${LIFF_ID}/liff/tutorial`;
-  const liffQuestUrl = `https://liff.line.me/${LIFF_ID}/liff/quest`;
 
   return {
     size: { width: W, height: H },
@@ -125,57 +125,60 @@ function buildRichMenuDefinition(): object {
     name: 'FujiTrace/default',
     chatBarText: 'メニュー',
     areas: [
-      // Row 1 — document creation (postback)
+      // ── Row 1 ─────────────────────────────────────
       {
         bounds: { x: 0, y: 0, width: cellW, height: cellH },
         action: {
           type: 'postback',
-          label: '見積書を作る',
-          data: 'action=start_estimate',
-          displayText: '見積書を作る',
+          label: '写真で聞く',
+          data: 'action=rm_photo',
+          displayText: '写真で聞く',
         },
       },
       {
         bounds: { x: cellW, y: 0, width: cellW, height: cellH },
         action: {
           type: 'postback',
-          label: '請求書を作る',
-          data: 'action=start_invoice',
-          displayText: '請求書を作る',
+          label: '文案作成',
+          data: 'action=rm_mail',
+          displayText: '文案作成',
         },
       },
       {
         bounds: { x: cellW * 2, y: 0, width: W - cellW * 2, height: cellH },
         action: {
           type: 'postback',
-          label: '納品書を作る',
-          data: 'action=start_delivery_note',
-          displayText: '納品書を作る',
+          label: '翻訳',
+          data: 'action=rm_translate',
+          displayText: '翻訳',
         },
       },
-      // Row 2 — LIFF apps (uri)
+      // ── Row 2 ─────────────────────────────────────
       {
         bounds: { x: 0, y: cellH, width: cellW, height: H - cellH },
         action: {
-          type: 'uri',
-          label: '会社情報',
-          uri: liffBusinessInfoUrl,
+          type: 'postback',
+          label: 'アイデア',
+          data: 'action=rm_idea',
+          displayText: 'アイデア',
         },
       },
       {
         bounds: { x: cellW, y: cellH, width: cellW, height: H - cellH },
         action: {
-          type: 'uri',
-          label: '使い方',
-          uri: liffTutorialUrl,
+          type: 'postback',
+          label: 'お話しする',
+          data: 'action=rm_chat',
+          displayText: 'お話しする',
         },
       },
       {
         bounds: { x: cellW * 2, y: cellH, width: W - cellW * 2, height: H - cellH },
         action: {
-          type: 'uri',
-          label: 'クエスト',
-          uri: liffQuestUrl,
+          type: 'postback',
+          label: '本格作業',
+          data: 'action=rm_web',
+          displayText: '本格作業',
         },
       },
     ],

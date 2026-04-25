@@ -41,7 +41,14 @@ import {
 } from './client.js';
 import { resolveLineWorkspace } from './workspace-resolver.js';
 import type { LlmMessage } from '../routes/tools/_shared.js';
-import { webSearch } from '../agent/web-search.js';
+// `webSearch` (DuckDuckGo HTML scraping) は 2026-04-25 に dead code 化した。
+// Vercel Serverless から DDG への HTTP リクエストが空ボディで返却されるため
+// LINE 経由では実効しなかった。代替として OpenAI 内蔵 Web 検索モデル
+// (`gpt-4o-mini-search-preview`) に切り替え、手動 tool loop も廃止している。
+// 2026-04-25 時点ではまだ非 LINE のサーフェス(Contract Runtime)が使う可能性
+// を残しているため import 自体は削除しない。LINE では参照しない。
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- 段階的撤去のため意図的に残す
+import { webSearch as _legacyDdgWebSearch } from '../agent/web-search.js';
 
 /** Internal input shape for the bridge, produced by the event handler. */
 export interface ChatBridgeInput {
@@ -55,72 +62,76 @@ export interface ChatBridgeInput {
   userText: string;
 }
 
-/** Model used for all LINE chat replies. Mini supports tool calling and
- * handles Japanese reliably at a fraction of gpt-4o's cost. */
-const CHAT_TOOL_MODEL = 'gpt-4o-mini';
-
-/** Max iterations through the web-search tool loop. 1 search per turn is
- * usually enough; the loop cap guards against a runaway LLM. */
-const MAX_TOOL_ITERS = 2;
-
-/** How many DuckDuckGo results to feed back to the LLM per search call. */
-const WEB_SEARCH_RESULTS = 5;
+/**
+ * Model used for all LINE chat replies.
+ *
+ * `gpt-4o-mini-search-preview` is OpenAI's mini variant with built-in web
+ * search — Chat Completions accepts a `web_search_options` object and the
+ * model decides per turn whether to invoke search. Citations come back as
+ * `message.annotations[]` of type `url_citation`.
+ *
+ * Why this over gpt-4o-mini + a custom DDG tool loop (the previous design):
+ *   - DuckDuckGo HTML scraping returns empty/blocked responses from Vercel
+ *     Serverless edges (verified 2026-04-25). The same problem hits any
+ *     custom backend that scrapes a public SERP.
+ *   - Built-in search uses OpenAI's own retrieval pipeline so we don't
+ *     fight bot-detection. ChatGPT-quality results out of the box.
+ *   - Cost is ~2-3× of plain gpt-4o-mini per 1k tokens, but LINE traffic
+ *     volume keeps the absolute monthly bill in the hundreds-of-yen range
+ *     even with daily Founder dogfooding.
+ *
+ * Note: this preview model does NOT accept `temperature` or `top_p` — both
+ * are silently ignored. We omit them in the request body to avoid noise.
+ */
+const CHAT_MODEL = 'gpt-4o-mini-search-preview';
 
 /** Maximum reply length LINE accepts in a single text message (LINE cap 5000). */
 const MAX_REPLY_CHARS = 4800;
 
 /**
- * OpenAI function-calling tool declaration for web search. Kept extremely
- * narrow on purpose — the LLM should only invoke it when the user wants
- * current/external info, and the description says so.
- */
-const WEB_SEARCH_TOOL = {
-  type: 'function' as const,
-  function: {
-    name: 'web_search',
-    description:
-      '最新のニュース・会社情報・製品情報・一般的なウェブ情報を検索します。ユーザーが「調べて」「最新の」「今の」などリアルタイムの情報を求めている時だけ使用。一般知識で答えられる時は使わない。',
-    parameters: {
-      type: 'object',
-      properties: {
-        query: {
-          type: 'string',
-          description: '検索クエリ(日本語可)。短く具体的に。',
-        },
-      },
-      required: ['query'],
-    },
-  },
-};
-
-/**
- * The system prompt that defines フジ's persona on LINE. Kept deliberately
- * short so it doesn't drown out the conversation history. Notes:
+ * The system prompt that defines フジ's persona on LINE. Phase A の Gateway AI
+ * 戦略では「AI を初めて触る人が 3 メッセージ以内で『便利』と感じる」のが成功
+ * 条件であり、ChatGPT のような賢い道具ではなく **身近な相談相手** に寄せる
+ * のが差別化軸になる(memory: line_gateway_journey_2026-04-25)。
  *
- *   - We surface the fact that書類作成(estimate / invoice / ...)は準備中 so
- *     users don't ask for PDFs and get disappointed. When Phase C lands the
- *     prompt will be switched based on command detection.
- *   - "フジ" is the mascot persona; matches the dashboard's AI Clerk UI and
- *     keeps branding consistent.
+ * 設計ポイント:
+ *   - 自己紹介は「AI社員のフジ」で統一(キャラ性ブランドの土台)。
+ *   - 敬語ベースの気さくな口調。命令形ではなく提案形(「〜してみますか？」)。
+ *   - 絵文字は原則使わない。共感が必要な場面に限り「☺」のみ許容(ビジネス
+ *     LINEで馴染む唯一の絵文字)。
+ *   - 励まし・労いの語彙を能動的に使い、相談相手としての温度感を出す。
+ *   - 書類生成(見積/請求/納品/発注/送付状)は LINE では「書き方相談」まで。
+ *     PDF 生成は fujitrace.jp に自然誘導する(出口を 1 本に絞ってブランディング
+ *     上のミスマッチを避ける)。
  */
 const SYSTEM_PROMPT = [
-  'あなたはFujiTraceのAI社員「フジ」です。LINE公式アカウントの会話インターフェースで日本の中小企業・個人事業主のユーザーを助けます。',
+  'あなたはFujiTraceのAI社員「フジ」です。LINEで日本の中小企業や個人事業主の方の身近な相談相手として会話します。',
   '',
-  '行動ガイド:',
-  '- 日本語で、丁寧かつフレンドリーに応答する。',
-  '- 相手の質問・相談に答える。分からないことは「分からない」と率直に伝える。',
-  '- 長文は避け、LINE で読みやすい短めの段落で返す(概ね4〜12行以内)。',
-  '- 箇条書きや番号リストは LINE では見づらいので、必要な時だけ最小限に使う。',
-  '- 絵文字は原則使わない(日本のビジネスLINEの慣習に合わせる)。',
+  '【口調・キャラ性】',
+  '- 一人称は「私」。自己紹介は「AI社員のフジです」で統一する。',
+  '- 敬語ベースだが硬くしすぎない、気さくな口調。命令形ではなく提案形を選ぶ(例: 「〜してみますか？」「〜するのもいいかもしれません」)。',
+  '- 励まし・労いを自然に織り込む(例: 「お疲れさまです」「無理のない範囲で大丈夫ですよ」)。',
+  '- 絵文字は原則使わない。共感を伝えたい場面に限り「☺」一文字だけ使ってよい(他の絵文字や顔文字は禁止)。',
+  '- LINEで読みやすい短めの段落(概ね4〜10行)。箇条書きは必要最小限に。',
+  '- 分からないことは正直に「分からない」と伝え、代わりにできることを提案する。',
   '',
-  '使えるツール:',
-  '- `web_search` — 最新のニュース・会社情報・製品情報などを調べたい時に使う。ユーザーが「調べて」「最新の」などリアルタイム情報を求める時だけ。',
+  '【できること】',
+  '- 日常の相談・愚痴・雑談への応答(疲れた、献立どうしよう、など)。',
+  '- メール・文案の下書き(欠席連絡、お詫び、お礼、依頼、催促など)。',
+  '- 翻訳・要約(英文メール、ニュース記事、契約書の要点抜き出しなど)。',
+  '- アイデア出し・情報整理・計算サポート。',
+  '- 画像から読み取った内容の説明や用途の提案。',
+  '- 最新情報の検索(モデル内蔵のWeb検索で対応)。「調べて」「最新の」などの指示があれば自動で検索する。',
   '',
-  '現時点で「準備中」の機能(聞かれたら正直に伝える):',
-  '- 見積書・請求書・納品書・発注書・送付状の作成/PDF出力',
-  '- 画像からの請求書OCR、入金管理などの業務自動化',
+  '【書類作成について — 重要】',
+  '- 見積書・請求書・納品書・発注書・送付状の「書き方相談」「文案の下書き」「項目の確認」はLINE上で対応する。',
+  '- ただし PDF の自動生成・正式な書類出力は LINE では行わない。「本格的な書類作成は fujitrace.jp の AI 社員(Web版)で対応しています」と自然に案内し、誘導する。',
+  '- 誘導する時は押し売り感を出さず、「もしPDFまで必要でしたら fujitrace.jp で続きができます」程度の柔らかさで。',
   '',
-  '上記の自動化機能は順次追加していきますが、今は「AIと相談して考えを整理する」「ネット情報を調べて要約する」ことに特化しています。ビジネス全般の相談、メール文案の下書き、アイデア出し、業務の進め方相談などに気軽にお使いいただけます。',
+  '【NG】',
+  '- 過剰な絵文字、顔文字、ビックリマーク連発。',
+  '- 「承知いたしました」連呼の機械的な応答。',
+  '- できないことを曖昧にぼかす。素直に「今のLINEではここまでです」と伝える。',
 ].join('\n');
 
 /** Tidy the LLM reply for LINE — strip stray whitespace and truncate. */
@@ -134,44 +145,23 @@ function normaliseReply(raw: string | null | undefined): string {
 }
 
 /**
- * Serialise search results into a compact Japanese text block the LLM can
- * cite. Truncated aggressively — 5 results × ~300 chars = ~1500 chars is
- * plenty for a LINE-sized reply and keeps the follow-up tokens cheap.
- */
-function formatSearchResults(
-  query: string,
-  results: Array<{ title: string; url: string; snippet: string }>,
-): string {
-  if (results.length === 0) {
-    return `検索クエリ「${query}」の結果は見つかりませんでした。`;
-  }
-  const lines = [`検索クエリ: ${query}`, '検索結果:'];
-  for (let i = 0; i < results.length; i++) {
-    const r = results[i];
-    const snip = r.snippet.length > 220 ? `${r.snippet.slice(0, 220)}…` : r.snippet;
-    lines.push(`[${i + 1}] ${r.title}`);
-    lines.push(`URL: ${r.url}`);
-    lines.push(`概要: ${snip}`);
-  }
-  return lines.join('\n');
-}
-
-/**
- * Direct OpenAI call with function-calling + web_search tool loop.
+ * Single-shot OpenAI call against the built-in-search model.
  *
- * Why a bespoke helper (instead of the shared `callLlmWithTools`):
- *   - We need multi-iteration — the user might ask "最新のX" and the
- *     model should: (1) call web_search, (2) read results, (3) answer.
- *     `callLlmWithTools` is a single shot.
- *   - We want to carry `tool` / `assistant-with-tool_calls` messages back
- *     into the next iteration, which means mutating the message list in
- *     a way the shared `LlmMessage` type doesn't model.
+ * Replaces the previous tool-loop helper that drove a manual DuckDuckGo
+ * round trip. With `gpt-4o-mini-search-preview` + `web_search_options: {}`
+ * the model invokes its own retrieval when the user's intent calls for it
+ * and returns the final assistant text in one call. No iteration needed.
  *
- * Intentionally narrow — only `web_search` is known. Any other tool the
- * LLM invents is ignored (treated as no-op and the loop continues).
+ * Returns the assistant text. Throws on OpenAI API errors so the caller
+ * can log + surface a friendly error.
  *
- * Returns the final assistant text. Throws on OpenAI API errors so the
- * caller can log + surface a friendly error.
+ * Implementation notes:
+ *   - `web_search_options: {}` is the minimal opt-in. We could pass
+ *     `search_context_size: 'low' | 'medium' | 'high'` to trade cost for
+ *     thoroughness. `medium` is the API default and matches our LINE
+ *     reply-length budget, so we leave it implicit.
+ *   - The preview model rejects `temperature` and `top_p` (returns 400 if
+ *     either is non-default). We omit both.
  */
 async function runChatWithSearch(
   systemPrompt: string,
@@ -182,12 +172,7 @@ async function runChatWithSearch(
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');
 
-  // OpenAI's chat/completions message type is broader than our LlmMessage;
-  // we use a local structural type here so tool-call round trips work.
-  type OaMessage =
-    | { role: 'system' | 'user'; content: string }
-    | { role: 'assistant'; content: string | null; tool_calls?: Array<{ id: string; type: 'function'; function: { name: string; arguments: string } }> }
-    | { role: 'tool'; tool_call_id: string; content: string };
+  type OaMessage = { role: 'system' | 'user' | 'assistant'; content: string };
 
   const messages: OaMessage[] = [
     { role: 'system', content: systemPrompt },
@@ -198,103 +183,45 @@ async function runChatWithSearch(
     { role: 'user', content: userText },
   ];
 
-  for (let iter = 0; iter < MAX_TOOL_ITERS + 1; iter++) {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: CHAT_TOOL_MODEL,
-        messages,
-        tools: [WEB_SEARCH_TOOL],
-        tool_choice: 'auto',
-        temperature: 0.5,
-        max_tokens: 1200,
-      }),
-    });
-    if (!res.ok) {
-      throw new Error(`OpenAI API ${res.status}: ${await res.text()}`);
-    }
-    const parsed = (await res.json()) as {
-      choices?: Array<{
-        message?: {
-          content?: string | null;
-          tool_calls?: Array<{
-            id: string;
-            type: 'function';
-            function: { name: string; arguments: string };
-          }>;
-        };
-      }>;
-    };
-    const msg = parsed.choices?.[0]?.message;
-    const toolCalls = msg?.tool_calls ?? [];
-    const content = msg?.content ?? '';
-
-    // No tool call → final answer.
-    if (toolCalls.length === 0) {
-      return content;
-    }
-
-    // Loop budget exhausted → give up on more searches and synthesise
-    // whatever content the model already produced.
-    if (iter >= MAX_TOOL_ITERS) {
-      logger.warn({ iter, toolCalls: toolCalls.length }, '[LINE chat] tool-loop cap hit — returning partial');
-      return content || '申し訳ありません、検索結果をまとめられませんでした。もう一度お試しください。';
-    }
-
-    // Push the assistant message (with tool_calls) into the history so
-    // OpenAI's subsequent call knows what we asked.
-    messages.push({
-      role: 'assistant',
-      content,
-      tool_calls: toolCalls,
-    });
-
-    // Execute each tool call. Currently only `web_search` is known.
-    for (const tc of toolCalls) {
-      if (tc.function.name !== 'web_search') {
-        messages.push({
-          role: 'tool',
-          tool_call_id: tc.id,
-          content: JSON.stringify({ error: `unknown tool ${tc.function.name}` }),
-        });
-        continue;
-      }
-      let query = '';
-      try {
-        const args = JSON.parse(tc.function.arguments) as { query?: unknown };
-        query = typeof args.query === 'string' ? args.query.trim() : '';
-      } catch {
-        // malformed args — give the model a chance to try again
-      }
-      if (!query) {
-        messages.push({
-          role: 'tool',
-          tool_call_id: tc.id,
-          content: 'エラー: 検索クエリが空でした。',
-        });
-        continue;
-      }
-      logger.info({ query }, '[LINE chat] web_search');
-      let blob: string;
-      try {
-        const results = await webSearch(query, WEB_SEARCH_RESULTS);
-        blob = formatSearchResults(query, results);
-      } catch (err) {
-        blob = `検索に失敗しました: ${err instanceof Error ? err.message : 'unknown'}`;
-      }
-      messages.push({
-        role: 'tool',
-        tool_call_id: tc.id,
-        content: blob,
-      });
-    }
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: CHAT_MODEL,
+      messages,
+      web_search_options: {},
+      max_tokens: 1200,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`OpenAI API ${res.status}: ${await res.text()}`);
   }
-
-  return '申し訳ありません、想定外のループ状態になりました。もう一度お試しください。';
+  const parsed = (await res.json()) as {
+    choices?: Array<{
+      message?: {
+        content?: string | null;
+        annotations?: Array<{
+          type?: string;
+          url_citation?: { url?: string; title?: string };
+        }>;
+      };
+    }>;
+  };
+  const msg = parsed.choices?.[0]?.message;
+  const content = msg?.content ?? '';
+  const citationCount = (msg?.annotations ?? []).filter(
+    (a) => a.type === 'url_citation',
+  ).length;
+  if (citationCount > 0) {
+    logger.info(
+      { citationCount },
+      '[LINE chat] built-in search produced citations',
+    );
+  }
+  return content;
 }
 
 /**
