@@ -342,6 +342,7 @@ async function estimateCreateStreamRoute(fastify: FastifyInstance): Promise<void
         model: llmModel,
         temperature: 0.2,
         maxTokens: 2048,
+        workspaceId,
       });
 
       const fullInputText = messages.map(m => m.content).join('\n');
@@ -628,11 +629,15 @@ export default async function estimateCreateRoute(fastify: FastifyInstance): Pro
       // ── Step 2: AI見積書生成 (main LLM call) ──
       const step2Start = performance.now();
 
-      // 6. Call LLM via FujiTrace proxy (auto-traced)
+      // 6. Call LLM (trace persistence is opt-in via workspaceId since
+      //    the 2026-04-25 bucket-hole patch — pass it through from the
+      //    request-scoped resolveWorkspaceId so this turn shows up in
+      //    the dashboard / cost stats / LLM-as-Judge pipeline).
       const llm = await callLlmViaProxy(fastify, messages, {
         model: llmModel,
         temperature: 0.2,
         maxTokens: 2048,
+        workspaceId,
       });
 
       const fullInputText = messages.map(m => m.content).join('\n');

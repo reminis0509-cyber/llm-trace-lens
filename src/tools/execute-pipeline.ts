@@ -180,7 +180,7 @@ const ARITHMETIC_MSG_RE = /計算|掛け算|足し算|一致しません|不一�
  * @throws {Error} for Zod parsing failures or LLM call failures
  */
 export async function executeOfficeTaskPipeline(params: PipelineParams): Promise<PipelineResult> {
-  const { taskId, instruction, context, extraFields, onStep } = params;
+  const { taskId, instruction, context, extraFields, onStep, workspaceId } = params;
 
   // ── 1. Zod validation on taskId / instruction ────────────────────
 
@@ -315,6 +315,7 @@ export async function executeOfficeTaskPipeline(params: PipelineParams): Promise
       issues,
       archetype,
       onStep,
+      workspaceId,
     });
   }
 
@@ -326,6 +327,7 @@ export async function executeOfficeTaskPipeline(params: PipelineParams): Promise
     issues,
     archetype,
     onStep,
+    workspaceId,
   });
 }
 
@@ -340,10 +342,16 @@ interface InternalPipelineContext {
   issues: ValidationIssue[];
   archetype: ReturnType<typeof getArchetype>;
   onStep: (step: SkeletonStep) => void;
+  /**
+   * Workspace under which to record the LLM trace. Required for the
+   * 2026-04-25 bucket-hole patch — without this every pipeline step
+   * silently bypassed FujiTrace's own observability.
+   */
+  workspaceId: string;
 }
 
 async function executeDocumentCheckPipeline(ctx: InternalPipelineContext): Promise<PipelineResult> {
-  const { task, llmModel, systemPrompt, userContent, inputData, issues, archetype, onStep } = ctx;
+  const { task, llmModel, systemPrompt, userContent, inputData, issues, archetype, onStep, workspaceId } = ctx;
   const traceStartMs = performance.now();
   const skeletonSteps: SkeletonStep[] = [];
   let totalInputTokens = 0;
@@ -366,7 +374,7 @@ async function executeDocumentCheckPipeline(ctx: InternalPipelineContext): Promi
       { role: 'system', content: extractPrompt },
       { role: 'user', content: documentText },
     ],
-    { model: llmModel, temperature: 0.0, maxTokens: 1024 },
+    { model: llmModel, temperature: 0.0, maxTokens: 1024, workspaceId },
   );
   const step1Details = llmStepDetails(llmModel, 0.0, extractResult.usage, extractPrompt + documentText, extractResult.content);
   totalInputTokens += step1Details.inputTokens as number;
@@ -406,7 +414,7 @@ async function executeDocumentCheckPipeline(ctx: InternalPipelineContext): Promi
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userContent },
     ],
-    { model: llmModel, temperature: 0.3, maxTokens: 4096 },
+    { model: llmModel, temperature: 0.3, maxTokens: 4096, workspaceId },
   );
   const step3Details = llmStepDetails(llmModel, 0.3, llmResult.usage, systemPrompt + userContent, llmResult.content);
   totalInputTokens += step3Details.inputTokens as number;
@@ -486,7 +494,7 @@ async function executeDocumentCheckPipeline(ctx: InternalPipelineContext): Promi
 // ── Standard single-call pipeline ──────────────────────────────────
 
 async function executeStandardPipeline(ctx: InternalPipelineContext): Promise<PipelineResult> {
-  const { task, llmModel, systemPrompt, userContent, issues, archetype, onStep } = ctx;
+  const { task, llmModel, systemPrompt, userContent, issues, archetype, onStep, workspaceId } = ctx;
   const traceStartMs = performance.now();
   const skeletonSteps: SkeletonStep[] = [];
   let stepIndex = 0;
@@ -505,7 +513,7 @@ async function executeStandardPipeline(ctx: InternalPipelineContext): Promise<Pi
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userContent },
     ],
-    { model: llmModel, temperature: 0.3, maxTokens: 4096 },
+    { model: llmModel, temperature: 0.3, maxTokens: 4096, workspaceId },
   );
   const step1Details = llmStepDetails(llmModel, 0.3, llmResult.usage, systemPrompt + userContent, llmResult.content);
   const step1 = makeStep(stepIndex++, 'AI生成', step1Start, 'completed', step1Details);

@@ -364,6 +364,7 @@ export default async function officeTaskExecuteRoute(fastify: FastifyInstance): 
           model: llmModel,
           temperature: 0.0,
           maxTokens: 1024,
+          workspaceId,
         });
         const step1Details = llmStepDetails(llmModel, 0.0, extractResult.usage, extractPrompt + documentText, extractResult.content);
         totalInputTokens += step1Details.inputTokens as number;
@@ -404,6 +405,7 @@ export default async function officeTaskExecuteRoute(fastify: FastifyInstance): 
           model: llmModel,
           temperature: 0.3,
           maxTokens: 4096,
+          workspaceId,
         });
         const step3Details = llmStepDetails(llmModel, 0.3, llmResult.usage, systemPrompt + userContent, llmResult.content);
         totalInputTokens += step3Details.inputTokens as number;
@@ -507,6 +509,7 @@ export default async function officeTaskExecuteRoute(fastify: FastifyInstance): 
         model: llmModel,
         temperature: 0.3,
         maxTokens: 4096,
+        workspaceId,
       });
       const stdStep1Details = llmStepDetails(llmModel, 0.3, llmResult.usage, systemPrompt + userContent, llmResult.content);
       sendStepEvent(skeletonSteps, 'AI生成', stdStep1Start, 'completed', stdStep1Details);
@@ -743,6 +746,7 @@ export default async function officeTaskExecuteRoute(fastify: FastifyInstance): 
           model: llmModel,
           temperature: 0.0,
           maxTokens: 1024,
+          workspaceId,
         });
         const step1Details = llmStepDetails(llmModel, 0.0, extractResult.usage, extractPrompt + documentText, extractResult.content);
         totalInputTokens += step1Details.inputTokens as number;
@@ -784,6 +788,7 @@ export default async function officeTaskExecuteRoute(fastify: FastifyInstance): 
           model: llmModel,
           temperature: 0.3,
           maxTokens: 4096,
+          workspaceId,
         });
         const step3Details = llmStepDetails(llmModel, 0.3, llmResult.usage, systemPrompt + userContent, llmResult.content);
         totalInputTokens += step3Details.inputTokens as number;
@@ -891,6 +896,7 @@ export default async function officeTaskExecuteRoute(fastify: FastifyInstance): 
         model: llmModel,
         temperature: 0.3,
         maxTokens: 4096,
+        workspaceId,
       });
       const stdStep1Details = llmStepDetails(llmModel, 0.3, llmResult.usage, systemPrompt + userContent, llmResult.content);
       recordStep(skeletonSteps, 'AI生成', stdStep1Start, stdStep1Details);

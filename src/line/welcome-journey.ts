@@ -33,6 +33,8 @@ import {
 } from './client.js';
 import { extractMediaText } from './media-extractor.js';
 import { appendConversationTurn } from '../agent/conversation-history.js';
+import { recordLlmTrace } from '../agent/trace-recorder.js';
+import { resolveLineWorkspace } from './workspace-resolver.js';
 
 /** 24h — long enough that Friend 追加→翌朝再開が成立する。 */
 const JOURNEY_TTL_SECONDS = 60 * 60 * 24;
@@ -198,17 +200,24 @@ export async function handleJourneyMessage(
   }
   void showLineLoading(input.lineUserId, 15);
 
+  // Resolve the workspace once for the whole turn — every step needs it
+  // for trace persistence (bucket-hole patch, 2026-04-25). null is
+  // returned only when KV / DB is down; we still drive the journey but
+  // skip trace recording for that turn.
+  const resolved = await resolveLineWorkspace(input.lineUserId);
+  const workspaceId = resolved?.workspaceId ?? null;
+
   try {
     if (state.step === 1) {
-      await runStep1(fastify, input);
+      await runStep1(fastify, input, workspaceId);
       return;
     }
     if (state.step === 2) {
-      await runStep2(fastify, input);
+      await runStep2(fastify, input, workspaceId);
       return;
     }
     if (state.step === 3) {
-      await runStep3(fastify, input);
+      await runStep3(fastify, input, workspaceId);
       return;
     }
   } catch (err) {
@@ -241,6 +250,7 @@ export async function handleJourneyMessage(
 async function runStep1(
   fastify: FastifyInstance,
   input: JourneyMessageInput,
+  workspaceId: string | null,
 ): Promise<void> {
   let body: string;
   if (input.imageBuffer && input.imageMimeType) {
@@ -248,6 +258,7 @@ async function runStep1(
       fastify,
       input.imageBuffer,
       input.imageMimeType,
+      workspaceId ?? undefined,
     );
     if (ocr) {
       const preview = ocr.length > 500 ? `${ocr.slice(0, 500)}…` : ocr;
@@ -302,10 +313,12 @@ async function runStep1(
 async function runStep2(
   fastify: FastifyInstance,
   input: JourneyMessageInput,
+  workspaceId: string | null,
 ): Promise<void> {
   const userText = input.userText?.trim() ?? '';
   const reply = await runJourneyMiniChat(
     fastify,
+    workspaceId,
     userText,
     'ユーザーが困っていることを一言で送ってきます。まず一行で共感を示してから、2〜4行で具体的な解決策のヒントや次の一歩を提案してください。書類作成(見積書/請求書/納品書/発注書/送付状)の話題が出たら、LINEでは書き方相談まで対応で、PDF生成はWeb版 fujitrace.jp という事実を1行だけ自然に添えてください。',
   );
@@ -326,10 +339,12 @@ async function runStep2(
 async function runStep3(
   fastify: FastifyInstance,
   input: JourneyMessageInput,
+  workspaceId: string | null,
 ): Promise<void> {
   const userText = input.userText?.trim() ?? '';
   const reply = await runJourneyMiniChat(
     fastify,
+    workspaceId,
     userText,
     'ユーザーがリラックスした雑談(「お疲れ」「ただいま」など)を送ってきます。労いと共感を込めて2〜3行で温かく応答してください。最後に「☺」を1つだけ添えても構いません(他の絵文字は禁止)。',
   );
@@ -348,6 +363,7 @@ async function runStep3(
  */
 async function runJourneyMiniChat(
   fastify: FastifyInstance,
+  workspaceId: string | null,
   userText: string,
   stepInstruction: string,
 ): Promise<string> {
@@ -355,6 +371,20 @@ async function runJourneyMiniChat(
   if (!apiKey || !userText) {
     return 'お話しありがとうございます。';
   }
+  const startTime = Date.now();
+  const model = 'gpt-4o-mini';
+  const messages = [
+    {
+      role: 'system',
+      content:
+        'あなたはFujiTraceのAI社員「フジ」です。LINEで日本のユーザーと話しています。\n' +
+        '敬語ベースで気さくな口調、命令形ではなく提案形を使います。\n' +
+        '絵文字は原則使いません(共感を示したい時だけ「☺」一文字のみ許容)。\n' +
+        '回答は短く、5行以内。\n\n' +
+        stepInstruction,
+    },
+    { role: 'user', content: userText },
+  ];
   try {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -363,19 +393,8 @@ async function runJourneyMiniChat(
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content:
-              'あなたはFujiTraceのAI社員「フジ」です。LINEで日本のユーザーと話しています。\n' +
-              '敬語ベースで気さくな口調、命令形ではなく提案形を使います。\n' +
-              '絵文字は原則使いません(共感を示したい時だけ「☺」一文字のみ許容)。\n' +
-              '回答は短く、5行以内。\n\n' +
-              stepInstruction,
-          },
-          { role: 'user', content: userText },
-        ],
+        model,
+        messages,
         temperature: 0.6,
         max_tokens: 400,
       }),
@@ -385,8 +404,34 @@ async function runJourneyMiniChat(
     }
     const parsed = (await res.json()) as {
       choices?: Array<{ message?: { content?: string } }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
     };
     const content = parsed.choices?.[0]?.message?.content?.trim() ?? '';
+
+    // Record this LLM call as a FujiTrace trace (bucket-hole patch).
+    if (workspaceId) {
+      const rawUsage = parsed.usage;
+      const usage =
+        rawUsage &&
+        typeof rawUsage.prompt_tokens === 'number' &&
+        typeof rawUsage.completion_tokens === 'number'
+          ? {
+              promptTokens: rawUsage.prompt_tokens,
+              completionTokens: rawUsage.completion_tokens,
+            }
+          : undefined;
+      recordLlmTrace({
+        workspaceId,
+        startTime,
+        provider: 'openai',
+        model,
+        messages,
+        responseText: content,
+        usage,
+        traceType: 'standard',
+      });
+    }
+
     return content || 'お話しありがとうございます。';
   } catch (err) {
     fastify.log.warn(

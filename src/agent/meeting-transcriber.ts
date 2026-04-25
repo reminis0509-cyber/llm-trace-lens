@@ -79,6 +79,10 @@ export async function transcriptToMinutes(
   fastify: FastifyInstance,
   transcript: string,
   now: Date,
+  /** Optional — when provided the LLM call is recorded as a FujiTrace
+   * trace (bucket-hole patch 2026-04-25). Caller in the AI 社員 stack
+   * should always pass this. */
+  workspaceId?: string,
 ): Promise<MeetingMinutes> {
   const isoNow = now.toISOString().replace('T', ' ').slice(0, 16);
   const messages: LlmMessage[] = [
@@ -116,6 +120,8 @@ export async function transcriptToMinutes(
     model: 'gpt-4o-mini',
     temperature: 0.1,
     maxTokens: 1500,
+    workspaceId,
+    traceType: 'agent',
   });
 
   type RawMinutes = {

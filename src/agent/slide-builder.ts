@@ -24,6 +24,9 @@ export interface SlideBuilderInput {
   audience?: string;
   slideCount?: number;
   style?: 'business' | 'casual' | 'pitch';
+  /** Optional — surfaces the slide-generation LLM call in the trace
+   * dashboard (bucket-hole patch 2026-04-25). */
+  workspaceId?: string;
 }
 
 export interface SlideBuilderOutput {
@@ -130,6 +133,8 @@ export async function buildSlidePresentation(
     model: 'gpt-4o',
     temperature: 0.3,
     maxTokens: 3000,
+    workspaceId: input.workspaceId,
+    traceType: 'agent',
   });
 
   const marp = normaliseMarpOutput(content);

@@ -237,7 +237,7 @@ export async function executeClerk(
     fastify,
     llmMessages,
     functionCallingTools,
-    { model: 'gpt-4o', temperature: 0.2, maxTokens: 4096 },
+    { model: 'gpt-4o', temperature: 0.2, maxTokens: 4096, workspaceId, traceType: 'agent' },
   );
 
   let reply = '';
@@ -420,7 +420,7 @@ export async function executeClerk(
       fastify,
       followUpMessages,
       [], // no tools for follow-up
-      { model: 'gpt-4o', temperature: 0.3, maxTokens: 2048 },
+      { model: 'gpt-4o', temperature: 0.3, maxTokens: 2048, workspaceId, traceType: 'agent' },
     );
 
     reply = followUpResult.content ?? 'ツールの実行結果を確認してください。';

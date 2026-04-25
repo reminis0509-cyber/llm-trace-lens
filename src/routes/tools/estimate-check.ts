@@ -263,6 +263,7 @@ export async function runEstimateVerification(
     model: process.env.AI_TOOLS_MODEL || 'gpt-4o-mini',
     temperature: 0.1,
     maxTokens: 2048,
+    workspaceId,
   });
 
   // 4. Parse LLM output (throws on failure — caller decides how to handle)

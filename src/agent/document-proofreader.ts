@@ -193,6 +193,9 @@ export async function runLlmPass(
   style: ProofStyle,
   level: ProofLevel,
   alreadyFound: Correction[],
+  /** Optional — surfaces this proofreading call in the workspace trace
+   * dashboard (bucket-hole patch 2026-04-25). */
+  workspaceId?: string,
 ): Promise<Correction[]> {
   const messages: LlmMessage[] = [
     {
@@ -229,6 +232,8 @@ export async function runLlmPass(
     model: 'gpt-4o-mini',
     temperature: 0.1,
     maxTokens: 1500,
+    workspaceId,
+    traceType: 'agent',
   });
 
   type RawRes = { corrections?: Array<{ before?: unknown; after?: unknown; reason?: unknown }> };

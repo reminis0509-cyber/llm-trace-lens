@@ -13,6 +13,7 @@ import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { getKnex } from '../../storage/knex-client.js';
 import { getWorkspacePlan } from '../../plans/storage.js';
+import { recordLlmTrace } from '../../agent/trace-recorder.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -251,21 +252,45 @@ export interface LlmCallResult {
 }
 
 /**
- * Call an LLM via the FujiTrace proxy (fastify.inject) so the request is
- * automatically captured as a trace. This is the dog-fooding pattern used by
- * the chatbot engine (see src/chatbot/chat-engine.ts).
+ * Call OpenAI for a free-text completion and persist the result as a
+ * FujiTrace trace.
+ *
+ * Historical note (2026-04-25 bucket-hole patch): the function name
+ * implies "via proxy" but the implementation has called OpenAI directly
+ * since at least 2026-03 (the proxy enforcer wraps responses in JSON
+ * mode, which broke chat-style consumers). Until this fix, the trace
+ * pipeline was completely bypassed for every internal caller — every
+ * tool, every agent, every LINE message. The data the M&A thesis depends
+ * on was being dropped on the floor.
+ *
+ * The fix below keeps the direct-fetch path (it's fast and correct) but
+ * threads the response through `recordLlmTrace` so the same DB / KV /
+ * LLM-as-Judge / cost-tracking pipeline runs after every call.
+ *
+ * **`opts.workspaceId` is strongly recommended.** Without it the trace
+ * cannot be attributed to a workspace and won't appear in any dashboard
+ * — we log a warning but don't throw, so legacy callers don't break
+ * during the migration. New code MUST pass workspaceId.
  */
 export async function callLlmViaProxy(
   _fastify: FastifyInstance,
   messages: LlmMessage[],
-  opts?: { model?: string; temperature?: number; maxTokens?: number },
+  opts?: {
+    model?: string;
+    temperature?: number;
+    maxTokens?: number;
+    workspaceId?: string;
+    traceType?: 'standard' | 'agent';
+  },
 ): Promise<LlmCallResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY is not configured');
   }
 
-  // Call OpenAI directly (proxy enforcer adds overhead and forces JSON mode)
+  const startTime = Date.now();
+  const model = opts?.model || 'gpt-4o-mini';
+
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -273,7 +298,7 @@ export async function callLlmViaProxy(
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: opts?.model || 'gpt-4o-mini',
+      model,
       messages,
       temperature: opts?.temperature ?? 0.2,
       max_tokens: opts?.maxTokens ?? 2048,
@@ -302,7 +327,36 @@ export async function callLlmViaProxy(
       ? { promptTokens: rawUsage.prompt_tokens, completionTokens: rawUsage.completion_tokens }
       : null;
 
+  // ─── Persist as FujiTrace trace (bucket-hole patch) ─────────────────
+  if (opts?.workspaceId) {
+    recordLlmTrace({
+      workspaceId: opts.workspaceId,
+      startTime,
+      provider: 'openai',
+      model,
+      messages: messages.map((m) => ({
+        role: m.role,
+        content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+      })),
+      responseText: content,
+      usage: usage ?? undefined,
+      traceType: opts.traceType ?? 'standard',
+    });
+  } else {
+    // Legacy caller hasn't migrated yet. Log enough context to grep the
+    // remaining call sites in production logs.
+    console.warn(
+      '[callLlmViaProxy] workspaceId missing — trace will NOT be persisted. ' +
+        `model=${model} firstUserMsg=${truncateForLog(messages.find((m) => m.role === 'user')?.content)}`,
+    );
+  }
+
   return { content, traceId, usage };
+}
+
+function truncateForLog(s: unknown): string {
+  if (typeof s !== 'string') return '<non-string>';
+  return s.length > 80 ? `${s.slice(0, 80)}…` : s;
 }
 
 /**
@@ -323,22 +377,36 @@ export interface LlmToolCallResult {
 /**
  * Call OpenAI directly with function-calling support.
  *
- * Does NOT go through the FujiTrace proxy (which strips tools/tool_choice
- * and forces its own JSON output format via the enforcer). Instead, calls
- * the OpenAI API directly to preserve function-calling semantics.
+ * Does NOT go through the FujiTrace proxy enforcer (which would force
+ * JSON-mode output and strip `tools` / `tool_choice`). Instead, this
+ * preserves function-calling semantics for the AI 事務員 agent.
  *
- * Used by the AI 事務員 agent for tool dispatch.
+ * Trace persistence (2026-04-25): same bucket-hole fix as
+ * `callLlmViaProxy`. When `opts.workspaceId` is provided the response
+ * is recorded via `recordLlmTrace`. We record only the natural-language
+ * content (`message.content`); tool_calls themselves go to the
+ * structured AgentTrace pipeline upstream and don't fit the
+ * StructuredResponse free-text shape.
  */
 export async function callLlmWithTools(
   _fastify: FastifyInstance,
   messages: LlmMessage[],
   tools: unknown[],
-  opts?: { model?: string; temperature?: number; maxTokens?: number },
+  opts?: {
+    model?: string;
+    temperature?: number;
+    maxTokens?: number;
+    workspaceId?: string;
+    traceType?: 'standard' | 'agent';
+  },
 ): Promise<LlmToolCallResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY is not configured');
   }
+
+  const startTime = Date.now();
+  const model = opts?.model || 'gpt-4o';
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -347,7 +415,7 @@ export async function callLlmWithTools(
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: opts?.model || 'gpt-4o',
+      model,
       messages,
       tools,
       tool_choice: 'auto',
@@ -376,6 +444,7 @@ export async function callLlmWithTools(
       };
     }>;
     id?: string;
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
   };
 
   const message = parsed.choices?.[0]?.message;
@@ -389,6 +458,44 @@ export async function callLlmWithTools(
     },
   }));
   const traceId = parsed.id ?? null;
+
+  if (opts?.workspaceId) {
+    const rawUsage = parsed.usage;
+    const usage =
+      rawUsage &&
+      typeof rawUsage.prompt_tokens === 'number' &&
+      typeof rawUsage.completion_tokens === 'number'
+        ? {
+            promptTokens: rawUsage.prompt_tokens,
+            completionTokens: rawUsage.completion_tokens,
+          }
+        : undefined;
+    // toolCalls is structured data — surface it in the recorded answer
+    // text so dashboard search can find the function names. Full tool
+    // I/O is captured by the agent's own AgentTrace upstream.
+    const responseText =
+      content ??
+      (toolCalls.length > 0
+        ? `[tool_calls] ${toolCalls.map((tc) => tc.function.name).join(', ')}`
+        : '');
+    recordLlmTrace({
+      workspaceId: opts.workspaceId,
+      startTime,
+      provider: 'openai',
+      model,
+      messages: messages.map((m) => ({
+        role: m.role,
+        content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+      })),
+      responseText,
+      usage,
+      traceType: opts.traceType ?? 'agent',
+    });
+  } else {
+    console.warn(
+      `[callLlmWithTools] workspaceId missing — trace will NOT be persisted. model=${model}`,
+    );
+  }
 
   return { content, toolCalls, traceId };
 }

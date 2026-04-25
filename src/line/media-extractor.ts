@@ -83,6 +83,9 @@ export async function extractImageText(
   fastify: FastifyInstance,
   buffer: Buffer,
   mimeType: string,
+  /** Optional — when provided, the GPT-4o Vision call is recorded as a
+   * FujiTrace trace (bucket-hole patch 2026-04-25). */
+  workspaceId?: string,
 ): Promise<string | null> {
   if (!IMAGE_MIME_PREFIXES.includes(mimeType.toLowerCase())) return null;
   try {
@@ -111,6 +114,7 @@ export async function extractImageText(
       model: VISION_MODEL,
       temperature: 0.1,
       maxTokens: 2048,
+      workspaceId,
     });
     const text = (content ?? '').trim();
     if (!text) return null;
@@ -157,10 +161,13 @@ export async function extractMediaText(
   fastify: FastifyInstance,
   buffer: Buffer,
   mimeType: string,
+  /** Optional — propagated to the OCR LLM call so the request appears
+   * in the workspace's trace dashboard (bucket-hole patch 2026-04-25). */
+  workspaceId?: string,
 ): Promise<string | null> {
   const mt = mimeType.toLowerCase();
   if (IMAGE_MIME_PREFIXES.includes(mt)) {
-    return extractImageText(fastify, buffer, mt);
+    return extractImageText(fastify, buffer, mt, workspaceId);
   }
   if (mt === 'application/pdf') {
     return extractPdfText(buffer);

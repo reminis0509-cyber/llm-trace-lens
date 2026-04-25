@@ -41,6 +41,7 @@ import {
 } from './client.js';
 import { resolveLineWorkspace } from './workspace-resolver.js';
 import type { LlmMessage } from '../routes/tools/_shared.js';
+import { recordLlmTrace } from '../agent/trace-recorder.js';
 // `webSearch` (DuckDuckGo HTML scraping) は 2026-04-25 に dead code 化した。
 // Vercel Serverless から DDG への HTTP リクエストが空ボディで返却されるため
 // LINE 経由では実効しなかった。代替として OpenAI 内蔵 Web 検索モデル
@@ -164,6 +165,7 @@ function normaliseReply(raw: string | null | undefined): string {
  *     either is non-default). We omit both.
  */
 async function runChatWithSearch(
+  workspaceId: string,
   systemPrompt: string,
   priorHistory: LlmMessage[],
   userText: string,
@@ -183,6 +185,7 @@ async function runChatWithSearch(
     { role: 'user', content: userText },
   ];
 
+  const startTime = Date.now();
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -209,6 +212,7 @@ async function runChatWithSearch(
         }>;
       };
     }>;
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
   };
   const msg = parsed.choices?.[0]?.message;
   const content = msg?.content ?? '';
@@ -221,6 +225,32 @@ async function runChatWithSearch(
       '[LINE chat] built-in search produced citations',
     );
   }
+
+  // Bucket-hole patch (2026-04-25): persist this call as a FujiTrace
+  // trace so LINE conversations show up in the dashboard / cost stats /
+  // LLM-as-Judge pipeline alongside Web tool calls. Fire-and-forget — a
+  // trace failure must NEVER block the LINE reply.
+  const rawUsage = parsed.usage;
+  const usage =
+    rawUsage &&
+    typeof rawUsage.prompt_tokens === 'number' &&
+    typeof rawUsage.completion_tokens === 'number'
+      ? {
+          promptTokens: rawUsage.prompt_tokens,
+          completionTokens: rawUsage.completion_tokens,
+        }
+      : undefined;
+  recordLlmTrace({
+    workspaceId,
+    startTime,
+    provider: 'openai',
+    model: CHAT_MODEL,
+    messages,
+    responseText: content,
+    usage,
+    traceType: 'standard',
+  });
+
   return content;
 }
 
@@ -385,10 +415,16 @@ export async function runChatBridge(
 
   let reply: string;
   try {
-    const raw = await runChatWithSearch(SYSTEM_PROMPT, history, input.userText, {
-      info: (obj, msg) => fastify.log.info(obj, msg),
-      warn: (obj, msg) => fastify.log.warn(obj, msg),
-    });
+    const raw = await runChatWithSearch(
+      resolved.workspaceId,
+      SYSTEM_PROMPT,
+      history,
+      input.userText,
+      {
+        info: (obj, msg) => fastify.log.info(obj, msg),
+        warn: (obj, msg) => fastify.log.warn(obj, msg),
+      },
+    );
     reply = normaliseReply(raw);
   } catch (err) {
     const errObj = err instanceof Error ? err : new Error(String(err));

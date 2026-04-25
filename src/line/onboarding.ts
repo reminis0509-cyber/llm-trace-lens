@@ -145,6 +145,10 @@ export interface ExtractedCompanyFields {
 export async function extractCompanyFields(
   fastify: FastifyInstance,
   userText: string,
+  /** Optional — surfaces the extraction call in the workspace's trace
+   * dashboard. Kept optional for backward compat (onboarding is currently
+   * dormant in Phase A but will be re-enabled in Phase C). */
+  workspaceId?: string,
 ): Promise<ExtractedCompanyFields | null> {
   const trimmed = userText.trim();
   if (!trimmed) return null;
@@ -172,6 +176,7 @@ export async function extractCompanyFields(
       model: EXTRACTION_MODEL,
       temperature: 0.1,
       maxTokens: 256,
+      workspaceId,
     });
     const parsed = parseLlmJson<ExtractedCompanyFields>(content);
     if (!parsed || typeof parsed !== 'object') return null;

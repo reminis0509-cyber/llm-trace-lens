@@ -609,7 +609,7 @@ export default async function chatV2Route(fastify: FastifyInstance): Promise<voi
           fastify,
           llmMessages,
           round < MAX_TOOL_ROUNDS - 1 ? functionCallingTools : [], // last round: no tools
-          { model: CHAT_MODEL, temperature: 0.2, maxTokens: 4096 },
+          { model: CHAT_MODEL, temperature: 0.2, maxTokens: 4096, workspaceId, traceType: 'agent' },
         );
 
         // Account LLM cost
@@ -836,7 +836,7 @@ export default async function chatV2Route(fastify: FastifyInstance): Promise<voi
           fastify,
           llmMessages,
           [], // no tools — force text response
-          { model: CHAT_MODEL, temperature: 0.3, maxTokens: 2048 },
+          { model: CHAT_MODEL, temperature: 0.3, maxTokens: 2048, workspaceId, traceType: 'agent' },
         );
         finalContent =
           lastCallResult.content ?? 'ツールの実行結果を確認してください。';

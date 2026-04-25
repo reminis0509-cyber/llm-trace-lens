@@ -153,6 +153,8 @@ async function runPlanner(
       model: AGENT_MODEL,
       temperature: 0.3,
       maxTokens: 512,
+      workspaceId: tracker.workspaceId,
+      traceType: 'agent',
     });
     await accountUsage(tracker, AGENT_MODEL, usage);
     const parsed = parseLlmJson<AgentPlan>(content);
@@ -204,6 +206,8 @@ async function buildToolInput(
       model: AGENT_MODEL,
       temperature: 0.2,
       maxTokens: 768,
+      workspaceId: tracker.workspaceId,
+      traceType: 'agent',
     });
     await accountUsage(tracker, AGENT_MODEL, usage);
     const parsed = parseLlmJson<Record<string, unknown>>(content);
@@ -333,6 +337,8 @@ async function runReviewer(
       model: AGENT_MODEL,
       temperature: 0.3,
       maxTokens: 1024,
+      workspaceId: tracker.workspaceId,
+      traceType: 'agent',
     });
     await accountUsage(tracker, AGENT_MODEL, usage);
     const parsed = parseLlmJson<ReviewerOutput>(content);

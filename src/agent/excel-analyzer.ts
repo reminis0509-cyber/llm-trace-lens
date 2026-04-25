@@ -194,6 +194,7 @@ async function askLlmForInsight(
   sheets: SheetPreview[],
   preSelected: string | undefined,
   aggregations: Record<string, ColumnAggregation> | null,
+  workspaceId?: string,
 ): Promise<{ selectedSheet: string; summary: string; insights: string[] }> {
   const sheetSummary = sheets
     .map(
@@ -235,6 +236,8 @@ async function askLlmForInsight(
     model: 'gpt-4o-mini',
     temperature: 0.2,
     maxTokens: 1200,
+    workspaceId,
+    traceType: 'agent',
   });
 
   const lines = content.split('\n');
