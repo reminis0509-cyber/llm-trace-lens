@@ -67,9 +67,11 @@ export default function LongTermFuture() {
           </p>
         </div>
 
-        {/* カピぶちょー (温泉) — 余裕のある未来をビジュアルで表現 */}
+        {/* カピぶちょー (温泉) — 余裕のある未来をビジュアルで表現
+            Q6 案 B (CEO 判断 2026-04-28): 温泉ポーズはセンターピースとして
+            xl=384px で配置。画面中央の存在感で「余白」を体感させる。 */}
         <div className="flex justify-center mb-10">
-          <Mascot pose="onsen" size="lg" animation="idle" />
+          <Mascot pose="onsen" size="xl" animation="idle" />
         </div>
 
         {/* 3 future items — 老舗 SaaS 風の控えめなカード */}

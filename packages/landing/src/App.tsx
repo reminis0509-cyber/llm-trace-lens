@@ -28,6 +28,18 @@ import EducationShowcase from './components/EducationShowcase';
 import Capabilities from './components/Capabilities';
 import LongTermFuture from './components/LongTermFuture';
 import MascotDevPage from './components/MascotDevPage';
+import EstimateAdPage from './components/ads/EstimateAdPage';
+import InvoiceAdPage from './components/ads/InvoiceAdPage';
+import MinutesAdPage from './components/ads/MinutesAdPage';
+import SlideAdPage from './components/ads/SlideAdPage';
+
+// 広告着地 LP slug → component の対応表 (CEO 判断 2026-04-28 / Q10 完全 chromeless)
+const AD_LANDING_PAGES: Record<string, React.ComponentType> = {
+  estimate: EstimateAdPage,
+  invoice: InvoiceAdPage,
+  minutes: MinutesAdPage,
+  slide: SlideAdPage,
+};
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -70,6 +82,12 @@ export default function App() {
     // 開発者向けマスコット動作確認ページ — Header/Footer 抜きで描画する。
     // LP メニューには出さない (Header.tsx に追加禁止)。
     pageContent = <MascotDevPage />;
+  } else if (currentPath.startsWith('/ads/')) {
+    // 広告着地 LP — Header/Footer 抜きで描画する (Q10 完全 chromeless)。
+    // 各ページが独自の簡素フッターのみ持つ。
+    const slug = currentPath.replace('/ads/', '');
+    const AdPage = AD_LANDING_PAGES[slug];
+    pageContent = AdPage ? <AdPage /> : null;
   } else {
     pageContent = (
       <>
@@ -134,13 +152,15 @@ export default function App() {
   // and must not be framed by the LP Header/Footer.
   // /liff/tutorial is the LINE in-app browser variant and also chromeless.
   // /dev/mascot is an internal-only dev preview; also chromeless.
-  const isTutorial =
+  // /ads/* are ad-targeted landing pages; also chromeless (Q10).
+  const isChromeless =
     currentPath === '/tutorial' ||
     currentPath === '/liff/tutorial' ||
     currentPath === '/dev/mascot' ||
+    currentPath.startsWith('/ads/') ||
     /^\/tutorial\/(estimate|invoice|purchase-order|delivery-note|cover-letter)$/.test(currentPath);
 
-  if (isTutorial) {
+  if (isChromeless) {
     return (
       <div className="min-h-screen bg-white overflow-x-hidden">
         <main>{pageContent}</main>

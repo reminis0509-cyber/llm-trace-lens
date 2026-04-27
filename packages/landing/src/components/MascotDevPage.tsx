@@ -61,6 +61,7 @@ const SIZE_PX: Record<MascotSize, number> = {
   sm: 64,
   md: 128,
   lg: 256,
+  xl: 384,
   hero: 768,
 };
 

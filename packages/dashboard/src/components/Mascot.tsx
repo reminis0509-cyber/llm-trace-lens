@@ -23,7 +23,7 @@ import { useState } from 'react';
 
 export type MascotPose = 'default' | 'real' | 'onsen';
 export type MascotAnimation = 'idle' | 'none';
-export type MascotSize = 'sm' | 'md' | 'lg' | 'hero';
+export type MascotSize = 'sm' | 'md' | 'lg' | 'xl' | 'hero';
 
 export interface MascotProps {
   pose?: MascotPose;
@@ -33,16 +33,18 @@ export interface MascotProps {
 }
 
 /**
- * サイズ定義(2026-04-28 改訂):
+ * サイズ定義(2026-04-28 改訂、Q6 案 B 追加):
  *   - sm: アバター・小アイコン(64px)
  *   - md: フッター・記事内挿絵・小バナー(128px)
  *   - lg: ダッシュボード常時マスコット・モーダル挿絵(256px)
+ *   - xl: 温泉ポーズなど画面中央センターピース(384px)
  *   - hero: LP メインビジュアル(768px、画面内で存在感)
  */
 const SIZE_PX: Record<MascotSize, number> = {
   sm: 64,
   md: 128,
   lg: 256,
+  xl: 384,
   hero: 768,
 };
 
@@ -166,6 +168,6 @@ export default function Mascot({
 
 export const MASCOT_POSES: MascotPose[] = ['default', 'real', 'onsen'];
 
-export const MASCOT_SIZES: MascotSize[] = ['sm', 'md', 'lg', 'hero'];
+export const MASCOT_SIZES: MascotSize[] = ['sm', 'md', 'lg', 'xl', 'hero'];
 
 export const MASCOT_ANIMATIONS: MascotAnimation[] = ['idle', 'none'];

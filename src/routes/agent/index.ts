@@ -4,6 +4,7 @@
  * Mounts:
  *   POST /api/agent/chat
  *   POST /api/agent/chat-v2
+ *   POST /api/agent/capi-bucho-comment
  *   GET  /api/agent/trial-status
  */
 import type { FastifyInstance } from 'fastify';
@@ -12,12 +13,14 @@ import agentTrialStatusRoute from './trial-status.js';
 import contractChatRoute from './contract-chat.js';
 import chatV2Route from './chat-v2.js';
 import memoryRoute from './memory.js';
+import capiBuchoCommentRoute from './capi-bucho-comment.js';
 
 export default async function agentRoutes(fastify: FastifyInstance): Promise<void> {
   await agentChatRoute(fastify);
   await chatV2Route(fastify);
   await agentTrialStatusRoute(fastify);
   await memoryRoute(fastify);
+  await capiBuchoCommentRoute(fastify);
   // Contract-Based AI Clerk Runtime (β) — /api/agent/contract-chat
   await fastify.register(
     async (scoped) => {

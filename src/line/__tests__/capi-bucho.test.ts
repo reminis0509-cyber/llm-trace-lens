@@ -18,7 +18,11 @@
  *      OpenAI モックは LINE 配信パスの結合テストで担当する想定。
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { __test__ } from '../capi-bucho.js';
+import {
+  __test__,
+  generateCapiBuchoCommentWithMeta,
+} from '../capi-bucho.js';
+import type { FastifyInstance } from 'fastify';
 
 const {
   shouldStaySilent,
@@ -223,5 +227,108 @@ describe('EMOTION_KEYWORDS — 必須語彙', () => {
     ['しんど'],
   ])('contains key emotion word: %s', (kw) => {
     expect(EMOTION_KEYWORDS).toContain(kw);
+  });
+});
+
+// =============================================================================
+// generateCapiBuchoCommentWithMeta — Web 用 API のラッパー (Section 18.2.L)
+// =============================================================================
+//
+// `generateCapiBuchoComment` (LINE 既存) と同じ generateCapiBuchoCore を呼ぶ
+// が、戻り値が `{ comment, tokensUsed }` 形式になっている点だけ違う。
+// fetch をモックして「shouldComment が false → 早期 return」「LLM 失敗 →
+// null/null」「LLM 成功 → comment + tokens」の 3 ケースを検証する。
+
+const fakeFastify = {
+  log: { warn: () => {}, error: () => {} },
+} as unknown as FastifyInstance;
+
+describe('generateCapiBuchoCommentWithMeta — Web 用ラッパー', () => {
+  const originalApiKey = process.env.OPENAI_API_KEY;
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    process.env.OPENAI_API_KEY = 'sk-test-mock';
+  });
+
+  afterEach(() => {
+    if (originalApiKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = originalApiKey;
+    globalThis.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  it('returns { comment: null, tokensUsed: null } when shouldComment says no', async () => {
+    // Empty AI response → shouldStaySilent=true → shouldComment=false → no LLM call
+    const result = await generateCapiBuchoCommentWithMeta(fakeFastify, 'ws-1', {
+      userMessage: 'こんにちは',
+      aiResponse: '',
+    });
+    expect(result).toEqual({ comment: null, tokensUsed: null });
+  });
+
+  it('returns { comment: null, tokensUsed: null } when OPENAI_API_KEY is missing', async () => {
+    delete process.env.OPENAI_API_KEY;
+    const result = await generateCapiBuchoCommentWithMeta(fakeFastify, 'ws-1', {
+      userMessage: '今日は本当に疲れた',
+      aiResponse:
+        'お疲れさまです。十分頑張ったので、今日のうちにできるところまでで十分です。',
+    });
+    expect(result).toEqual({ comment: null, tokensUsed: null });
+  });
+
+  it('returns { comment, tokensUsed } when the LLM call succeeds', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [
+          { message: { content: 'お疲れさん〜。ええ感じやで〜☺' } },
+        ],
+        usage: { prompt_tokens: 120, completion_tokens: 24 },
+      }),
+    });
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
+
+    const result = await generateCapiBuchoCommentWithMeta(fakeFastify, 'ws-1', {
+      userMessage: '今日は本当に疲れた', // emotion keyword → shouldComment=true
+      aiResponse:
+        'お疲れさまです。十分頑張ったので、今日のうちにできるところまでで十分です。',
+    });
+
+    expect(result.comment).toBe('お疲れさん〜。ええ感じやで〜☺');
+    expect(result.tokensUsed).toBe(144); // 120 + 24
+    expect(mockFetch).toHaveBeenCalledOnce();
+    const callArgs = mockFetch.mock.calls[0];
+    expect(callArgs[0]).toBe('https://api.openai.com/v1/chat/completions');
+  });
+
+  it('returns { comment: null, tokensUsed: null } when LLM responds non-2xx', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: async () => 'internal server error',
+    });
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
+
+    const result = await generateCapiBuchoCommentWithMeta(fakeFastify, 'ws-1', {
+      userMessage: '今日は本当に疲れた',
+      aiResponse:
+        'お疲れさまです。十分頑張ったので、今日のうちにできるところまでで十分です。',
+    });
+
+    expect(result).toEqual({ comment: null, tokensUsed: null });
+  });
+
+  it('returns { comment: null, tokensUsed: null } when fetch throws', async () => {
+    const mockFetch = vi.fn().mockRejectedValue(new Error('network down'));
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
+
+    const result = await generateCapiBuchoCommentWithMeta(fakeFastify, 'ws-1', {
+      userMessage: '今日は本当に疲れた',
+      aiResponse:
+        'お疲れさまです。十分頑張ったので、今日のうちにできるところまでで十分です。',
+    });
+
+    expect(result).toEqual({ comment: null, tokensUsed: null });
   });
 });

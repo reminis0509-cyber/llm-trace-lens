@@ -231,7 +231,7 @@ function MemoryModal({ initialContent, onSave, onClose }: {
           </button>
         </div>
         <p className="text-xs text-text-secondary mb-4">
-          フジへの指示をメモしておくと、毎回の入力が楽になります。
+          おしごと AI への指示をメモしておくと、毎回の入力が楽になります。
         </p>
         <textarea
           value={content}
@@ -1276,7 +1276,7 @@ function PdfExportButton({ content, companyName }: { content: string; companyNam
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `フジ_レポート_${dateStr}.pdf`;
+      a.download = `おしごとAI_レポート_${dateStr}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

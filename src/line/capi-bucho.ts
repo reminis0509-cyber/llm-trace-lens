@@ -193,27 +193,40 @@ function tidyReply(raw: string | null | undefined): string | null {
 }
 
 /**
- * カピぶちょー応答を生成する。
+ * 内部実装側の戻り値。`generateCapiBuchoComment`(LINE 既存呼び出し)からは
+ * `comment` だけ取り出して返し、`generateCapiBuchoCommentWithMeta`(Web 用 API
+ * の Section 18.2.L 実装)からはまるごと露出する。
  *
- * @returns 関西弁のリアクション文字列、またはコメント不要時は null。
- *          API キー未設定 / API エラー / 不適切な出力 はすべて null を返す。
- *          呼び出し側はこの場合 2 通目の push をスキップする。
- *
- * 呼び出し側への約束:
- *   - 例外を投げない。LINE 配信パスを絶対に壊さない。
- *   - workspaceId が空文字でも実行はする(trace 記録だけスキップ)。
- *   - 副作用は trace 記録のみ。会話履歴(`appendConversationTurn`)には
- *     保存しない(履歴汚染を避けるため、AI 本体応答だけが履歴に残る)。
+ * `tokensUsed` は OpenAI usage の prompt + completion 合算。null の場合は
+ * usage が API レスポンスから取れなかった or shouldComment で早期 return
+ * したことを示す。
  */
-export async function generateCapiBuchoComment(
+export interface CapiBuchoResult {
+  comment: string | null;
+  tokensUsed: number | null;
+}
+
+/**
+ * 内部実装。`generateCapiBuchoComment` と `generateCapiBuchoCommentWithMeta`
+ * の両方から呼ばれる単一の真実の源(SSoT)。
+ *
+ * - shouldComment が false → comment=null, tokensUsed=null(LLM 呼び出しなし)
+ * - LLM 呼び出し失敗 → comment=null, tokensUsed=null
+ * - LLM 呼び出し成功で空文字に整形された → comment=null, tokensUsed=合算値
+ *   (ここ重要: コメントを表示しなくても課金は発生しているので tokens は
+ *    返す。Web 側のコスト把握のため)
+ *
+ * 例外を投げない。LINE 配信パスも Web API パスも絶対に壊さない。
+ */
+async function generateCapiBuchoCore(
   fastify: FastifyInstance,
   workspaceId: string,
   context: CapiBuchoContext,
-): Promise<string | null> {
-  if (!shouldComment(context)) return null;
+): Promise<CapiBuchoResult> {
+  if (!shouldComment(context)) return { comment: null, tokensUsed: null };
 
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) return { comment: null, tokensUsed: null };
 
   const userPayload = [
     `[ユーザーの直前メッセージ]`,
@@ -253,7 +266,7 @@ export async function generateCapiBuchoComment(
         { status: res.status, body: await res.text() },
         '[capi-bucho] OpenAI call failed',
       );
-      return null;
+      return { comment: null, tokensUsed: null };
     }
     const parsed = (await res.json()) as {
       choices?: Array<{ message?: { content?: string | null } }>;
@@ -273,13 +286,16 @@ export async function generateCapiBuchoComment(
     }
   } catch (err) {
     fastify.log.warn({ err: String(err) }, '[capi-bucho] fetch threw');
-    return null;
+    return { comment: null, tokensUsed: null };
   }
 
   const tidied = tidyReply(content);
+  const tokensUsed = usage
+    ? usage.promptTokens + usage.completionTokens
+    : null;
 
   // Trace 記録(workspaceId が空なら省略)。fire-and-forget でユーザー体感を
-  // 落とさない。失敗しても LINE 返信パスは止めない。
+  // 落とさない。失敗しても 配信パスは止めない。
   if (workspaceId && tidied) {
     recordLlmTrace({
       workspaceId,
@@ -293,7 +309,52 @@ export async function generateCapiBuchoComment(
     });
   }
 
-  return tidied;
+  return { comment: tidied, tokensUsed };
+}
+
+/**
+ * カピぶちょー応答を生成する(LINE 用、既存呼び出し互換)。
+ *
+ * @returns 関西弁のリアクション文字列、またはコメント不要時は null。
+ *          API キー未設定 / API エラー / 不適切な出力 はすべて null を返す。
+ *          呼び出し側はこの場合 2 通目の push をスキップする。
+ *
+ * 呼び出し側への約束:
+ *   - 例外を投げない。LINE 配信パスを絶対に壊さない。
+ *   - workspaceId が空文字でも実行はする(trace 記録だけスキップ)。
+ *   - 副作用は trace 記録のみ。会話履歴(`appendConversationTurn`)には
+ *     保存しない(履歴汚染を避けるため、AI 本体応答だけが履歴に残る)。
+ */
+export async function generateCapiBuchoComment(
+  fastify: FastifyInstance,
+  workspaceId: string,
+  context: CapiBuchoContext,
+): Promise<string | null> {
+  const { comment } = await generateCapiBuchoCore(fastify, workspaceId, context);
+  return comment;
+}
+
+/**
+ * カピぶちょー応答を生成する(Web 用 API 露出、Section 18.2.L)。
+ *
+ * `generateCapiBuchoComment` と同じロジックだが `tokensUsed` も返すので
+ * Web ダッシュボード側が課金 / コスト把握の参考にできる。
+ *
+ * 振る舞いは LINE 用と同一:
+ *   - shouldComment が false なら comment=null, tokensUsed=null
+ *   - LLM 失敗時も同じ
+ *   - 例外は投げない
+ *
+ * Web 側に journeyStep の概念は無いため、呼び出し側は context.journeyStep
+ * を指定しない(undefined)。結果として確率判定 + 感情語判定で発話可否が
+ * 決まる。
+ */
+export async function generateCapiBuchoCommentWithMeta(
+  fastify: FastifyInstance,
+  workspaceId: string,
+  context: CapiBuchoContext,
+): Promise<CapiBuchoResult> {
+  return generateCapiBuchoCore(fastify, workspaceId, context);
 }
 
 // ─── Internal exports for unit tests ────────────────────────────────────────

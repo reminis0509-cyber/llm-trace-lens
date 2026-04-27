@@ -20,13 +20,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Mascot from './Mascot';
-
-const PLACEHOLDER_LINE_URL = 'https://line.me/R/ti/p/@fujitrace';
-
-function getLineUrl(): string {
-  const fromEnv = (import.meta.env.VITE_LINE_OFFICIAL_URL as string | undefined)?.trim();
-  return fromEnv && fromEnv.length > 0 ? fromEnv : PLACEHOLDER_LINE_URL;
-}
+import { getLineUrl } from '../lib/line-url';
 
 export default function FloatingMascot() {
   const [open, setOpen] = useState(false);

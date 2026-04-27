@@ -33,6 +33,11 @@ export default function Hero() {
         <div className="grid lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-14 items-center">
           {/* ---- Left: headline + copy + CTA ---- */}
           <div>
+            {/* カピぶちょー立ち絵 — Eyebrow バッジ直上 lg=256px (CEO 判断 2026-04-28 / Q4 案 A) */}
+            <div className="mb-4 -ml-2" aria-hidden="true">
+              <Mascot pose="default" size="lg" animation="idle" />
+            </div>
+
             {/* Eyebrow — 2 キャラ並走モデルの存在を示すバッジ */}
             <div className="inline-flex items-center gap-2 px-3 py-1.5 surface-card text-xs mb-6">
               <span className="w-1.5 h-1.5 bg-accent rounded-full" aria-hidden="true" />
@@ -216,12 +221,14 @@ export default function Hero() {
               </div>
             </div>
 
-            {/* カピぶちょー立ち絵 — 御見積書の右下にちょこんと立つ。lg=256px (CEO 判断 2026-04-28) */}
+            {/* カピぶちょー立ち絵 — 御見積書の右下にちょこんと立つ。
+                Q3 案 A (CEO 判断 2026-04-28): 主役は御見積書(=AI の成果物)、
+                マスコットは sm=64px に控えめに。Eyebrow 直上の lg と役割分担。 */}
             <div
-              className="hidden md:block absolute -bottom-6 -right-6 lg:-bottom-8 lg:-right-8 pointer-events-none"
+              className="hidden md:block absolute -bottom-3 -right-3 lg:-bottom-4 lg:-right-4 pointer-events-none"
               aria-hidden="true"
             >
-              <Mascot pose="default" size="lg" animation="idle" />
+              <Mascot pose="default" size="sm" animation="idle" />
             </div>
           </div>
         </div>

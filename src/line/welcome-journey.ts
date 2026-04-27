@@ -25,7 +25,9 @@
  */
 import { kv } from '@vercel/kv';
 import type { FastifyInstance } from 'fastify';
+import type { messagingApi } from '@line/bot-sdk';
 import {
+  flexMessage,
   pushLineMessage,
   replyLineMessage,
   showLineLoading,
@@ -157,6 +159,114 @@ const COMPLETION_TEXT = [
   '※ 見積書や請求書のPDFまで作りたい時は、Web版の https://fujitrace.jp で本格的な書類作成までできます。',
 ].join('\n');
 
+// ───────────────────── リード磁石 PDF (Section 18.2.K) ─────────────────────
+
+/**
+ * リード磁石 PDF の公開 URL。LP からのアクセスも LINE BOT の自動送付も
+ * すべてこの 1 つの URL を指す(SSoT)。
+ *
+ * 環境変数 `LEAD_MAGNET_BASE_URL` または `BASE_URL` で上書き可能(プレビュー
+ * 環境向け)。ただし **絶対 URL (`http://` / `https://` 始まり) でないと
+ * 上書き対象外**。Vite/vitest は内部的に `process.env.BASE_URL = '/'` を
+ * セットする既知挙動があり、それを素朴に拾うと相対パスが生成され LINE が
+ * リンクとして開かなくなる事故になる(2026-04-28 検出)。
+ *
+ * 本番フォールバックは `https://www.fujitrace.jp`(`fujitrace.jp` ではなく
+ * `www` 付きが Vercel 設定上のカスタムドメイン側、MEMORY.md 注記参照)。
+ */
+const LEAD_MAGNET_FILENAME = 'oshigoto-ai-guide.pdf';
+const LEAD_MAGNET_DEFAULT_BASE_URL = 'https://www.fujitrace.jp';
+
+function pickAbsoluteHttpUrl(...candidates: Array<string | undefined>): string {
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string') continue;
+    if (/^https?:\/\//i.test(candidate)) return candidate;
+  }
+  return LEAD_MAGNET_DEFAULT_BASE_URL;
+}
+
+const LEAD_MAGNET_BASE_URL = pickAbsoluteHttpUrl(
+  process.env.LEAD_MAGNET_BASE_URL,
+  process.env.BASE_URL,
+);
+export const LEAD_MAGNET_PDF_URL = `${LEAD_MAGNET_BASE_URL.replace(/\/+$/, '')}/leadmagnet/${LEAD_MAGNET_FILENAME}`;
+
+/**
+ * リード磁石 PDF 案内メッセージ群を組み立てる(LINE Messaging API 送付用)。
+ *
+ * LINE Messaging API は「ファイル送信(Type=file)」を公式にはサポートしない
+ * (画像 / 動画 / 音声 / 位置 のみ)。よって PDF は **URI Action ボタン付き
+ * Flex bubble** で外部 URL を開かせる方式を採る。
+ *
+ * 構造:
+ *   1. テキストメッセージ(短い導入文、関西弁混入禁止 — Section 19.5)
+ *   2. Flex bubble(タイトル + ボタン 1 つ、URI action で PDF を開く)
+ *
+ * カピぶちょーの一言は **戦略 doc Section 19.5 の口調混在禁止ルール**に従い、
+ * テキスト 1 通目には混入させない(関西弁は別レイヤーで吹き出すのが原則)。
+ * follow event 直後は capi-bucho LLM 呼び出しを行わず、固定文の AI 案内のみ
+ * を送る。Welcome Step 1 で 1 メッセージ目を消費した後の通知という位置づけ。
+ *
+ * 純関数として export し unit test で構造検証する(LINE 配信には依存させない)。
+ */
+export function buildLeadMagnetMessages(
+  pdfUrl: string = LEAD_MAGNET_PDF_URL,
+): messagingApi.Message[] {
+  const intro = textMessage(
+    [
+      'お友だち追加ありがとうございます。',
+      'ささやかなプレゼントとして、AI活用ガイドのPDFをお送りします。',
+      '下のボタンから開けます。',
+    ].join('\n'),
+  );
+
+  // Flex bubble: 縦積みでタイトル + 1 行説明 + プライマリボタン(URI action)。
+  // altText は通知パネル / トーク一覧で見える短いテキスト(英数字 OK)。
+  const bubble: messagingApi.FlexBubble = {
+    type: 'bubble',
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      spacing: 'md',
+      contents: [
+        {
+          type: 'text',
+          text: 'カピぶちょーのAI活用ガイド',
+          weight: 'bold',
+          size: 'lg',
+          wrap: true,
+        },
+        {
+          type: 'text',
+          text: '人を雇わずに事務を回す5ステップ(PDF)',
+          size: 'sm',
+          color: '#666666',
+          wrap: true,
+        },
+      ],
+    },
+    footer: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'button',
+          style: 'primary',
+          color: '#2563eb',
+          action: {
+            type: 'uri',
+            label: 'ガイドを開く',
+            uri: pdfUrl,
+          },
+        },
+      ],
+    },
+  };
+
+  const flex = flexMessage('AI活用ガイド(PDF)', bubble);
+  return [intro, flex];
+}
+
 // ───────────────────────── 送信エントリポイント ─────────────────────────
 
 /**
@@ -164,6 +274,15 @@ const COMPLETION_TEXT = [
  *
  * Uses `replyToken` if provided (best UX — message arrives instantly with
  * no delay) and falls back to push when reply fails or no token is given.
+ *
+ * 続けて(Section 18.2.K)リード磁石 PDF 案内メッセージを別 push で送る。
+ * `replyToken` は 1 リクエストで 1 回しか使えないため、Step 1 を reply で
+ * 消費した後の PDF 案内は必ず push になる。LINE 仕様上 follow 直後の連続
+ * push は標準パターン(スパム判定の対象外)。
+ *
+ * 重複配信ポリシー: LINE は稀に follow event を再配信する。`startWelcomeJourney`
+ * は元から「再配信されたら restart」方針なので、PDF 案内も毎回送る(2 度送られ
+ * ても害は小さく、KV 不在環境でも動かしたいのでフラグ管理しない)。
  */
 export async function startWelcomeJourney(
   userId: string,
@@ -171,11 +290,24 @@ export async function startWelcomeJourney(
 ): Promise<void> {
   await setJourneyStep(userId, 1, Date.now());
   const msg = textMessage(WELCOME_AND_STEP1_TEXT);
+  let step1Delivered = false;
   if (replyToken) {
     const ok = await replyLineMessage(replyToken, [msg]);
-    if (ok) return;
+    if (ok) step1Delivered = true;
   }
-  await pushLineMessage(userId, [msg]);
+  if (!step1Delivered) {
+    await pushLineMessage(userId, [msg]);
+  }
+
+  // PDF 案内は別 push。Step 1 と Step 2 案内の間に挟む(後続の handleJourneyMessage
+  // がユーザーアクション後に Step 2 案内を出す)。失敗しても Welcome Journey
+  // 全体を壊さないため await で同期実行するが例外は伝播させない。
+  try {
+    await pushLineMessage(userId, buildLeadMagnetMessages());
+  } catch {
+    // pushLineMessage 自体が内部で例外を握り潰し false を返す設計だが、
+    // 念のため二重防御。LINE ダウン時に follow event の正常終了を阻害しない。
+  }
 }
 
 /** Mutually-exclusive input: either text OR image. Caller picks one. */
