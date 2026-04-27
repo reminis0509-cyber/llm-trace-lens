@@ -26,6 +26,7 @@ import EstimateDemo from './components/EstimateDemo';
 import MidPageCTA from './components/MidPageCTA';
 import EducationShowcase from './components/EducationShowcase';
 import Capabilities from './components/Capabilities';
+import MascotDevPage from './components/MascotDevPage';
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -64,6 +65,10 @@ export default function App() {
     pageContent = <ScenarioTutorialPage scenario={scenarioSlug} />;
   } else if (currentPath === '/tutorial' || currentPath === '/liff/tutorial') {
     pageContent = <TutorialPage />;
+  } else if (currentPath === '/dev/mascot') {
+    // 開発者向けマスコット動作確認ページ — Header/Footer 抜きで描画する。
+    // LP メニューには出さない (Header.tsx に追加禁止)。
+    pageContent = <MascotDevPage />;
   } else {
     pageContent = (
       <>
@@ -123,9 +128,11 @@ export default function App() {
   // Tutorial is a full-screen modal experience — it paints its own chrome
   // and must not be framed by the LP Header/Footer.
   // /liff/tutorial is the LINE in-app browser variant and also chromeless.
+  // /dev/mascot is an internal-only dev preview; also chromeless.
   const isTutorial =
     currentPath === '/tutorial' ||
     currentPath === '/liff/tutorial' ||
+    currentPath === '/dev/mascot' ||
     /^\/tutorial\/(estimate|invoice|purchase-order|delivery-note|cover-letter)$/.test(currentPath);
 
   if (isTutorial) {
