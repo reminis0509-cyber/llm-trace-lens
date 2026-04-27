@@ -63,7 +63,7 @@ function EstimateBody() {
             <span className="text-[#666] font-normal">御中</span>
           </p>
           <p className="mt-3 text-[#555] mb-0.5">件名</p>
-          <p className="text-[14px]">AI 社員導入コンサルティング</p>
+          <p className="text-[14px]">おしごと AI導入コンサルティング</p>
         </div>
         <div className="text-right">
           <p className="text-[#555] mb-0.5">発行者</p>
@@ -156,7 +156,7 @@ function InvoiceBody() {
           <div className="px-2 py-1.5 text-right">金額</div>
         </div>
         <div className="grid grid-cols-[1fr_100px_100px] text-[12px] border-b border-[#333]">
-          <div className="px-2 py-1.5 border-r border-[#333]">AI 社員運用サポート（4 月分）</div>
+          <div className="px-2 py-1.5 border-r border-[#333]">おしごと AI運用サポート（4 月分）</div>
           <div className="px-2 py-1.5 text-right border-r border-[#333] tabular-nums">300,000</div>
           <div className="px-2 py-1.5 text-right tabular-nums">300,000</div>
         </div>
@@ -249,7 +249,7 @@ function DeliveryNoteBody() {
           <div className="px-2 py-1.5 text-right">数量</div>
         </div>
         <div className="grid grid-cols-[1fr_120px] text-[12px] border-b border-[#333]">
-          <div className="px-2 py-1.5 border-r border-[#333]">AI 社員 初期構築一式</div>
+          <div className="px-2 py-1.5 border-r border-[#333]">おしごと AI 初期構築一式</div>
           <div className="px-2 py-1.5 text-right">1 式</div>
         </div>
       </div>
@@ -391,7 +391,7 @@ export default function Chapter2ChatIntro({ onComplete, onMascot }: Chapter2Chat
           見積書をお願い — チャットで書類作成
         </h2>
         <p className="mt-2 text-sm text-slate-600">
-          書類の名前を含めてメッセージを送ると、AI 社員が正式書類の体裁で出力します。
+          書類の名前を含めてメッセージを送ると、おしごと AIが正式書類の体裁で出力します。
         </p>
       </header>
 
@@ -408,7 +408,7 @@ export default function Chapter2ChatIntro({ onComplete, onMascot }: Chapter2Chat
         <div className="flex gap-2">
           <img
             src="/tutorial/dachshund-idle.gif"
-            alt="AI社員"
+            alt="おしごと AI"
             className="w-6 h-6 rounded-full flex-shrink-0 mt-1"
           />
           <div className="flex-1 space-y-3">

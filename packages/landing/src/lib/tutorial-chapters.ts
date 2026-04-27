@@ -1,5 +1,5 @@
 /**
- * Shared metadata for the 8-chapter "AI社員の一週間" tutorial.
+ * Shared metadata for the 8-chapter "おしごと AIの一週間" tutorial.
  * Keeping this table in one place prevents drift between the chapter
  * component, the progress bar, the splash, and the certificate.
  */
@@ -25,7 +25,7 @@ export const CHAPTERS: readonly ChapterMeta[] = [
     id: 1,
     shortLabel: '月朝',
     dayLabel: '月曜朝',
-    title: '初出社 — 今日の予定をAI社員に聞く',
+    title: '初出社 — 今日の予定をおしごと AIに聞く',
     tagline: 'ボタン一つで、今日の予定と優先タスクが画面に並ぶ。',
     feature: '朝のブリーフィング',
   },
@@ -81,7 +81,7 @@ export const CHAPTERS: readonly ChapterMeta[] = [
     id: 8,
     shortLabel: '来週',
     dayLabel: '来週',
-    title: '複合タスク — AI 社員の真価',
+    title: '複合タスク — おしごと AIの真価',
     tagline: '一言で、調査・要約・スライド下書きまで連携して走らせる。',
     feature: '複合タスク',
   },

@@ -328,7 +328,7 @@ export default function Chapter5ExcelAnalyze({
           売上データを読ませる — Excel 分析
         </h2>
         <p className="mt-2 text-sm text-slate-600">
-          Excel ファイルを渡すと、AI 社員がシートを読んで「分析報告書」の体裁でまとめます。
+          Excel ファイルを渡すと、おしごと AIがシートを読んで「分析報告書」の体裁でまとめます。
         </p>
       </header>
 
@@ -338,7 +338,7 @@ export default function Chapter5ExcelAnalyze({
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-3">
           <div className="flex-1">
             <p className="text-sm font-semibold text-slate-900">
-              sales_2026.xlsx を AI 社員に渡す
+              sales_2026.xlsx を おしごと AIに渡す
             </p>
             <p className="text-xs text-slate-500 mt-0.5">
               実サービスではここで .xlsx をドラッグ＆ドロップできます。
@@ -369,7 +369,7 @@ export default function Chapter5ExcelAnalyze({
         <div className="flex gap-2">
           <img
             src="/tutorial/dachshund-idle.gif"
-            alt="AI社員"
+            alt="おしごと AI"
             className="w-6 h-6 rounded-full flex-shrink-0 mt-1"
           />
           <div className="flex-1">

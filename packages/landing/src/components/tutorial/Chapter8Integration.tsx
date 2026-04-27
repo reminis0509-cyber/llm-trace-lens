@@ -100,7 +100,7 @@ function ProposalEstimateBody() {
             株式会社ABC <span className="text-[#666] font-normal">御中</span>
           </p>
           <p className="mt-3 text-[#555]">件名</p>
-          <p>AI 社員導入 年間契約</p>
+          <p>おしごと AI導入 年間契約</p>
         </div>
         <div className="text-right">
           <p className="text-[#555]">発行者</p>
@@ -114,7 +114,7 @@ function ProposalEstimateBody() {
           <div className="px-2 py-1.5 text-right">金額</div>
         </div>
         <div className="grid grid-cols-[1fr_100px_120px] text-[12px] border-b border-[#333]">
-          <div className="px-2 py-1.5 border-r border-[#333]">AI 社員 Pro プラン（12 ヶ月）</div>
+          <div className="px-2 py-1.5 border-r border-[#333]">おしごと AI Pro プラン（12 ヶ月）</div>
           <div className="px-2 py-1.5 text-right border-r border-[#333] tabular-nums">12</div>
           <div className="px-2 py-1.5 text-right tabular-nums">3,600,000</div>
         </div>
@@ -190,7 +190,7 @@ function MeetingSummaryBody() {
           3. 今回の提案ポイント
         </p>
         <ol className="pl-5 space-y-1 text-[13px] list-decimal">
-          <li>AI 社員 Pro プランを先方営業部 10 名に配布。</li>
+          <li>おしごと AI Pro プランを先方営業部 10 名に配布。</li>
           <li>既存 Excel フローを踏襲したまま AI 検証を後段に追加。</li>
           <li>国内リージョンでのデータ保管を契約書に明記。</li>
         </ol>
@@ -217,11 +217,11 @@ function ProposalSlideBody() {
             株式会社ABC 様 ご提案書
           </h3>
           <p className="mt-3 text-[13px] text-[#444]">
-            AI 社員導入によるバックオフィスの 9 割削減計画
+            おしごと AI導入によるバックオフィスの 9 割削減計画
           </p>
         </div>
         <div className="mt-auto pt-3 border-t border-[#1a1a1a] flex items-baseline justify-between text-[9px] text-[#666]">
-          <span>FujiTrace — AI 社員プラットフォーム</span>
+          <span>FujiTrace — おしごと AIプラットフォーム</span>
           <span className="font-mono">合同会社 Reminis / 2026-04-28</span>
         </div>
       </div>
@@ -320,7 +320,7 @@ function SlackNotificationPreview() {
           <li>Gmail 下書き送信可能</li>
           <li>Calendar に仮予定（調整中）</li>
         </ul>
-        <p className="text-[11px] text-slate-500">投稿者: AI 社員（on behalf of 山田）</p>
+        <p className="text-[11px] text-slate-500">投稿者: おしごと AI（on behalf of 山田）</p>
       </div>
     </div>
   );
@@ -497,7 +497,7 @@ export default function Chapter8Integration({
           第 8 章 / 8 — 来週
         </p>
         <h2 id="ch8-title" className="mt-1 text-2xl font-bold text-slate-900">
-          複合タスク — AI 社員の真価
+          複合タスク — おしごと AIの真価
         </h2>
         <p className="mt-2 text-sm text-slate-600">
           一言の指示から、調査・要約・スライド・メール・予定登録まで、複数のツールを連携して完走します。
@@ -508,7 +508,7 @@ export default function Chapter8Integration({
         <p className="text-xs font-semibold text-amber-800 mb-1">この章の凄いところ</p>
         <p className="text-sm text-slate-800 leading-relaxed">
           これまでの 7 章で触った機能（書類 / 議事録 / スライド / Excel / Wide Research / Gmail / Calendar）を、
-          AI 社員が自動で順番に呼び出します。あなたは最初の 1 文を書くだけ。
+          おしごと AIが自動で順番に呼び出します。あなたは最初の 1 文を書くだけ。
         </p>
       </div>
 
@@ -525,7 +525,7 @@ export default function Chapter8Integration({
         <div className="flex gap-2">
           <img
             src="/tutorial/dachshund-idle.gif"
-            alt="AI社員"
+            alt="おしごと AI"
             className="w-6 h-6 rounded-full flex-shrink-0 mt-1"
           />
           <div className="flex-1">

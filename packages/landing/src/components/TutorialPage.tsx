@@ -33,7 +33,7 @@ interface MascotMessage {
 const INITIAL_MASCOT: MascotMessage = {
   state: 'idle',
   message:
-    'やあ。\nボクはフジ。\n日本企業のAI社員だよ。\n\nこれから一週間、\nボクの仕事を見せるね。',
+    'やあ。\nボクはカピぶちょー。\n日本企業のおしごと AI を見守る役だよ。\n\nこれから一週間、\nボクとおしごと AI の仕事を見せるね。',
   hint: '下の「今日のブリーフィングを聞く」\nから始めよう。',
 };
 
@@ -103,9 +103,9 @@ function ResumePrompt({ progress, onResume, onRestart }: ResumePromptProps) {
 
 export default function TutorialPage() {
   useSeo({
-    title: 'AI 社員 基礎チュートリアル — 一週間の仕事を体験 | FujiTrace',
+    title: 'おしごと AI 基礎チュートリアル — 一週間の仕事を体験 | FujiTrace',
     description:
-      '8 章構成で、AI 社員のブリーフィング / 書類作成 / 議事録 / スライド / Excel 分析 / Wide Research / 校正 / 複合タスクを順に体験。修了証 PNG を発行できます。',
+      '8 章構成で、おしごと AI のブリーフィング / 書類作成 / 議事録 / スライド / Excel 分析 / Wide Research / 校正 / 複合タスクを順に体験。修了証 PNG を発行できます。',
     url: 'https://fujitrace.jp/tutorial',
   });
 
@@ -312,14 +312,14 @@ export default function TutorialPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-16 space-y-8">
         <header className="space-y-2 text-center sm:text-left">
           <p className="text-xs font-semibold tracking-wide text-blue-700 uppercase">
-            無料チュートリアル — AI 社員の一週間（8 章構成）
+            無料チュートリアル — おしごと AIの一週間（8 章構成）
           </p>
           <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">
-            AI 社員の一週間
+            おしごと AIの一週間
           </h1>
           <p className="text-sm text-slate-600 max-w-2xl mx-auto sm:mx-0">
             月曜朝のブリーフィングから、書類作成・議事録・スライド・Excel 分析・Wide Research・校正・複合タスクまで。
-            AI 社員がデスクで働く 1 週間を体験します。
+            おしごと AIがデスクで働く 1 週間を体験します。
           </p>
         </header>
 

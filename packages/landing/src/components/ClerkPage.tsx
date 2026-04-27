@@ -7,7 +7,7 @@ import { useSeo } from '../hooks/useSeo';
 
 export default function ClerkPage() {
   useSeo({
-    title: 'AI社員 | FujiTrace - 見積書・請求書・納品書をAIが作成・チェック',
+    title: 'おしごと AI | FujiTrace - 見積書・請求書・納品書をAIが作成・チェック',
     description:
       '見積書・請求書・納品書・発注書・送付状をAIが自動作成し、金額ミスや記載漏れをリアルタイムで検証。無料で使える業務AIアシスタント。',
     url: 'https://fujitrace.jp/tools/clerk',
@@ -22,7 +22,7 @@ export default function ClerkPage() {
             FUJITRACE AI TOOLS
           </p>
           <h1 className="text-3xl md:text-5xl font-bold text-slate-900 leading-tight mb-6">
-            AI社員
+            おしごと AI
           </h1>
           <p className="text-lg md:text-xl text-slate-600 mb-4 leading-relaxed">
             見積書・請求書・納品書・発注書・送付状を
@@ -44,7 +44,7 @@ export default function ClerkPage() {
       <section className="py-16 px-6">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-6 text-center">
-            なぜFujiTrace AI社員か
+            なぜFujiTrace おしごと AIか
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
             <div className="bg-white rounded-lg p-6 border border-slate-200">

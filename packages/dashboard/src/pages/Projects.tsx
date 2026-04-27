@@ -171,7 +171,7 @@ export function Projects() {
         <div>
           <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">プロジェクト</h1>
           <p className="text-sm text-text-secondary mt-1">
-            AI社員が継続的に取り組むワークスペース。指示書・参照ファイル・履歴が永続化されます。
+            おしごと AIが継続的に取り組むワークスペース。指示書・参照ファイル・履歴が永続化されます。
           </p>
         </div>
         <button
@@ -344,7 +344,7 @@ function CreateProjectModal({
               id="proj-desc"
               value={description}
               onChange={(e) => onDescriptionChange(e.target.value)}
-              placeholder="このプロジェクトの目的・文脈を書いておくと AI 社員が理解しやすくなります"
+              placeholder="このプロジェクトの目的・文脈を書いておくと おしごと AIが理解しやすくなります"
               rows={3}
               className="w-full px-3 py-2 bg-base border border-border rounded-card text-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent resize-none"
             />

@@ -27,16 +27,16 @@ const navItems: NavItem[] = [
 
 const aiMenuEntries: AiMenuEntry[] = [
   {
-    label: 'AI社員',
+    label: 'おしごと AI',
     href: '/tools/clerk',
-    description: '自然言語で事務作業を依頼できるAIアシスタント',
+    description: '自然言語で事務作業を依頼できるおしごと AI',
     isNew: true,
   },
   { isDivider: true },
   {
-    label: 'すべてのAIツールを見る',
+    label: 'すべての AI ツールを見る',
     href: '/tools',
-    description: 'FujiTraceが提供するAI搭載ツール一覧',
+    description: 'FujiTrace が提供する AI 搭載ツール一覧',
   },
 ];
 
@@ -110,13 +110,16 @@ export default function Header() {
       }`}>
         <div className="section-container">
           <div className="h-14 flex items-center justify-between">
-            {/* Logo */}
+            {/* Logo — モバイルは "FujiTrace" のみ、デスクトップ (xl+) はタグライン併記 */}
             <a href="#" className="flex items-center gap-2 flex-shrink-0">
               <svg className="w-5 h-5" viewBox="0 0 32 32" fill="none">
                 <path d="M6 26 L14.5 6 L19.7 18.2" stroke="#1a1a1a" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
                 <path d="M16.5 26 L22 12.5 L27.5 26" stroke="#1a1a1a" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
               </svg>
               <span className="text-sm font-medium text-text-primary">FujiTrace</span>
+              <span className="hidden xl:inline text-xs text-text-muted ml-1">
+                — おしごと AI とカピぶちょー
+              </span>
             </a>
 
             {/* Desktop Navigation */}
@@ -205,7 +208,7 @@ export default function Header() {
                 href="/blog"
                 className="relative h-full px-3 xl:px-4 text-sm text-text-secondary hover:text-text-primary transition-colors duration-120 flex items-center"
               >
-                フジトレニュース
+                ブログ
               </a>
             </nav>
 
@@ -308,7 +311,7 @@ export default function Header() {
                 className="block px-3 py-3 text-base text-text-secondary hover:text-text-primary hover:bg-app-bg-elevated rounded-card transition-colors duration-120"
                 onClick={() => setIsMenuOpen(false)}
               >
-                フジトレニュース
+                ブログ
               </a>
             </div>
 

@@ -296,7 +296,7 @@ export function WebAppBuilder() {
             </span>
           </h1>
           <p className="text-sm text-text-secondary mt-1">
-            主題と聴衆を伝えると、AI 社員が Marp 形式のスライドを生成します。プレビューと PPTX ダウンロードに対応。
+            主題と聴衆を伝えると、おしごと AIが Marp 形式のスライドを生成します。プレビューと PPTX ダウンロードに対応。
           </p>
         </div>
       </header>

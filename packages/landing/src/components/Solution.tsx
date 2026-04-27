@@ -1,8 +1,8 @@
 /**
- * Solution — AI 社員 v2.1 全機能を 3 カテゴリで提示 (2026-04-22 刷新)
+ * Solution — おしごと AI 全機能を 3 カテゴリで提示 (2026-04-28 リブランド)
  *
- * v1 の「体験→鍛錬→実務」3 ステップ教育訴求から、
- * 「書類業務 / 分析・リサーチ / コミュニケーション」の機能カテゴリ訴求へ。
+ * 旧名「AI 社員」「AI 事務員」を「おしごと AI」に統一。
+ * 「書類業務 / 分析・リサーチ / コミュニケーション」の 3 カテゴリ訴求は維持。
  * チュートリアル訴求は EducationShowcase が引き続き担当。
  */
 interface Capability {
@@ -125,7 +125,7 @@ export default function Solution() {
             解決策
           </span>
           <h2 className="text-2xl sm:text-display-sm font-semibold text-text-primary mb-4">
-            FujiTrace AI社員が、
+            おしごと AI が、
             <br className="sm:hidden" />
             担える仕事。
           </h2>

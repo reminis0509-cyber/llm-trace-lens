@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { adminApi } from '../api/admin';
 import { AdminDashboard } from './AdminDashboard';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import FloatingMascot from '../components/FloatingMascot';
 
 export function AdminRoute() {
   const { loading } = useRole();
@@ -195,6 +196,9 @@ export function AdminRoute() {
           <AdminDashboard />
         </ErrorBoundary>
       </main>
+
+      {/* 右下フローティングマスコット (カピぶちょー) — 2026-04-28 新設 */}
+      <FloatingMascot />
     </div>
   );
 }

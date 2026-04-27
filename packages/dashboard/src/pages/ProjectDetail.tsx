@@ -297,7 +297,7 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
               </button>
             </div>
             <p className="text-xs text-text-muted mb-2">
-              このプロジェクトで AI 社員に従わせたい前提・制約を書いてください。全タスクの冒頭で参照されます。
+              このプロジェクトで おしごと AIに従わせたい前提・制約を書いてください。全タスクの冒頭で参照されます。
             </p>
             <textarea
               value={instructionsDraft}

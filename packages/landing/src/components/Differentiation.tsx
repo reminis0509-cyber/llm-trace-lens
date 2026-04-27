@@ -84,7 +84,7 @@ export default function Differentiation() {
             </div>
             <div className="px-5 py-4 text-center border-l border-border bg-accent-dim">
               <div className="text-xs text-accent label-spacing uppercase font-semibold">
-                FujiTrace AI社員
+                FujiTrace おしごと AI
               </div>
             </div>
           </div>

@@ -20,8 +20,8 @@ export default function Footer() {
               <span className="text-sm font-medium text-text-primary">FujiTrace</span>
             </div>
             <p className="text-sm text-text-muted leading-relaxed">
-              国産AIガバナンス<br />
-              プラットフォーム
+              おしごと AI と<br />
+              カピぶちょー
             </p>
           </div>
 
@@ -83,10 +83,11 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-text-muted">
-            &copy; 2026 合同会社Reminis. All rights reserved.
-          </p>
+        <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="text-xs text-text-muted leading-relaxed">
+            <p>&copy; 2026 合同会社 Reminis. All rights reserved.</p>
+            <p className="mt-1">FujiTrace は合同会社 Reminis のサービスブランドです。</p>
+          </div>
           <div className="flex items-center gap-2">
             <a href="#" className="text-text-muted hover:text-text-primary transition-colors duration-120 p-2 hover:bg-app-bg-elevated rounded-card">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">

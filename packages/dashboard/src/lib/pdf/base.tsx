@@ -496,7 +496,7 @@ export function PdfFooter({ items }: PdfFooterProps): ReactNode {
 export function PdfPageFooter(): ReactNode {
   return (
     <View style={sharedStyles.pageFooter} fixed>
-      <Text style={sharedStyles.pageFooterText}>FujiTrace AI 社員</Text>
+      <Text style={sharedStyles.pageFooterText}>FujiTrace おしごと AI</Text>
       <Text
         style={sharedStyles.pageFooterText}
         render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}

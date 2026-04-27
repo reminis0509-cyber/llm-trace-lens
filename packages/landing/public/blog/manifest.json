@@ -34,11 +34,11 @@
     },
     {
       "slug": "fujitrace-spotlight",
-      "title": "開発者スポットライト #1: FujiTrace -- AI社員プラットフォームの裏側",
-      "description": "フジトレニュース創刊。開発者スポットライト第1弾として、FujiTrace自身の技術スタック、開発背景、AIチェック機能の仕組みを紹介します。",
+      "title": "開発者スポットライト #1: FujiTrace — おしごと AI プラットフォームの裏側",
+      "description": "FujiTrace ブログ創刊。開発者スポットライト第1弾として、FujiTrace 自身の技術スタック、開発背景、AI チェック機能の仕組みを紹介します。",
       "date": "2026-04-14",
       "category": "開発者スポットライト",
-      "keywords": ["FujiTrace", "開発者スポットライト", "AI社員", "React", "Fastify", "OpenAI"]
+      "keywords": ["FujiTrace", "開発者スポットライト", "おしごと AI", "React", "Fastify", "OpenAI"]
     },
     {
       "slug": "how-to-write-estimate",

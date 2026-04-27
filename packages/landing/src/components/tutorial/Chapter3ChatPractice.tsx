@@ -225,7 +225,7 @@ export default function Chapter3Minutes({ onComplete, onMascot }: Chapter3Minute
           議事録を自動化 — 走り書きを正式書類に
         </h2>
         <p className="mt-2 text-sm text-slate-600">
-          昨日の定例の走り書きメモを AI 社員に渡すと、社内回覧に通用する議事録体裁で仕上がります。
+          昨日の定例の走り書きメモを おしごと AIに渡すと、社内回覧に通用する議事録体裁で仕上がります。
         </p>
       </header>
 
@@ -244,7 +244,7 @@ export default function Chapter3Minutes({ onComplete, onMascot }: Chapter3Minute
         <div className="flex gap-2">
           <img
             src="/tutorial/dachshund-idle.gif"
-            alt="AI社員"
+            alt="おしごと AI"
             className="w-6 h-6 rounded-full flex-shrink-0 mt-1"
           />
           <div className="flex-1">

@@ -34,9 +34,9 @@ export default function BlogPage() {
   const [error, setError] = useState<string | null>(null);
 
   useSeo({
-    title: 'フジトレニュース | AI × バックオフィスの最前線',
+    title: 'ブログ | AI × バックオフィスの最前線 | FujiTrace',
     description:
-      'フジトレニュースは、AI社員・見積書・請求書の作成、バックオフィス業務の効率化に関する最新情報をお届けするFujiTrace公式メディアです。',
+      'FujiTrace ブログは、おしごと AI ・見積書・請求書の作成、バックオフィス業務の効率化に関する最新情報をお届けする FujiTrace 公式メディアです。',
     url: 'https://fujitrace.jp/blog',
   });
 
@@ -62,13 +62,13 @@ export default function BlogPage() {
       <section className="py-16 px-6 bg-gradient-to-b from-base-surface to-white border-b border-border">
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-xs font-semibold text-accent mb-4 tracking-widest uppercase">
-            FUJITRACE NEWS
+            FUJITRACE BLOG
           </p>
           <h1 className="text-3xl md:text-5xl font-bold text-text-primary leading-tight mb-4">
-            フジトレニュース
+            ブログ
           </h1>
           <p className="text-lg text-text-secondary">
-            AI x バックオフィスの最前線
+            AI × バックオフィスの最前線
           </p>
         </div>
       </section>

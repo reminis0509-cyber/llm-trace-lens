@@ -196,7 +196,7 @@ function stripInlineMarkdown(text: string): string {
 function extractTitle(content: string): string {
   const match = content.match(/^#{1,3}\s+(.+)/m);
   if (match) return stripInlineMarkdown(match[1]);
-  return 'AI社員レポート';
+  return 'おしごと AIレポート';
 }
 
 /* ------------------------------------------------------------------ */
@@ -259,7 +259,7 @@ function MarkdownPdfDocument({ content, title, companyName, date }: MarkdownPdfP
 
         {/* Footer */}
         <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>FujiTrace AI 社員</Text>
+          <Text style={styles.footerText}>FujiTrace おしごと AI</Text>
           <Text
             style={styles.footerText}
             render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}

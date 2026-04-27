@@ -103,7 +103,7 @@ export default function TutorialTaskCards({
   return (
     <div
       role="list"
-      aria-label="AI社員のタスク一覧"
+      aria-label="おしごと AIのタスク一覧"
       className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5"
     >
       {TASKS.map(({ id, title, description, Icon }) => {

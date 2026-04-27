@@ -133,8 +133,8 @@ export default function BlogPostPage({ slug }: BlogPostPageProps) {
 
   useSeo({
     title: post
-      ? `${post.title} | フジトレニュース`
-      : 'フジトレニュース',
+      ? `${post.title} | FujiTrace ブログ`
+      : 'FujiTrace ブログ',
     description: post?.description ?? '',
     url: `https://fujitrace.jp/blog/${slug}`,
   });
@@ -234,7 +234,7 @@ export default function BlogPostPage({ slug }: BlogPostPageProps) {
             }}
             className="inline-block text-accent hover:underline font-medium"
           >
-            フジトレニュースに戻る
+            FujiTrace ブログに戻る
           </a>
         </div>
       </div>
@@ -269,7 +269,7 @@ export default function BlogPostPage({ slug }: BlogPostPageProps) {
               strokeLinejoin="round"
             />
           </svg>
-          フジトレニュース
+          FujiTrace ブログ
         </a>
 
         {/* Post header */}
@@ -373,13 +373,13 @@ export default function BlogPostPage({ slug }: BlogPostPageProps) {
             <div className="flex flex-col md:flex-row md:items-center gap-6">
               <div className="flex-1">
                 <p className="text-xs font-semibold text-accent mb-2 tracking-wide uppercase">
-                  FujiTrace AI社員
+                  FujiTrace おしごと AI
                 </p>
                 <p className="text-lg font-bold text-text-primary mb-2">
                   日々の業務、AIに任せませんか。
                 </p>
                 <p className="text-sm text-text-secondary leading-relaxed">
-                  書類作成から議事録、営業スライド、Excel分析、業界リサーチまで、日本企業のあらゆる机上業務をAI社員が代行します。登録番号の記載漏れ、計算ミス、記載不備もAIが自動検出します。
+                  書類作成から議事録、営業スライド、Excel分析、業界リサーチまで、日本企業のあらゆる机上業務をおしごと AIが代行します。登録番号の記載漏れ、計算ミス、記載不備もAIが自動検出します。
                 </p>
               </div>
               <div className="flex flex-col gap-3 md:flex-shrink-0">

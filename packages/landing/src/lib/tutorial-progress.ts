@@ -1,7 +1,7 @@
 /**
  * Tutorial progress persistence (localStorage).
  *
- * v2 schema (2026-04-22): 8 chapters — "AI社員の一週間".
+ * v2 schema (2026-04-22): 8 chapters — "おしごと AI の一週間".
  *   月曜朝 / 月曜午後 / 火曜 / 水曜 / 木曜 / 金曜 / 週末 / 来週
  *
  * Backward compatibility: the older v1 schema (4 chapters + chapter3Tasks)

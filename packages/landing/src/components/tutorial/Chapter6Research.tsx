@@ -156,7 +156,7 @@ const SAAS_TOPIC: Topic = {
       },
       {
         heading: '3. 競争軸の変化',
-        body: '単機能 → エージェント化。2024 年までは機能網羅の競争だったが、2026 年は「AI 社員化」の実装速度が評価指標に。',
+        body: '単機能 → エージェント化。2024 年までは機能網羅の競争だったが、2026 年は「おしごと AI化」の実装速度が評価指標に。',
         sources: ['日経ビジネス 2026-03 特集', '国内 VC SaaS 投資動向レポート'],
       },
       {
@@ -166,7 +166,7 @@ const SAAS_TOPIC: Topic = {
       },
       {
         heading: '5. 中小企業向けの示唆',
-        body: '導入ハードルは価格より「現場が触れるか」。AI 社員のようなメタファー駆動 UI が、50 名規模以下で特に効果を発揮。',
+        body: '導入ハードルは価格より「現場が触れるか」。おしごと AIのようなメタファー駆動 UI が、50 名規模以下で特に効果を発揮。',
         sources: ['中小企業白書 2026', 'JCCI 中小企業 DX 実態調査'],
       },
     ],
@@ -451,7 +451,7 @@ export default function Chapter6Research({ onComplete, onMascot }: Chapter6Resea
           業界リサーチ — Wide Research
         </h2>
         <p className="mt-2 text-sm text-slate-600">
-          テーマを投げると、AI 社員が複数ソースを横断して出典付き報告書にまとめます。
+          テーマを投げると、おしごと AIが複数ソースを横断して出典付き報告書にまとめます。
           画面プレビューと、上司配布用の PDF 保存の両方に対応します。
         </p>
       </header>
@@ -469,7 +469,7 @@ export default function Chapter6Research({ onComplete, onMascot }: Chapter6Resea
         <div className="flex gap-2">
           <img
             src="/tutorial/dachshund-idle.gif"
-            alt="AI社員"
+            alt="おしごと AI"
             className="w-6 h-6 rounded-full flex-shrink-0 mt-1"
           />
           <div className="flex-1 space-y-3">

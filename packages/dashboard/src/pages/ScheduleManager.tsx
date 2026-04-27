@@ -213,7 +213,7 @@ export function ScheduleManager() {
         <div>
           <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">定期タスク</h1>
           <p className="text-sm text-text-secondary mt-1">
-            cron スケジュールで AI 社員に自動実行させる仕事を管理します。
+            cron スケジュールで おしごと AIに自動実行させる仕事を管理します。
           </p>
         </div>
         <button

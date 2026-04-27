@@ -30,6 +30,7 @@ import { WebAppBuilder } from './WebAppBuilder';
 import { ExcelAnalyzer } from './ExcelAnalyzer';
 import { MeetingTranscriber } from './MeetingTranscriber';
 import { DocumentProofreader } from './DocumentProofreader';
+import FloatingMascot from '../components/FloatingMascot';
 
 // Tab structure (AI Employee v2, 2026-04-20):
 // Main 5 tabs: briefing (朝) → ai-clerk (依頼) → projects (永続) → tasks (進捗) → watch (監視)
@@ -52,7 +53,7 @@ type TabItem = { id: Tab; label: string; icon: React.ReactNode };
 
 const mainTabs: TabItem[] = [
   { id: 'briefing', label: 'ブリーフィング', icon: <Sun className="w-4 h-4" strokeWidth={1.5} /> },
-  { id: 'ai-clerk', label: 'AI社員', icon: <Bot className="w-4 h-4" strokeWidth={1.5} /> },
+  { id: 'ai-clerk', label: 'おしごと AI', icon: <Bot className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'projects', label: 'プロジェクト', icon: <Folder className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'tasks', label: 'タスク', icon: <ListChecks className="w-4 h-4" strokeWidth={1.5} /> },
   { id: 'watch', label: 'トレース', icon: <Radio className="w-4 h-4" strokeWidth={1.5} /> },
@@ -483,6 +484,9 @@ export function Dashboard({ entry = { kind: 'tab' } }: DashboardProps) {
           onFinish={handleOnboardingFinish}
         />
       )}
+
+      {/* 右下フローティングマスコット (カピぶちょー) — 2026-04-28 新設 */}
+      <FloatingMascot />
     </div>
   );
 }

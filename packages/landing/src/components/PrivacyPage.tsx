@@ -46,7 +46,7 @@ export default function PrivacyPage() {
           {/* 前文 */}
           <div>
             <p className="text-text-secondary leading-relaxed">
-              FujiTrace（運営: 合同会社Reminis）（以下「当方」といいます）は、当方が提供する日本企業向けAI社員プラットフォーム「FujiTrace」（以下「本サービス」といいます）における個人情報の取り扱いについて、以下のとおりプライバシーポリシー（以下「本ポリシー」といいます）を定めます。
+              FujiTrace（運営: 合同会社Reminis）（以下「当方」といいます）は、当方が提供する日本企業向けおしごと AIプラットフォーム「FujiTrace」（以下「本サービス」といいます）における個人情報の取り扱いについて、以下のとおりプライバシーポリシー（以下「本ポリシー」といいます）を定めます。
             </p>
           </div>
 
@@ -132,7 +132,7 @@ export default function PrivacyPage() {
             </h2>
             <div className="space-y-3 text-text-secondary leading-relaxed">
               <p>
-                本サービスの中核機能であるAIトレースデータおよびAI社員機能で扱う業務データの取り扱いについて、以下のとおり定めます。
+                本サービスの中核機能であるAIトレースデータおよびおしごと AI機能で扱う業務データの取り扱いについて、以下のとおり定めます。
               </p>
               <div className="surface-card p-6 space-y-3 my-4">
                 <p>
@@ -159,14 +159,14 @@ export default function PrivacyPage() {
             </div>
           </article>
 
-          {/* 4-2. 外部サービス連携 (AI社員 Connector) */}
+          {/* 4-2. 外部サービス連携 (おしごと AI Connector) */}
           <article>
             <h2 className="text-xl font-semibold text-text-primary mb-4">
-              5. 外部サービス連携（AI社員 Connector）
+              5. 外部サービス連携（おしごと AI Connector）
             </h2>
             <div className="space-y-3 text-text-secondary leading-relaxed">
               <p>
-                本サービスの「AI社員」機能は、ユーザーの明示的な同意（OAuth認可またはAPIキー入力）に基づき、以下の外部サービスと連携することがあります。
+                本サービスの「おしごと AI」機能は、ユーザーの明示的な同意（OAuth認可またはAPIキー入力）に基づき、以下の外部サービスと連携することがあります。
               </p>
               <ul className="list-disc list-inside space-y-2 pl-2">
                 <li>
@@ -207,7 +207,7 @@ export default function PrivacyPage() {
                 </p>
                 <p>
                   <span className="font-medium text-text-primary">要求する権限範囲：</span>
-                  各外部サービスから取得する権限は、AI社員機能の提供に必要な最小限のスコープに限定します。
+                  各外部サービスから取得する権限は、おしごと AI機能の提供に必要な最小限のスコープに限定します。
                 </p>
                 <p>
                   <span className="font-medium text-text-primary">接続の解除：</span>

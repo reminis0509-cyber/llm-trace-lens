@@ -1,25 +1,24 @@
 import { trackDashboardConversion } from '../utils/gtag';
 import { useSeo } from '../hooks/useSeo';
+import Mascot from './Mascot';
 
 /**
- * Hero — 広告着地先 (2026-04-23 刷新)
+ * Hero — 広告着地先 (2026-04-28 リブランド)
  *
- * 方針:
- *  - コピーは「AI事務員、¥10,000円分まで無料で試せます。」でクレジット特典を前面化
- *  - 主CTAは /login 遷移、¥10,000クレジット訴求をボタン文言に反映
- *  - 右側に和文ビジネス文書風の「見積書プレビュー」を配置し、PDF世界観と整合
+ * 方針 (CEO 判断 2026-04-28):
+ *  - 「おしごと AI」(=主役) と「カピぶちょー」(=見守り役) の 2 キャラ並走モデル
+ *  - サブ訴求は「月¥3,000 から、事務員 1 人分働く AI を雇う」
+ *  - 御見積書プレビュー(資産)は温存。立ち絵は size="lg" で配置
  *  - 派手なアニメ禁止、絵文字禁止、老舗 SaaS 基調
  *
- * 注: バックエンドのクレジット付与は並行実装中のため、LP公開後に
- *     ユーザー登録しても実際に¥10,000クレジットが付与されない期間が短期間発生する。
- *     CEO承知済み。広告配信はクレジット基盤完了後に揃える。
+ * 旧キャラ「フジ」「AI 事務員」「AI 社員」「身近な相談相手」表現は本コミットで完全撤去。
  */
 export default function Hero() {
   useSeo({
     title:
-      'FujiTrace — AI事務員、¥10,000円分まで無料。中小企業向けAI活用スタートガイド',
+      'おしごと AI — 月¥3,000から事務員1人分働く AI を雇う | FujiTrace',
     description:
-      '登録するだけで¥10,000クレジット。AI見積書・請求書・納品書から中小企業向けAI活用スタートガイドまで全部試せます。社内教育にも。',
+      '見積書・請求書・議事録・スライドまで、机上の事務作業をひととおりこなすおしごと AI。日本の商慣習に合わせて、国内データ滞留・承認後実行で運用できます。',
     url: 'https://fujitrace.jp/',
   });
 
@@ -34,24 +33,24 @@ export default function Hero() {
         <div className="grid lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-14 items-center">
           {/* ---- Left: headline + copy + CTA ---- */}
           <div>
-            {/* Eyebrow */}
+            {/* Eyebrow — 2 キャラ並走モデルの存在を示すバッジ */}
             <div className="inline-flex items-center gap-2 px-3 py-1.5 surface-card text-xs mb-6">
               <span className="w-1.5 h-1.5 bg-accent rounded-full" aria-hidden="true" />
-              <span className="text-text-muted">登録特典 ¥10,000クレジット進呈中</span>
+              <span className="text-text-muted">おしごと AI とカピぶちょーが並走します</span>
             </div>
 
             {/* Main headline */}
             <h1 className="text-[2rem] sm:text-display-sm lg:text-[3rem] font-semibold text-text-primary mb-5 leading-[1.25] tracking-tight">
-              AI事務員、¥10,000円分まで
+              おしごと AI、
               <br />
-              無料で試せます。
+              雇いませんか。
             </h1>
 
             {/* Subheadline */}
             <p className="text-base sm:text-lg text-text-secondary mb-7 leading-relaxed">
-              中小企業のためのAI活用スタートガイドつき。
+              月¥3,000 から、事務員 1 人分働く AI を。
               <br className="hidden sm:block" />
-              社内教育にも。
+              見積書・請求書・議事録・スライドまで、机上の仕事をひととおり。
             </p>
 
             {/* Trust badges (inline, 老舗SaaS風に控えめ) */}
@@ -59,7 +58,7 @@ export default function Hero() {
               {[
                 '国内データ滞留',
                 '承認後に実行',
-                '商工会議所圏の中小企業向け',
+                '日本の商慣習に準拠',
               ].map((badge) => (
                 <li key={badge} className="flex items-center gap-1.5">
                   <svg
@@ -86,7 +85,7 @@ export default function Hero() {
                 onClick={trackDashboardConversion}
                 className="px-7 py-3.5 bg-accent text-white rounded-card text-base font-semibold hover:bg-accent-hover transition-colors duration-120 text-center"
               >
-                今すぐ登録して¥10,000クレジットを受け取る
+                おしごと AI を雇う
               </a>
               <a
                 href="#demo"
@@ -97,16 +96,16 @@ export default function Hero() {
               </a>
             </div>
             <p className="text-sm text-text-muted">
-              クレジットカード不要・メール登録だけで、¥10,000クレジットをすぐに利用できます。
+              クレジットカード不要・メール登録だけで、当日からおしごと AI が稼働します。
             </p>
 
-            {/* Stats — 数字4つ、登録特典を明示 */}
+            {/* Stats — 数字4つ */}
             <div className="mt-10 pt-8 border-t border-border-subtle grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 max-w-2xl">
               {[
                 { value: '5', unit: '種', label: '対応書類' },
                 { value: '8', unit: '章', label: 'Tutorial' },
                 { value: '23', unit: '問', label: 'Quest' },
-                { value: '¥10,000', unit: '', label: '登録特典' },
+                { value: '¥3,000', unit: '〜', label: '月額' },
               ].map((stat) => (
                 <div key={stat.label} className="text-left">
                   <div className="flex items-baseline gap-1">
@@ -125,7 +124,7 @@ export default function Hero() {
             </div>
           </div>
 
-          {/* ---- Right: 実書類風プレビュー ---- */}
+          {/* ---- Right: 御見積書プレビュー (資産温存) + カピぶちょー立ち絵 ---- */}
           <div className="relative">
             {/* 薄い背景紙 */}
             <div
@@ -215,6 +214,14 @@ export default function Hero() {
                 </span>
                 <span>金額・消費税・記載事項 チェック完了</span>
               </div>
+            </div>
+
+            {/* カピぶちょー立ち絵 — 御見積書の右下にちょこんと立つ。lg=256px (CEO 判断 2026-04-28) */}
+            <div
+              className="hidden md:block absolute -bottom-6 -right-6 lg:-bottom-8 lg:-right-8 pointer-events-none"
+              aria-hidden="true"
+            >
+              <Mascot pose="default" size="lg" animation="idle" />
             </div>
           </div>
         </div>

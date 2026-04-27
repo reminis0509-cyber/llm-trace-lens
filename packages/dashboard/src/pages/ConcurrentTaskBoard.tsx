@@ -171,7 +171,7 @@ export function ConcurrentTaskBoard() {
       <header className="space-y-1">
         <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">並列実行ビュー</h1>
         <p className="text-sm text-text-secondary">
-          AI 社員が同時に走らせているタスクをリアルタイムで確認します（5 秒毎に自動更新）。
+          おしごと AIが同時に走らせているタスクをリアルタイムで確認します（5 秒毎に自動更新）。
         </p>
       </header>
 

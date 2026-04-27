@@ -69,7 +69,7 @@ const CONNECTORS: ConnectorDef[] = [
   {
     id: 'gmail',
     name: 'Gmail',
-    description: '書類の送付下書きを AI 社員が作成します。',
+    description: '書類の送付下書きを おしごと AIが作成します。',
     icon: <Mail className="w-5 h-5" strokeWidth={1.5} aria-hidden="true" />,
     kind: 'oauth',
     oauthStartPath: '/api/auth/oauth/google/start?scope=gmail',
@@ -228,7 +228,7 @@ export function ConnectorSettings() {
       <header className="space-y-1">
         <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">コネクタ</h1>
         <p className="text-sm text-text-secondary">
-          外部サービスと AI 社員をつなぎ、仕事の線を広げます。
+          外部サービスと おしごと AIをつなぎ、仕事の線を広げます。
         </p>
       </header>
 

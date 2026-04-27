@@ -231,7 +231,7 @@ export default function Chapter7Proofread({ onComplete, onMascot }: Chapter7Proo
         <div className="flex gap-2">
           <img
             src="/tutorial/dachshund-idle.gif"
-            alt="AI社員"
+            alt="おしごと AI"
             className="w-6 h-6 rounded-full flex-shrink-0 mt-1"
           />
           <div className="flex-1">

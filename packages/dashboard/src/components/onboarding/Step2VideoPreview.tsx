@@ -12,16 +12,16 @@ interface Props {
 
 const STORYBOARD_LINES: string[] = [
   'チャットで「今月分の請求書をまとめて作成して」と指示するだけ',
-  'AI社員が複数のツールを組み合わせて実行',
+  'おしごと AIが複数のツールを組み合わせて実行',
   '最終確認は必ず人間が行います',
-  'この機能は Pro+「AI社員」でご利用いただけます（Phase A1 公開予定）',
+  'この機能は Pro+「おしごと AI」でご利用いただけます（Phase A1 公開予定）',
 ];
 
 export function Step2VideoPreview({ onNext }: Props) {
   return (
     <div className="space-y-5">
       <p className="text-sm text-slate-600 leading-relaxed">
-        次のステージでは、AI社員が複数のツールを自律的に組み合わせて動きます。こちらは公開予告です。
+        次のステージでは、おしごと AIが複数のツールを自律的に組み合わせて動きます。こちらは公開予告です。
       </p>
 
       {/* 16:9 placeholder */}

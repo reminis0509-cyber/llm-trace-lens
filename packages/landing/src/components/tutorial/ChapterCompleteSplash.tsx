@@ -16,8 +16,8 @@ const SPLASH_MESSAGES: Record<ChapterId, string> = {
   4: '1 行から\nスライド 10 枚。\nこれはヤバい。',
   5: 'Excel を渡すだけで\n傾向を読み取れた。',
   6: '業界レポートが\n数分で…\nできあがる。',
-  7: '校正からメール下書きまで\n全部 AI 社員に任せて OK。',
-  8: '一言で、全部。\nこれが AI 社員の\n真価。',
+  7: '校正からメール下書きまで\n全部 おしごと AIに任せて OK。',
+  8: '一言で、全部。\nこれが おしごと AIの\n真価。',
 };
 
 export default function ChapterCompleteSplash({

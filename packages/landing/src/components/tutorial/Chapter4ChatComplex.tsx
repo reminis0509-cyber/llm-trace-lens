@@ -52,14 +52,14 @@ interface Slide {
   highlight?: string;
 }
 
-const DECK_TITLE = 'FujiTrace — 日本企業のためのAI社員プラットフォーム';
+const DECK_TITLE = 'FujiTrace — 日本企業のためのおしごと AIプラットフォーム';
 
 const SLIDES: Slide[] = [
   {
     index: 1,
     layout: 'cover',
     title: DECK_TITLE,
-    subtitle: '中小企業のバックオフィスに、24時間働くAI社員を。',
+    subtitle: '中小企業のバックオフィスに、24時間働くおしごと AIを。',
     footerRight: '合同会社 Reminis  /  2026',
     highlight: 'Proposal',
   },
@@ -80,7 +80,7 @@ const SLIDES: Slide[] = [
     index: 3,
     layout: 'bullets',
     eyebrow: '02  ソリューション',
-    title: 'AI社員が 3 カテゴリの仕事を代行',
+    title: 'おしごと AIが 3 カテゴリの仕事を代行',
     icon: 'spark',
     bullets: [
       '書類作成: 見積書 / 請求書 / 納品書 / 発注書 / 送付状',
@@ -165,14 +165,14 @@ const SLIDES: Slide[] = [
       'Day 0: アカウント作成（無料）',
       'Day 1: 4 章チュートリアル完了',
       'Day 7: 定着支援ミーティング',
-      'Day 30: 月次クロージングを AI 社員に任せる',
+      'Day 30: 月次クロージングを おしごと AIに任せる',
     ],
     highlight: 'Onboard',
   },
   {
     index: 10,
     layout: 'cta',
-    title: 'AI社員、雇いませんか。',
+    title: 'おしごと AI、雇いませんか。',
     subtitle: 'まずは無料で、月曜朝のブリーフィングから。',
     footerRight: 'fujitrace.jp',
     icon: 'flag',
@@ -306,7 +306,7 @@ function SlideShell({
 
       {/* Footer */}
       <div className="mt-auto pt-3 border-t border-[#2b4566] flex items-baseline justify-between text-[9px]" style={{ color: '#9fb1c4' }}>
-        <span className="tracking-wider">FujiTrace — AI 社員プラットフォーム</span>
+        <span className="tracking-wider">FujiTrace — おしごと AIプラットフォーム</span>
         <span className="font-mono">{slide.footerRight ?? '合同会社 Reminis'}</span>
       </div>
     </div>
@@ -618,7 +618,7 @@ export default function Chapter4SlideBuilder({
         <div className="flex gap-2">
           <img
             src="/tutorial/dachshund-idle.gif"
-            alt="AI社員"
+            alt="おしごと AI"
             className="w-6 h-6 rounded-full flex-shrink-0 mt-1"
           />
           <div className="flex-1">

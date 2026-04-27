@@ -4,7 +4,7 @@
  * Route: /dashboard/briefing
  *
  * 線化UXの核。「今日の予定」「昨日完了したタスク」「保留中のタスク」を縦に積み、
- * AI社員に仕事を任せるCTAへ自然に導線する。
+ * おしごと AIに仕事を任せるCTAへ自然に導線する。
  *
  * Data source: GET /api/workspace/briefing (backend は並行実装中、不在時は
  * モックデータでUIを動かす)
@@ -377,16 +377,16 @@ export function MorningBriefing() {
       {/* CTA */}
       <section className="surface-card p-6 text-center">
         <p className="text-sm text-text-secondary mb-4">
-          今日の仕事をAI社員に任せてみましょう。
+          今日の仕事をおしごと AIに任せてみましょう。
         </p>
         <button
           type="button"
           onClick={goToClerk}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-card text-sm font-semibold bg-accent text-white hover:bg-accent/90 transition-colors duration-120"
-          aria-label="AI社員に仕事を任せる"
+          aria-label="おしごと AIに仕事を任せる"
         >
           <Bot className="w-4 h-4" strokeWidth={1.5} aria-hidden="true" />
-          AI社員に仕事を任せる
+          おしごと AIに仕事を任せる
           <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.5} aria-hidden="true" />
         </button>
       </section>

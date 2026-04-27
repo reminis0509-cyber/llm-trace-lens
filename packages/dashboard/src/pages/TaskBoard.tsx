@@ -209,7 +209,7 @@ export function TaskBoard() {
       <header className="space-y-1">
         <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">タスク</h1>
         <p className="text-sm text-text-secondary">
-          AI社員が進行中・完了・保留中のタスクを一覧で確認できます。
+          おしごと AIが進行中・完了・保留中のタスクを一覧で確認できます。
         </p>
       </header>
 

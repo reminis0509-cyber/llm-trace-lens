@@ -30,7 +30,7 @@ interface Props {
 
 const STEP_TITLES: Record<StepIndex, string> = {
   1: 'ボタンでAIを動かしてみる',
-  2: 'AI社員（自律型）の予告',
+  2: 'おしごと AI（自律型）の予告',
   3: 'ダッシュボードへ',
 };
 

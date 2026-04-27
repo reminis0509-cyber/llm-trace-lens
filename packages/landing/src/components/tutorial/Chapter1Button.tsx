@@ -129,10 +129,10 @@ export default function Chapter1Button({ onComplete, onMascot }: Chapter1ButtonP
           第 1 章 / 8 — 月曜朝
         </p>
         <h2 id="ch1-title" className="mt-1 text-2xl font-bold text-slate-900">
-          初出社 — 今日の予定をAI社員に聞く
+          初出社 — 今日の予定をおしごと AIに聞く
         </h2>
         <p className="mt-2 text-sm text-slate-600">
-          ボタンを押すと、AI 社員が Calendar と Gmail を見てから「今日やるべきこと」を 1 画面にまとめてくれます。
+          ボタンを押すと、おしごと AIが Calendar と Gmail を見てから「今日やるべきこと」を 1 画面にまとめてくれます。
         </p>
       </header>
 

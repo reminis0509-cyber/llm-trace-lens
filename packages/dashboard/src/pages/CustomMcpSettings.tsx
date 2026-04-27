@@ -135,7 +135,7 @@ export function CustomMcpSettings() {
         <div>
           <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">カスタム MCP</h1>
           <p className="text-sm text-text-secondary mt-1">
-            社内 API や特殊ツールを MCP サーバーとして登録し、AI 社員から呼び出せるようにします。
+            社内 API や特殊ツールを MCP サーバーとして登録し、おしごと AIから呼び出せるようにします。
           </p>
         </div>
         <button

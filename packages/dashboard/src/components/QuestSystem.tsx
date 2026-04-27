@@ -133,7 +133,7 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
     async (hint: string) => {
       const ok = await copyToClipboard(hint);
       if (ok) {
-        showToast('ヒントをコピーしました。AI社員に貼り付けて送信してください。');
+        showToast('ヒントをコピーしました。おしごと AIに貼り付けて送信してください。');
       }
       onSwitchToClerk();
     },
@@ -203,7 +203,7 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
 
         {/* Expected answer preview */}
         <div className="mb-6 rounded-card border border-border bg-base-elevated px-4 py-3">
-          <p className="text-xs font-semibold text-text-primary mb-1">AI 社員が返す内容（目安）</p>
+          <p className="text-xs font-semibold text-text-primary mb-1">おしごと AIが返す内容（目安）</p>
           <p className="text-sm text-text-secondary leading-relaxed">
             {selectedQuest.sampleAnswer}
           </p>
@@ -252,10 +252,10 @@ export function QuestSystem({ onSwitchToClerk }: QuestSystemProps) {
                           type="button"
                           onClick={() => handleCopyAndSwitch(step.hint!)}
                           className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-accent hover:text-accent/80 border border-accent/30 hover:border-accent/50 rounded-card transition-colors duration-120"
-                          aria-label="ヒントをコピーしてAI社員に移動"
+                          aria-label="ヒントをコピーしておしごと AIに移動"
                         >
                           <Copy className="w-3 h-3" strokeWidth={1.5} />
-                          コピーして AI 社員に送る
+                          コピーして おしごと AIに送る
                           <ChevronRight className="w-3 h-3" strokeWidth={1.5} />
                         </button>
                       )}

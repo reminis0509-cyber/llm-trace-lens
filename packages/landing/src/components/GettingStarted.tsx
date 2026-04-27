@@ -420,7 +420,7 @@ export default function GettingStarted() {
             href="/dashboard"
             className="inline-flex px-6 py-3 bg-accent text-white rounded-card font-medium hover:bg-accent/90 transition-colors duration-120"
           >
-            AI 社員を使い始める
+            おしごと AIを使い始める
           </a>
         </div>
       </div>

@@ -1,7 +1,7 @@
 /**
  * Bundle multiple business documents into a single PDF.
  *
- * Used when AI社員 generates a document set (e.g. estimate + invoice +
+ * Used when おしごと AI generates a document set (e.g. estimate + invoice +
  * delivery note for the same deal) and the user wants one downloadable file
  * instead of clicking download for each card.
  */

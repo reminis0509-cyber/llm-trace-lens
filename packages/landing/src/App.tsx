@@ -26,6 +26,7 @@ import EstimateDemo from './components/EstimateDemo';
 import MidPageCTA from './components/MidPageCTA';
 import EducationShowcase from './components/EducationShowcase';
 import Capabilities from './components/Capabilities';
+import LongTermFuture from './components/LongTermFuture';
 import MascotDevPage from './components/MascotDevPage';
 
 export default function App() {
@@ -72,7 +73,7 @@ export default function App() {
   } else {
     pageContent = (
       <>
-        {/* 1. Hero — 全ての業務に、AI社員を */}
+        {/* 1. Hero — おしごと AI、雇いませんか。 */}
         <Hero />
         <div className="section-divider" />
 
@@ -84,11 +85,15 @@ export default function App() {
         <Problems />
         <div className="section-divider" />
 
-        {/* 4. 解決策 — AI 社員の 3 カテゴリ */}
+        {/* 4. 解決策 — おしごと AI の 3 カテゴリ */}
         <Solution />
         <div className="section-divider" />
 
-        {/* 5. 差別化 — ChatGPT/海外AI との比較 */}
+        {/* 5. 雇った、その先 — 余裕のある未来 (2026-04-28 新設、温泉カピぶちょー配置) */}
+        <LongTermFuture />
+        <div className="section-divider" />
+
+        {/* 6. 差別化 — ChatGPT/海外AI との比較 */}
         <Differentiation />
         <div className="section-divider" />
 

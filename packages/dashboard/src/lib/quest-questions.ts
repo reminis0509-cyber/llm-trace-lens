@@ -1,9 +1,9 @@
 /**
  * Quest question catalog — "応用クエスト" for the dashboard Learn tab.
  *
- * Purpose: after the 8-chapter /tutorial, users practice real AI 社員 tasks
- * against the live AI 社員 endpoint. Each quest copies a prompt into the
- * clipboard and switches the user to the AI 社員 tab.
+ * Purpose: after the 8-chapter /tutorial, users practice real おしごと AI tasks
+ * against the live おしごと AI endpoint. Each quest copies a prompt into the
+ * clipboard and switches the user to the おしごと AI tab.
  *
  * Clearing criteria: user reads the expected AI output (sampleAnswer) and
  * self-confirms by checking every step — deliberate, low-friction UX inherited
@@ -133,7 +133,7 @@ export const QUESTS: readonly Quest[] = [
       '御見積書（JTC 体裁）を生成。宛先「株式会社山田商事 御中」、件名「新規Webサイト制作」、合計 ¥1,320,000（税込）。プレビューと PDF ダウンロードが可能。',
     steps: [
       {
-        instruction: '以下のヒントをコピーして AI 社員に送信',
+        instruction: '以下のヒントをコピーして おしごと AIに送信',
         hint: '株式会社山田商事に見積書を作って。件名: 新規Webサイト制作、金額: 120万円、支払: 月末締翌月末払い',
         checkType: 'send_message',
       },
@@ -274,7 +274,7 @@ export const QUESTS: readonly Quest[] = [
       'JTC Word 議事録体裁で出力（プレビュー + PDF 可）。構成は 1.日時 / 2.場所 / 3.参加者 / 4.議題 / 5.決定事項 / 6.懸案事項・ToDo（担当・期限を表形式）/ 7.次回開催。末尾に「以上」。',
     steps: [
       {
-        instruction: '走り書きメモを AI 社員に渡す',
+        instruction: '走り書きメモを おしごと AIに渡す',
         hint: '以下の会議メモを議事録に整理して。\n4/22 定例 参加: 田中、佐藤、鈴木\n・売上 前月比 +15%\n・新規 A 社 来週提案\n・佐藤 見積書 / 鈴木 競合調査\n・次回 来週金曜',
         checkType: 'send_message',
       },
@@ -353,7 +353,7 @@ export const QUESTS: readonly Quest[] = [
     steps: [
       {
         instruction: 'ツール > スライド生成で新規生成',
-        hint: '新サービス「AI 社員」紹介のスライドを 10 枚で作って。営業担当が中小企業社長に提案する場面で使う',
+        hint: '新サービス「おしごと AI」紹介のスライドを 10 枚で作って。営業担当が中小企業社長に提案する場面で使う',
         checkType: 'send_message',
       },
       {
@@ -622,7 +622,7 @@ export const QUESTS: readonly Quest[] = [
         checkType: 'send_message',
       },
       {
-        instruction: 'AI 社員に依頼',
+        instruction: 'おしごと AIに依頼',
         hint: '今日の朝のブリーフィングを出して。予定と未読メールから最優先タスクを 3 つ教えて',
         checkType: 'send_message',
       },
@@ -686,7 +686,7 @@ export const QUESTS: readonly Quest[] = [
     number: 22,
     title: 'A 社提案の一式を 1 つの指示で',
     description: '調査 + スライド + メール下書きを 1 回の指示で。',
-    objective: 'AI 社員の真価を体験する',
+    objective: 'おしごと AIの真価を体験する',
     difficulty: 3,
     estimatedTime: '8分',
     sampleAnswer:

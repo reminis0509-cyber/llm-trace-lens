@@ -19,7 +19,7 @@ interface CompletionCertificateProps {
 
 const SHARE_URL = 'https://fujitrace.jp/tutorial';
 const SHARE_TEXT =
-  'FujiTrace の AI 社員「一週間」チュートリアルを修了しました。ブリーフィング / 書類作成 / 議事録 / スライド / Excel / リサーチ / 校正 / 複合タスクを体験。';
+  'FujiTrace の おしごと AI「一週間」チュートリアルを修了しました。ブリーフィング / 書類作成 / 議事録 / スライド / Excel / リサーチ / 校正 / 複合タスクを体験。';
 const X_INTENT_URL = `https://twitter.com/intent/tweet?text=${encodeURIComponent(SHARE_TEXT)}&url=${encodeURIComponent(SHARE_URL)}`;
 
 const CERT_FONT = '"Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif';
@@ -98,7 +98,7 @@ function buildCertificateSvg(displayName: string, dateStr: string): string {
 
   <text x="${W / 2}" y="340" text-anchor="middle" font-family='${CERT_FONT}' font-size="26" fill="#0f172a">${name || '受講者様'}</text>
   <text x="${W / 2}" y="380" text-anchor="middle" font-family='${CERT_FONT}' font-size="20" fill="#334155">は</text>
-  <text x="${W / 2}" y="418" text-anchor="middle" font-family='${CERT_FONT}' font-size="24" font-weight="600" fill="#0f172a">FujiTrace AI 社員 「一週間」チュートリアル</text>
+  <text x="${W / 2}" y="418" text-anchor="middle" font-family='${CERT_FONT}' font-size="24" font-weight="600" fill="#0f172a">FujiTrace おしごと AI 「一週間」チュートリアル</text>
   <text x="${W / 2}" y="454" text-anchor="middle" font-family='${CERT_FONT}' font-size="20" fill="#334155">（全 8 章）を修了しました</text>
 
   <text x="${W / 2}" y="520" text-anchor="middle" font-family='${CERT_FONT}' font-size="18" fill="#475569">${dateStr}</text>
@@ -273,7 +273,7 @@ export default function CompletionCertificate({
           <div className="pt-3 border-t border-slate-100 space-y-3">
             <img
               src={pngUrl}
-              alt="FujiTrace AI 社員 基礎チュートリアル 修了証"
+              alt="FujiTrace おしごと AI 基礎チュートリアル 修了証"
               className="w-full max-w-[480px] mx-auto border border-slate-200 rounded-md"
               width={CERT_WIDTH}
               height={CERT_HEIGHT}
@@ -297,10 +297,10 @@ export default function CompletionCertificate({
             次のステップ
           </p>
           <h3 className="mt-1 text-lg sm:text-xl font-bold text-slate-900">
-            本物の AI 社員を、毎日の業務に。
+            本物の おしごと AIを、毎日の業務に。
           </h3>
           <p className="mt-2 text-sm text-slate-700 leading-relaxed">
-            チュートリアルで触った AI 社員を、あなたの会社情報で毎日使えます。
+            チュートリアルで触った おしごと AIを、あなたの会社情報で毎日使えます。
           </p>
         </header>
 
@@ -316,7 +316,7 @@ export default function CompletionCertificate({
             {[
               '書類 5 種 / 議事録 / スライド / Excel / Wide Research / 校正 を無制限',
               'Gmail / Calendar / Drive など 9 Connector と連携',
-              '自律型 AI 社員（β）で複合タスクを自動化',
+              '自律型 おしごと AI（β）で複合タスクを自動化',
               'Watch Room で AI 実行をチームで可視化',
             ].map((item) => (
               <li key={item} className="flex items-start gap-2">
@@ -357,7 +357,7 @@ export default function CompletionCertificate({
             href="/dashboard"
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-8 py-3 text-base font-semibold text-white hover:bg-blue-700"
           >
-            AI 社員を使い始める
+            おしごと AIを使い始める
             <span aria-hidden="true">→</span>
           </a>
         </div>

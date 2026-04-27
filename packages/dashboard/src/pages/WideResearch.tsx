@@ -210,7 +210,7 @@ export function WideResearch() {
       <header className="space-y-1">
         <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">ワイド リサーチ</h1>
         <p className="text-sm text-text-secondary">
-          クエリと対象データソースを指定すると、AI 社員が多方面を横断的に調査してレポートにまとめます。
+          クエリと対象データソースを指定すると、おしごと AIが多方面を横断的に調査してレポートにまとめます。
         </p>
       </header>
 

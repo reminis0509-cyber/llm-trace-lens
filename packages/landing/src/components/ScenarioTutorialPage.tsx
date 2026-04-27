@@ -49,11 +49,11 @@ const SCENARIO_CONFIGS: Record<DocumentKind, ScenarioConfig> = {
   estimate: {
     kind: 'estimate',
     label: '見積書',
-    seoTitle: '見積書を無料で作成 | AI社員 FujiTrace',
+    seoTitle: '見積書を無料で作成 | おしごと AI FujiTrace',
     seoDescription:
       '見積書をAIで無料作成。宛先・品目・金額を入力するだけで、プロ品質の見積書PDFを即時生成します。登録不要で今すぐ体験。',
     mascotMessage:
-      'やあ、ボクはフジ。\n見積書を作るところを\n見せるね。',
+      'やあ、ボクはカピぶちょー。\n見積書を作るところを\n見せるね。',
     mascotHint: '下のフォームを確認して、\n「AIで見積書を生成する」を\n押してみてね。',
     buttonLabel: 'AIで見積書を生成する',
     formSections: [
@@ -67,7 +67,7 @@ const SCENARIO_CONFIGS: Record<DocumentKind, ScenarioConfig> = {
       {
         heading: '見積内容',
         fields: [
-          { label: '件名', value: 'AI社員導入コンサルティング' },
+          { label: '件名', value: 'おしごと AI導入コンサルティング' },
           { label: '発行日', value: '2026-04-16', mono: true },
           { label: '有効期限', value: '2026-05-16', mono: true },
         ],
@@ -78,7 +78,7 @@ const SCENARIO_CONFIGS: Record<DocumentKind, ScenarioConfig> = {
       },
     ],
     lineItems: [
-      { name: 'AI社員初期構築', quantity: '1', unitPrice: '\u00A5300,000', amount: '\u00A5300,000' },
+      { name: 'おしごと AI初期構築', quantity: '1', unitPrice: '\u00A5300,000', amount: '\u00A5300,000' },
     ],
     totals: [
       { label: '小計', value: '\u00A5300,000' },
@@ -89,11 +89,11 @@ const SCENARIO_CONFIGS: Record<DocumentKind, ScenarioConfig> = {
   invoice: {
     kind: 'invoice',
     label: '請求書',
-    seoTitle: '請求書を無料で作成 | AI社員 FujiTrace',
+    seoTitle: '請求書を無料で作成 | おしごと AI FujiTrace',
     seoDescription:
       '請求書をAIで無料作成。取引先・品目・金額を入力するだけで、インボイス制度対応の請求書PDFを即時生成します。',
     mascotMessage:
-      'やあ、ボクはフジ。\n請求書を作るところを\n見せるね。',
+      'やあ、ボクはカピぶちょー。\n請求書を作るところを\n見せるね。',
     mascotHint: '下のフォームを確認して、\n「AIで請求書を生成する」を\n押してみてね。',
     buttonLabel: 'AIで請求書を生成する',
     formSections: [
@@ -133,11 +133,11 @@ const SCENARIO_CONFIGS: Record<DocumentKind, ScenarioConfig> = {
   'purchase-order': {
     kind: 'purchase-order',
     label: '発注書',
-    seoTitle: '発注書を無料で作成 | AI社員 FujiTrace',
+    seoTitle: '発注書を無料で作成 | おしごと AI FujiTrace',
     seoDescription:
       '発注書をAIで無料作成。発注先・品目・数量を入力するだけで、業務品質の発注書PDFを即時生成します。登録不要で今すぐ体験。',
     mascotMessage:
-      'やあ、ボクはフジ。\n発注書を作るところを\n見せるね。',
+      'やあ、ボクはカピぶちょー。\n発注書を作るところを\n見せるね。',
     mascotHint: '下のフォームを確認して、\n「AIで発注書を生成する」を\n押してみてね。',
     buttonLabel: 'AIで発注書を生成する',
     formSections: [
@@ -169,11 +169,11 @@ const SCENARIO_CONFIGS: Record<DocumentKind, ScenarioConfig> = {
   'delivery-note': {
     kind: 'delivery-note',
     label: '納品書',
-    seoTitle: '納品書を無料で作成 | AI社員 FujiTrace',
+    seoTitle: '納品書を無料で作成 | おしごと AI FujiTrace',
     seoDescription:
       '納品書をAIで無料作成。納品先・品目・数量を入力するだけで、業務品質の納品書PDFを即時生成します。登録不要で今すぐ体験。',
     mascotMessage:
-      'やあ、ボクはフジ。\n納品書を作るところを\n見せるね。',
+      'やあ、ボクはカピぶちょー。\n納品書を作るところを\n見せるね。',
     mascotHint: '下のフォームを確認して、\n「AIで納品書を生成する」を\n押してみてね。',
     buttonLabel: 'AIで納品書を生成する',
     formSections: [
@@ -193,18 +193,18 @@ const SCENARIO_CONFIGS: Record<DocumentKind, ScenarioConfig> = {
       },
     ],
     lineItems: [
-      { name: 'AI社員初期構築', quantity: '1', unitPrice: '-', amount: '-' },
+      { name: 'おしごと AI初期構築', quantity: '1', unitPrice: '-', amount: '-' },
     ],
     totals: null,
   },
   'cover-letter': {
     kind: 'cover-letter',
     label: '送付状',
-    seoTitle: '送付状を無料で作成 | AI社員 FujiTrace',
+    seoTitle: '送付状を無料で作成 | おしごと AI FujiTrace',
     seoDescription:
       '送付状をAIで無料作成。宛先・同封書類を入力するだけで、ビジネスマナーに沿った送付状PDFを即時生成します。登録不要で今すぐ体験。',
     mascotMessage:
-      'やあ、ボクはフジ。\n送付状を作るところを\n見せるね。',
+      'やあ、ボクはカピぶちょー。\n送付状を作るところを\n見せるね。',
     mascotHint: '下のフォームを確認して、\n「AIで送付状を生成する」を\n押してみてね。',
     buttonLabel: 'AIで送付状を生成する',
     formSections: [
@@ -429,7 +429,7 @@ export default function ScenarioTutorialPage({ scenario }: ScenarioTutorialPageP
             {config.label}の作成
           </h1>
           <p className="text-sm text-slate-600 max-w-2xl mx-auto sm:mx-0">
-            サンプルデータがすでに入っています。ボタンを押すとAI社員が{config.label}PDFを生成します。
+            サンプルデータがすでに入っています。ボタンを押すとおしごと AIが{config.label}PDFを生成します。
           </p>
         </header>
 
@@ -556,7 +556,7 @@ export default function ScenarioTutorialPage({ scenario }: ScenarioTutorialPageP
                 全4章のチュートリアルに進む
               </h3>
               <p className="text-sm text-slate-600">
-                チャットで指示する方法、反復練習、複雑な指示まで -- 4章を通してAI社員の使い方を学べます。修了証も発行されます。
+                チャットで指示する方法、反復練習、複雑な指示まで -- 4章を通しておしごと AIの使い方を学べます。修了証も発行されます。
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <button

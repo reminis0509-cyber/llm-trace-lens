@@ -2,7 +2,7 @@
  * DemoShowcase — 実出力物のサンプルで世界観を統一 (2026-04-22 刷新)
  *
  * 旧: AI トレース画面のモックアップ中心。
- * 新: AI 社員が生成する「お堅い日本書類」4 種 (見積書 / 議事録 / スライド / 校正 diff)
+ * 新: おしごと AI が生成する「お堅い日本書類」4 種 (見積書 / 議事録 / スライド / 校正 diff)
  *     をインライン HTML で擬似再現。PDF 基調 (#1a1a1a, 外枠+罫線) に合わせた描画。
  *
  * 画像は Phase 2 で Founder が実書類スクショに差し替え前提。現時点では HTML で描画。
@@ -134,7 +134,7 @@ function SlideSample() {
           1 / 12
         </div>
         <h4 className="text-base font-semibold text-[#1a1a1a] mb-3 leading-snug">
-          AI 社員導入による、バックオフィス 9 割削減計画
+          おしごと AI 導入による、バックオフィス 9 割削減計画
         </h4>
         <div className="mt-auto space-y-1.5 text-[11px] text-[#1a1a1a]">
           <div className="flex items-baseline gap-2">
@@ -261,7 +261,7 @@ const items: Item[] = [
     tag: '議事録',
     title: '音声から、日時 ・ 参加者 ・ 決定事項 ・ ToDo を構造化します。',
     description:
-      '会議の録音ファイルをアップロードすれば、Whisper が文字起こしし、AI 社員が 6 セクション構造で議事録に整形します。',
+      '会議の録音ファイルをアップロードすれば、Whisper が文字起こしし、おしごと AI が 6 セクション構造で議事録に整形します。',
     render: MinutesSample,
     points: [
       '日時 / 場所 / 参加者 / 議題 / 決定事項 / ToDo',
@@ -358,14 +358,14 @@ export default function DemoShowcase() {
             出力サンプル
           </span>
           <h2 className="text-2xl sm:text-display-sm font-semibold text-text-primary mb-4">
-            AI社員が仕上げる、
+            おしごと AI が仕上げる、
             <br className="sm:hidden" />
             実際の書類。
           </h2>
           <p className="text-base sm:text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
             お堅い日本書類の様式にそのまま馴染む品質を目指しました。
             <br className="hidden md:block" />
-            下記はすべて FujiTrace AI社員の実出力をもとにしたサンプルです。
+            下記はすべて FujiTrace おしごと AI の実出力をもとにしたサンプルです。
           </p>
         </div>
 
