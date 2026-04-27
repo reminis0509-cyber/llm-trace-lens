@@ -255,11 +255,19 @@ async function handleMessage(
  * Keep these texts under ~6 lines each. LINE messages > 8 lines start
  * scrolling and the visual "lift" of the rich menu is lost.
  */
+/**
+ * 2026-04-27 リブランド(戦略 doc Section 18.2.B2): 「AI社員のフジ」表記を
+ * 削除し、商品名「おしごとAI」を主語にしない事実ベースの案内に統一。
+ * カピぶちょーは別レイヤーで吹き出すため、本テキスト群には登場させない
+ * (1 メッセージ 1 キャラの境界、Section 19.5 口調混在禁止ルール)。
+ *
+ * 共感絵文字「☺」は AI レイヤーから削除した(温かさはカピぶちょー側で出す)。
+ */
 const RICH_MENU_POSTBACK_TEXTS: Record<string, string> = {
   // 1段目左 — 写真で聞く
   rm_photo: [
     '写真を1枚送ってみてください。',
-    '私が中身を読み取って、要約や使い方を提案します。',
+    '中身を読み取って、要約や使い方を提案します。',
     '',
     '例: レシート、商品ラベル、取扱説明書、手書きメモ、英文の書類など。',
   ].join('\n'),
@@ -276,7 +284,7 @@ const RICH_MENU_POSTBACK_TEXTS: Record<string, string> = {
   // 1段目右 — 翻訳
   rm_translate: [
     '翻訳・要約します。',
-    '訳したい文章をそのまま送ってください。日本語⇄英語どちらもOKです。',
+    '訳したい文章をそのまま送ってください。日本語⇄英語どちらも対応します。',
     '',
     '例:「以下を日本語に訳して: We are pleased to confirm…」',
   ].join('\n'),
@@ -292,18 +300,18 @@ const RICH_MENU_POSTBACK_TEXTS: Record<string, string> = {
   ].join('\n'),
   // 2段目中央 — お話しする
   rm_chat: [
-    '何でもお話しください☺',
+    '何でもお話しください。',
     '今日あったこと、ちょっとした愚痴、迷っていること、何でも構いません。',
     '',
     '例:「今日は会議が3つで疲れた」「献立どうしようかな」など、気軽にどうぞ。',
   ].join('\n'),
   // 2段目右 — 本格作業
   rm_web: [
-    '見積書・請求書のPDFまで本格的に作りたい時は、Web版をお使いください。',
+    '見積書・請求書のPDFまで本格的に作りたい時は、Web版をご利用ください。',
     '',
     'https://fujitrace.jp',
     '',
-    'LINEと同じAI社員のフジが、PCで書類作成・チェックまでお手伝いします。',
+    'PCで書類作成・チェックまでお手伝いします。',
   ].join('\n'),
 };
 

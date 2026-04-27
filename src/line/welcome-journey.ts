@@ -35,6 +35,11 @@ import { extractMediaText } from './media-extractor.js';
 import { appendConversationTurn } from '../agent/conversation-history.js';
 import { recordLlmTrace } from '../agent/trace-recorder.js';
 import { resolveLineWorkspace } from './workspace-resolver.js';
+import { generateCapiBuchoComment } from './capi-bucho.js';
+import type { CapiBuchoJourneyStep } from './capi-bucho.js';
+
+/** ReturnType alias for LINE message objects produced by `textMessage`. */
+type LineTextMessage = ReturnType<typeof textMessage>;
 
 /** 24h — long enough that Friend 追加→翌朝再開が成立する。 */
 const JOURNEY_TTL_SECONDS = 60 * 60 * 24;
@@ -113,15 +118,20 @@ export async function clearJourney(userId: string): Promise<void> {
 // ────────────────────────────── テキスト定数 ──────────────────────────────
 
 /** Welcome + step 1 prompt は 1 通にまとめる。LINE は 1 通の方がメンタル
- * ブロックが軽く、初回離脱を最小化する。 */
+ * ブロックが軽く、初回離脱を最小化する。
+ *
+ * 2026-04-27 リブランド(戦略 doc Section 7.2 / 18.2.B2): 名乗りを
+ * 「AI社員のフジです☺」→「おしごとAI」に変更、共感絵文字を削除。温かさは
+ * 別レイヤーのカピぶちょーが follow-up で出すため、AI 側の自己紹介は
+ * 機能的・標準語の敬語に絞る。 */
 export const WELCOME_AND_STEP1_TEXT = [
-  'はじめまして、AI社員のフジです☺',
+  'はじめまして、おしごとAIです。',
   '',
-  'これからLINEで、ちょっとした相談相手になります。',
-  '1分だけ、AIにできることを3つお見せしますね。',
+  'これからLINEで、日々のちょっとした事務作業をお手伝いします。',
+  '1分だけ、AIにできることを3つお見せします。',
   '',
   '【1つ目】写真を1枚送ってみてください。',
-  'レシート、商品、手書きメモ、何でもOKです。私が中身を読み取ります。',
+  'レシート、商品、手書きメモ、何でも構いません。私が中身を読み取ります。',
 ].join('\n');
 
 const STEP2_PROMPT_TEXT = [
@@ -179,6 +189,53 @@ export interface JourneyMessageInput {
   imageBuffer?: Buffer;
   /** MIME type for `imageBuffer`; ignored when imageBuffer is missing. */
   imageMimeType?: string;
+}
+
+/**
+ * 2 キャラ並走モデル(戦略 doc Section 7.3): AI 応答メッセージ + カピぶちょー
+ * フキダシメッセージを 1 回の `pushLineMessage` で配信する。
+ *
+ *   - `aiText`: ユーザーに表示する AI 応答(STEP_PROMPT 等の付加テキスト含む)。
+ *               これがそのまま 1 通目になる。
+ *   - `capiTriggerText`: カピぶちょーがリアクションする対象本文(STEP_PROMPT
+ *               付加部分は含めない、本体だけ)。journey ステップは `step` で指定。
+ *
+ * カピぶちょーが null を返したら 1 通だけ送る(冗長を避けるため)。
+ *
+ * `pushLineMessage` は配列で複数メッセージを 1 リクエストに乗せられる
+ * (LINE 仕様で 1 push あたり最大 5 メッセージ)。原子的に届くので、AI 応答
+ * だけ届いてカピぶちょーが届かないという半端な状態を避けられる。
+ */
+async function pushAiAndCapi(
+  fastify: FastifyInstance,
+  workspaceId: string | null,
+  lineUserId: string,
+  userMessage: string,
+  aiText: string,
+  capiTriggerText: string,
+  step: CapiBuchoJourneyStep,
+): Promise<void> {
+  let capiComment: string | null = null;
+  try {
+    capiComment = await generateCapiBuchoComment(
+      fastify,
+      workspaceId ?? '',
+      {
+        userMessage,
+        aiResponse: capiTriggerText,
+        journeyStep: step,
+      },
+    );
+  } catch (err) {
+    fastify.log.warn(
+      { err: String(err), step },
+      '[LINE journey] capi-bucho comment generation threw; AI-only reply',
+    );
+  }
+  const messages: LineTextMessage[] = capiComment
+    ? [textMessage(aiText), textMessage(capiComment)]
+    : [textMessage(aiText)];
+  await pushLineMessage(lineUserId, messages);
 }
 
 /**
@@ -253,6 +310,7 @@ async function runStep1(
   workspaceId: string | null,
 ): Promise<void> {
   let body: string;
+  let userMessageForCapi = input.userText?.trim() ?? '';
   if (input.imageBuffer && input.imageMimeType) {
     const ocr = await extractMediaText(
       fastify,
@@ -262,13 +320,15 @@ async function runStep1(
     );
     if (ocr) {
       const preview = ocr.length > 500 ? `${ocr.slice(0, 500)}…` : ocr;
+      // 標準語の敬語のみで構成。共感絵文字「☺」は AI レイヤーから削除し、
+      // 温かさはカピぶちょー側のフキダシに任せる(2 キャラ並走モデル)。
       body = [
-        '写真、確かに受け取りました☺',
-        '読み取った内容はこんな感じです:',
+        '写真を確かに受け取りました。',
+        '読み取った内容は以下の通りです。',
         '',
         preview,
         '',
-        'こうして写真を見せていただければ、内容の要約や、メール文への引用、書類への転記までお手伝いできます。',
+        '画像を送っていただければ、内容の要約や、メール文への引用、書類への転記までお手伝いできます。',
       ].join('\n');
       // Persist the OCR'd content so step-2's LLM (and post-journey chat)
       // can refer back to it when the user follows up.
@@ -277,17 +337,20 @@ async function runStep1(
         'user',
         `[添付画像の内容]\n${ocr}`,
       );
+      // capi-bucho のリアクション対象を「画像送ってくれた」事実にする。
+      userMessageForCapi = userMessageForCapi || '[画像を送付しました]';
     } else {
       body = [
-        '写真ありがとうございます。',
-        'ただ、今回は中身をうまく読み取れませんでした。明るい場所で撮り直していただけると、より正確に読めますよ。',
+        '写真をありがとうございます。',
+        '今回は中身をうまく読み取れませんでした。明るい場所で撮り直していただけると、より正確に読めます。',
       ].join('\n');
+      userMessageForCapi = userMessageForCapi || '[画像を送付しました]';
     }
   } else {
     const userText = input.userText?.trim() ?? '';
     body = [
-      'メッセージありがとうございます。',
-      '写真もいつでも送っていただいて大丈夫ですよ。次のメッセージで試してみてくださいね。',
+      'メッセージをありがとうございます。',
+      '写真もいつでも送っていただいて大丈夫です。次のメッセージで試してみてください。',
     ].join('\n');
     if (userText) {
       await appendConversationTurn(input.lineUserId, 'user', userText);
@@ -296,7 +359,18 @@ async function runStep1(
 
   const replyText = body + STEP2_PROMPT_TEXT;
   await appendConversationTurn(input.lineUserId, 'assistant', replyText);
-  await pushLineMessage(input.lineUserId, [textMessage(replyText)]);
+  // 2 キャラ並走: AI 本文 (`body`) に対してカピぶちょーが反応する。
+  // `replyText` には STEP2_PROMPT_TEXT が付加されているが、それは AI の
+  // 案内文なのでカピぶちょーのトリガー対象には含めない。
+  await pushAiAndCapi(
+    fastify,
+    workspaceId,
+    input.lineUserId,
+    userMessageForCapi,
+    replyText,
+    body,
+    1,
+  );
   await setJourneyStep(input.lineUserId, 2, Date.now());
 }
 
@@ -320,12 +394,22 @@ async function runStep2(
     fastify,
     workspaceId,
     userText,
-    'ユーザーが困っていることを一言で送ってきます。まず一行で共感を示してから、2〜4行で具体的な解決策のヒントや次の一歩を提案してください。書類作成(見積書/請求書/納品書/発注書/送付状)の話題が出たら、LINEでは書き方相談まで対応で、PDF生成はWeb版 fujitrace.jp という事実を1行だけ自然に添えてください。',
+    // 標準語の敬語のみ、関西弁禁止。共感は短く 1 行、解決策提示にフォーカス
+    // (温かさはカピぶちょーのフキダシ側で出す)。
+    'ユーザーが困っていることを一言で送ってきます。まず一行で受け止めてから、2〜4行で具体的な解決策のヒントや次の一歩を提案してください。標準語の敬語のみで答え、関西弁(「ええやんか」「せやな」「お疲れさん」等)は使わないでください。書類作成(見積書/請求書/納品書/発注書/送付状)の話題が出たら、LINEでは書き方相談まで対応で、PDF生成はWeb版 fujitrace.jp という事実を1行だけ自然に添えてください。',
   );
   const replyText = reply + STEP3_PROMPT_TEXT;
   if (userText) await appendConversationTurn(input.lineUserId, 'user', userText);
   await appendConversationTurn(input.lineUserId, 'assistant', replyText);
-  await pushLineMessage(input.lineUserId, [textMessage(replyText)]);
+  await pushAiAndCapi(
+    fastify,
+    workspaceId,
+    input.lineUserId,
+    userText,
+    replyText,
+    reply,
+    2,
+  );
   await setJourneyStep(input.lineUserId, 3, Date.now());
 }
 
@@ -346,12 +430,22 @@ async function runStep3(
     fastify,
     workspaceId,
     userText,
-    'ユーザーがリラックスした雑談(「お疲れ」「ただいま」など)を送ってきます。労いと共感を込めて2〜3行で温かく応答してください。最後に「☺」を1つだけ添えても構いません(他の絵文字は禁止)。',
+    // 標準語の敬語のみ、関西弁禁止。労いと共感は控えめに2〜3行で
+    // (温かさの主役はカピぶちょー側のフキダシに移す)。
+    'ユーザーがリラックスした雑談(「お疲れ」「ただいま」など)を送ってきます。標準語の敬語で2〜3行、簡潔に労いの言葉を返してください。関西弁は使わないでください。絵文字も使わないでください。',
   );
   const replyText = reply + COMPLETION_TEXT;
   if (userText) await appendConversationTurn(input.lineUserId, 'user', userText);
   await appendConversationTurn(input.lineUserId, 'assistant', replyText);
-  await pushLineMessage(input.lineUserId, [textMessage(replyText)]);
+  await pushAiAndCapi(
+    fastify,
+    workspaceId,
+    input.lineUserId,
+    userText,
+    replyText,
+    reply,
+    3,
+  );
   await clearJourney(input.lineUserId);
 }
 
@@ -377,10 +471,14 @@ async function runJourneyMiniChat(
     {
       role: 'system',
       content:
-        'あなたはFujiTraceのAI社員「フジ」です。LINEで日本のユーザーと話しています。\n' +
-        '敬語ベースで気さくな口調、命令形ではなく提案形を使います。\n' +
-        '絵文字は原則使いません(共感を示したい時だけ「☺」一文字のみ許容)。\n' +
-        '回答は短く、5行以内。\n\n' +
+        // 2 キャラ並走モデル(戦略 doc Section 7.3 / 19.5):
+        // - AI レイヤー側の SYSTEM_PROMPT。標準語の敬語のみ、関西弁禁止。
+        // - キャラクター名(「フジ」「カピぶちょー」)は名乗らない。
+        // - 共感絵文字「☺」も使わない(温かさの担当は別レイヤーのカピぶちょー)。
+        'あなたは「おしごとAI」です。LINEで日本のユーザーと話しています。\n' +
+        '標準語の敬語で、命令形ではなく提案形を使います。\n' +
+        '関西弁(「ええやんか」「せやな」「お疲れさん」等)は絶対に使いません。\n' +
+        '絵文字は使いません。回答は短く、5行以内。\n\n' +
         stepInstruction,
     },
     { role: 'user', content: userText },
