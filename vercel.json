@@ -25,6 +25,7 @@
     { "source": "/tutorial/(.*)", "destination": "/index.html" },
     { "source": "/blog", "destination": "/index.html" },
     { "source": "/blog/(.*)", "destination": "/index.html" },
+    { "source": "/dev/(.*)", "destination": "/index.html" },
     { "source": "/liff/tutorial", "destination": "/index.html" },
     { "source": "/liff/quest", "destination": "/dashboard/index.html" },
     { "source": "/liff/doc/(.*)", "destination": "/dashboard/index.html" },
