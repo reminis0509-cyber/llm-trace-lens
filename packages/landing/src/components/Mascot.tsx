@@ -1,47 +1,49 @@
 /**
- * Mascot — カピぶちょー (FujiTrace 2 キャラ並走モデル / Section 7.3)
+ * Mascot — カピぶちょー (FujiTrace 2 キャラ並走モデル / 戦略 doc Section 7.3)
  *
- * 仕様の根拠: docs/戦略_2026.md
- *  - Section 7.3 「2 キャラ並走モデル」+ 「マーク重ね合わせ戦略」
- *  - カピバラ静的設計原則: 立ち絵は基本静止、マーク側だけ動く
- *  - 必須マーク 8 種は絵文字を CSS で重ね合わせ (独自描画しない)
+ * 2026-04-28 リファクタ(Founder 判断): クオリティ最優先のため、汎用絵文字
+ * マーク重ね合わせ機能を撤去。ベース立ち絵 3 ポーズ + サイズ 4 種 + 控えめ
+ * な呼吸アニメ(idle)のみに簡素化。感情表現は別レイヤー(AI 応答 + カピ
+ * ぶちょーフキダシ、`src/line/capi-bucho.ts`)が担当する。
+ *
+ * 設計原則(Notion DESIGN.md / docs/design/notion-DESIGN.md ベース):
+ *   - 温かい中性色プレースホルダー(`#f6f5f4` warm white + `#a39e98` warm gray)
+ *   - 1px solid rgba(0,0,0,0.1) の whisper border(枠線)
+ *   - 立ち絵は基本静止、idle 時のみ 0.5px 上下する控えめな呼吸
+ *   - 画像未配置でも graceful fallback で破綻しない
  *
  * NOTE (案 A 共通化): 同じファイルが下記 2 箇所に存在する。
  *   - packages/landing/src/components/Mascot.tsx
  *   - packages/dashboard/src/components/Mascot.tsx
  * 将来 monorepo の shared package へ移行する (案 B)。
  * 編集時は両ファイルを必ず同期させること。
- *
- * 画像未配置でも壊れない設計:
- *   - <img onError> でフォールバック span に切替、背景色プレースホルダーを表示
- *   - alt 文字列は必ず人間可読にする
  */
 
 import { useState } from 'react';
 
 export type MascotPose = 'default' | 'real' | 'onsen';
-export type MascotMark = '💢' | '💦' | '❓' | '✨' | '💡' | '🤔' | '🍵' | '👏';
-export type MascotAnimation =
-  | 'idle'
-  | 'thinking'
-  | 'celebrating'
-  | 'alarmed'
-  | 'none';
+export type MascotAnimation = 'idle' | 'none';
 export type MascotSize = 'sm' | 'md' | 'lg' | 'hero';
 
 export interface MascotProps {
   pose?: MascotPose;
-  mark?: MascotMark | null;
   animation?: MascotAnimation;
   size?: MascotSize;
   className?: string;
 }
 
+/**
+ * サイズ定義(2026-04-28 改訂):
+ *   - sm: アバター・小アイコン(64px)
+ *   - md: フッター・記事内挿絵・小バナー(128px)
+ *   - lg: ダッシュボード常時マスコット・モーダル挿絵(256px)
+ *   - hero: LP メインビジュアル(768px、画面内で存在感)
+ */
 const SIZE_PX: Record<MascotSize, number> = {
   sm: 64,
   md: 128,
   lg: 256,
-  hero: 512,
+  hero: 768,
 };
 
 const POSE_SRC: Record<MascotPose, string> = {
@@ -57,30 +59,14 @@ const POSE_ALT: Record<MascotPose, string> = {
 };
 
 /**
- * Inline keyframes — Tailwind 設定を両パッケージで揃えるのを避け、
- * コンポーネント単体で完結させる。:where() でグローバル衝突を防止。
+ * idle の呼吸アニメ — 0.5px の上下、4 秒周期。立ち絵が「死んでる」印象を
+ * 与えないための最小限の動き(カピバラ静的設計原則、戦略 doc Section 7.3)。
  */
 const MASCOT_STYLE_ID = 'fujitrace-mascot-keyframes';
 const MASCOT_KEYFRAMES = `
 @keyframes fujitrace-mascot-breathe {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-0.5px); }
-}
-@keyframes fujitrace-mascot-mark-fade {
-  0%, 100% { opacity: 0.2; }
-  50%      { opacity: 1; }
-}
-@keyframes fujitrace-mascot-celebrate {
-  0%   { transform: translateY(0); }
-  40%  { transform: translateY(-4px); }
-  100% { transform: translateY(0); }
-}
-@keyframes fujitrace-mascot-shake {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  20%      { transform: translate(-1px, 1px) rotate(-3deg); }
-  40%      { transform: translate(1px, -1px) rotate(3deg); }
-  60%      { transform: translate(-1px, 0) rotate(-2deg); }
-  80%      { transform: translate(1px, 1px) rotate(2deg); }
 }
 `;
 
@@ -97,55 +83,8 @@ function ensureKeyframes() {
   document.head.appendChild(styleEl);
 }
 
-interface ResolvedAnimation {
-  baseAnim: string | undefined;
-  markAnim: string | undefined;
-  forcedMark: MascotMark | null;
-}
-
-function resolveAnimation(
-  animation: MascotAnimation,
-  mark: MascotMark | null,
-): ResolvedAnimation {
-  switch (animation) {
-    case 'idle':
-      return {
-        baseAnim: 'fujitrace-mascot-breathe 4s ease-in-out infinite',
-        markAnim: undefined,
-        forcedMark: mark,
-      };
-    case 'thinking':
-      return {
-        baseAnim: undefined,
-        markAnim: 'fujitrace-mascot-mark-fade 2s ease-in-out infinite',
-        forcedMark: mark ?? '🤔',
-      };
-    case 'celebrating':
-      return {
-        baseAnim: 'fujitrace-mascot-celebrate 0.3s ease-out 1',
-        markAnim: undefined,
-        forcedMark: mark ?? '✨',
-      };
-    case 'alarmed':
-      return {
-        baseAnim: undefined,
-        // 0.1s × 10cycle = 1s 揺れて止まる
-        markAnim: 'fujitrace-mascot-shake 0.1s linear 10',
-        forcedMark: mark ?? '💢',
-      };
-    case 'none':
-    default:
-      return {
-        baseAnim: undefined,
-        markAnim: undefined,
-        forcedMark: mark,
-      };
-  }
-}
-
 export default function Mascot({
   pose = 'default',
-  mark = null,
   animation = 'idle',
   size = 'md',
   className,
@@ -154,12 +93,13 @@ export default function Mascot({
   const [imgFailed, setImgFailed] = useState(false);
 
   const px = SIZE_PX[size];
-  const markPx = Math.round(px * 0.3);
-  const offset = Math.max(6, Math.round(px * 0.06));
   const src = POSE_SRC[pose];
   const alt = POSE_ALT[pose];
 
-  const { baseAnim, markAnim, forcedMark } = resolveAnimation(animation, mark);
+  const baseAnim =
+    animation === 'idle'
+      ? 'fujitrace-mascot-breathe 4s ease-in-out infinite'
+      : undefined;
 
   const wrapperClass =
     'relative inline-block select-none' + (className ? ` ${className}` : '');
@@ -169,13 +109,8 @@ export default function Mascot({
       className={wrapperClass}
       style={{ width: px, height: px }}
       role="img"
-      aria-label={
-        forcedMark
-          ? `${alt} (${markAriaLabel(forcedMark)})`
-          : alt
-      }
+      aria-label={alt}
     >
-      {/* ベース立ち絵 */}
       <div
         style={{
           width: '100%',
@@ -201,7 +136,6 @@ export default function Mascot({
             }}
           />
         ) : (
-          // プレースホルダー: 画像未配置でも崩れない
           <div
             style={{
               width: '100%',
@@ -209,10 +143,11 @@ export default function Mascot({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: '#f1f5f9',
-              border: '1px dashed #cbd5e1',
+              // Notion 流の温かい中性色フォールバック(docs/design/notion-DESIGN.md)
+              backgroundColor: '#f6f5f4',
+              border: '1px solid rgba(0,0,0,0.1)',
               borderRadius: 8,
-              color: '#64748b',
+              color: '#a39e98',
               fontSize: Math.max(10, Math.round(px * 0.09)),
               fontWeight: 500,
               padding: 4,
@@ -225,78 +160,12 @@ export default function Mascot({
           </div>
         )}
       </div>
-
-      {/* マーク (右上、絶対配置) */}
-      {forcedMark ? (
-        <span
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            top: -offset,
-            right: -offset,
-            width: markPx,
-            height: markPx,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: Math.round(markPx * 0.85),
-            lineHeight: 1,
-            pointerEvents: 'none',
-            animation: markAnim,
-            willChange: markAnim ? 'opacity, transform' : undefined,
-            // 絵文字描画を Apple 系で安定させる
-            fontFamily:
-              '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif',
-            textShadow: '0 1px 2px rgba(0,0,0,0.08)',
-          }}
-        >
-          {forcedMark}
-        </span>
-      ) : null}
     </div>
   );
 }
 
-function markAriaLabel(m: MascotMark): string {
-  switch (m) {
-    case '💢':
-      return '怒り';
-    case '💦':
-      return '焦り';
-    case '❓':
-      return '疑問';
-    case '✨':
-      return 'ひらめき';
-    case '💡':
-      return 'アイデア';
-    case '🤔':
-      return '考え中';
-    case '🍵':
-      return 'のんびり';
-    case '👏':
-      return '拍手';
-    default:
-      return '';
-  }
-}
-
-export const MASCOT_MARKS: MascotMark[] = [
-  '💢',
-  '💦',
-  '❓',
-  '✨',
-  '💡',
-  '🤔',
-  '🍵',
-  '👏',
-];
-
 export const MASCOT_POSES: MascotPose[] = ['default', 'real', 'onsen'];
 
-export const MASCOT_ANIMATIONS: MascotAnimation[] = [
-  'idle',
-  'thinking',
-  'celebrating',
-  'alarmed',
-  'none',
-];
+export const MASCOT_SIZES: MascotSize[] = ['sm', 'md', 'lg', 'hero'];
+
+export const MASCOT_ANIMATIONS: MascotAnimation[] = ['idle', 'none'];

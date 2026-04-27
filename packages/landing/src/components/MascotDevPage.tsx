@@ -1,211 +1,21 @@
 /**
- * MascotDevPage — 開発者向け動作確認ページ (本番リンクからは非到達)
+ * /dev/mascot — Mascot コンポーネント動作確認ページ(内部 dev only)
  *
- * URL: /dev/mascot
- *  - LP メニューには出さない (Header.tsx に追加しない)
- *  - vercel.json は SPA fallback で /index.html に流すため、本番でも URL を直叩きで表示可能
- *  - 8 マーク × 3 ポーズ × 5 アニメーション の組み合わせを格子状に並べる
- *  - 非ループ系アニメ (celebrating / alarmed) を定期的に再キックする
+ * 2026-04-28 リファクタ後: mark / heavy animation を撤去し、サイズ確認と
+ * ポーズ確認のみに簡素化。汎用絵文字オーバーレイで世界観を壊すリスクを
+ * 排除し、感情表現は別レイヤー(AI 応答 + カピぶちょーフキダシ、
+ * `src/line/capi-bucho.ts`)が担当する設計に変更。
+ *
+ * 本ページは Header/Footer なしの chromeless 描画(App.tsx で制御)。
+ * 本番には到達可能(Vercel SPA fallback)だが Header からのリンクは無し。
  */
 
-import { useEffect, useState } from 'react';
 import Mascot, {
-  MASCOT_ANIMATIONS,
-  MASCOT_MARKS,
   MASCOT_POSES,
-  type MascotAnimation,
-  type MascotMark,
+  MASCOT_SIZES,
+  type MascotPose,
+  type MascotSize,
 } from './Mascot';
-
-export default function MascotDevPage() {
-  // 非ループアニメ (celebrating 0.3s × 1 / alarmed 0.1s × 10) は
-  // マウント時に 1 回しか再生されない。確認用に 3 秒おきに key を変えて
-  // 強制再マウントする。
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const id = window.setInterval(() => setTick((n) => n + 1), 3000);
-    return () => window.clearInterval(id);
-  }, []);
-
-  return (
-    <div className="min-h-screen bg-app-bg-surface px-4 py-8 sm:px-6 sm:py-10">
-      <div className="mx-auto max-w-7xl">
-        <header className="mb-6">
-          <p className="text-xs font-mono uppercase tracking-wider text-text-muted">
-            Internal / Dev only
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold text-text-primary sm:text-3xl">
-            Mascot コンポーネント動作確認
-          </h1>
-          <p className="mt-2 text-sm text-text-secondary">
-            <code className="rounded bg-app-bg-elevated px-1.5 py-0.5 font-mono text-xs">
-              &lt;Mascot pose mark animation size /&gt;
-            </code>{' '}
-            の組み合わせ。画像 (
-            <code className="font-mono text-xs">/mascot/capi-*.png</code>)
-            未配置時は破線プレースホルダーが出る想定。
-          </p>
-          <p className="mt-1 text-xs text-text-muted">
-            非ループ系 (celebrating / alarmed) は 3 秒ごとに自動再生されます。
-          </p>
-        </header>
-
-        {/* セクション 1: サイズ確認 */}
-        <Section title="サイズ確認 (pose=default / mark=null / animation=idle)">
-          <div className="flex flex-wrap items-end gap-6">
-            {(['sm', 'md', 'lg', 'hero'] as const).map((s) => (
-              <Cell key={s} label={`size="${s}"`}>
-                <Mascot size={s} />
-              </Cell>
-            ))}
-          </div>
-        </Section>
-
-        {/* セクション 2: ポーズ × マーク (アニメ none) */}
-        <Section title="ポーズ × マーク (animation=none / size=md)">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] border-collapse">
-              <thead>
-                <tr>
-                  <th className="border border-border bg-app-bg-elevated p-2 text-left text-xs font-medium text-text-secondary">
-                    pose ＼ mark
-                  </th>
-                  <th className="border border-border bg-app-bg-elevated p-2 text-center text-xs font-medium text-text-secondary">
-                    null
-                  </th>
-                  {MASCOT_MARKS.map((m) => (
-                    <th
-                      key={m}
-                      className="border border-border bg-app-bg-elevated p-2 text-center text-xs font-medium text-text-secondary"
-                    >
-                      {m}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {MASCOT_POSES.map((p) => (
-                  <tr key={p}>
-                    <td className="border border-border bg-app-bg-elevated p-2 text-xs font-mono text-text-secondary">
-                      {p}
-                    </td>
-                    <td className="border border-border p-3 align-middle">
-                      <div className="flex justify-center">
-                        <Mascot pose={p} animation="none" mark={null} />
-                      </div>
-                    </td>
-                    {MASCOT_MARKS.map((m) => (
-                      <td
-                        key={m}
-                        className="border border-border p-3 align-middle"
-                      >
-                        <div className="flex justify-center">
-                          <Mascot pose={p} animation="none" mark={m} />
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Section>
-
-        {/* セクション 3: アニメーション × ポーズ */}
-        <Section title="アニメーション × ポーズ (size=md / マークは仕様上のデフォルト)">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] border-collapse">
-              <thead>
-                <tr>
-                  <th className="border border-border bg-app-bg-elevated p-2 text-left text-xs font-medium text-text-secondary">
-                    animation ＼ pose
-                  </th>
-                  {MASCOT_POSES.map((p) => (
-                    <th
-                      key={p}
-                      className="border border-border bg-app-bg-elevated p-2 text-center text-xs font-mono text-text-secondary"
-                    >
-                      {p}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {MASCOT_ANIMATIONS.map((a) => (
-                  <tr key={a}>
-                    <td className="border border-border bg-app-bg-elevated p-2 text-xs font-mono text-text-secondary">
-                      {a}
-                    </td>
-                    {MASCOT_POSES.map((p) => (
-                      <td
-                        key={p}
-                        className="border border-border p-3 align-middle"
-                      >
-                        <div className="flex justify-center">
-                          <Mascot
-                            // celebrating / alarmed は再生し直すために key 必須
-                            key={`${a}-${p}-${shouldRekey(a) ? tick : 0}`}
-                            pose={p}
-                            animation={a}
-                            // none / idle はマーク無し、それ以外は仕様上のデフォルト
-                            mark={defaultMarkFor(a)}
-                          />
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Section>
-
-        {/* セクション 4: 完全な格子 (8 marks × 3 poses × 4 animations、idle は除外して見やすく) */}
-        <Section title="マーク指定 × アニメーション × ポーズ (size=sm)">
-          <p className="mb-3 text-xs text-text-muted">
-            mark を明示指定した場合の挙動。idle は重複なので除外、計{' '}
-            {MASCOT_MARKS.length} × {MASCOT_POSES.length} × 4 ={' '}
-            {MASCOT_MARKS.length * MASCOT_POSES.length * 4} セル。
-          </p>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-            {MASCOT_POSES.flatMap((p) =>
-              (
-                ['thinking', 'celebrating', 'alarmed', 'none'] as MascotAnimation[]
-              ).flatMap((a) =>
-                MASCOT_MARKS.map((m) => (
-                  <Cell
-                    key={`${p}-${a}-${m}`}
-                    label={`${p} / ${a} / ${m}`}
-                  >
-                    <Mascot
-                      key={`${p}-${a}-${m}-${shouldRekey(a) ? tick : 0}`}
-                      pose={p}
-                      animation={a}
-                      mark={m}
-                      size="sm"
-                    />
-                  </Cell>
-                )),
-              ),
-            )}
-          </div>
-        </Section>
-      </div>
-    </div>
-  );
-}
-
-function shouldRekey(a: MascotAnimation): boolean {
-  return a === 'celebrating' || a === 'alarmed';
-}
-
-function defaultMarkFor(a: MascotAnimation): MascotMark | null {
-  // resolveAnimation の forcedMark と揃える (Mascot.tsx 仕様)
-  if (a === 'thinking') return null; // null で渡せば内部で 🤔 が補完される
-  if (a === 'celebrating') return null; // 同 ✨
-  if (a === 'alarmed') return null; // 同 💢
-  return null;
-}
 
 function Section({
   title,
@@ -215,8 +25,25 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="mb-10 rounded-card border border-border bg-app-bg p-4 sm:p-6">
-      <h2 className="mb-4 text-base font-semibold text-text-primary sm:text-lg">
+    <section
+      style={{
+        marginTop: 48,
+        padding: 24,
+        borderRadius: 12,
+        border: '1px solid rgba(0,0,0,0.1)',
+        backgroundColor: '#ffffff',
+      }}
+    >
+      <h2
+        style={{
+          margin: 0,
+          marginBottom: 24,
+          fontSize: 20,
+          fontWeight: 600,
+          color: 'rgba(0,0,0,0.95)',
+          letterSpacing: '-0.02em',
+        }}
+      >
         {title}
       </h2>
       {children}
@@ -224,21 +51,283 @@ function Section({
   );
 }
 
-function Cell({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+const POSE_LABEL: Record<MascotPose, string> = {
+  default: '通常立ち絵',
+  real: 'リアル化版',
+  onsen: '温泉立ち絵',
+};
+
+const SIZE_PX: Record<MascotSize, number> = {
+  sm: 64,
+  md: 128,
+  lg: 256,
+  hero: 768,
+};
+
+export default function MascotDevPage() {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-card border border-border-subtle bg-app-bg-surface p-3">
-      <div className="flex min-h-[80px] items-center justify-center">
-        {children}
+    <main
+      style={{
+        minHeight: '100vh',
+        backgroundColor: '#f6f5f4',
+        color: 'rgba(0,0,0,0.95)',
+        fontFamily:
+          'system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif',
+        padding: '40px 20px',
+      }}
+    >
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <header style={{ marginBottom: 24 }}>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 11,
+              letterSpacing: '0.15em',
+              fontFamily:
+                '"SourceCodePro", "SFMono-Regular", "Menlo", monospace',
+              color: '#a39e98',
+            }}
+          >
+            INTERNAL / DEV ONLY
+          </p>
+          <h1
+            style={{
+              margin: '8px 0 12px',
+              fontSize: 36,
+              fontWeight: 700,
+              letterSpacing: '-0.04em',
+              lineHeight: 1.1,
+            }}
+          >
+            Mascot コンポーネント動作確認
+          </h1>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 14,
+              lineHeight: 1.6,
+              color: '#615d59',
+              maxWidth: 720,
+            }}
+          >
+            <code
+              style={{
+                fontFamily:
+                  '"SourceCodePro", "SFMono-Regular", "Menlo", monospace',
+                fontSize: 12,
+                backgroundColor: '#ffffff',
+                border: '1px solid rgba(0,0,0,0.1)',
+                borderRadius: 4,
+                padding: '2px 6px',
+              }}
+            >
+              {'<Mascot pose size />'}
+            </code>{' '}
+            の組み合わせ。画像 (
+            <code
+              style={{
+                fontFamily:
+                  '"SourceCodePro", "SFMono-Regular", "Menlo", monospace',
+                fontSize: 12,
+              }}
+            >
+              /mascot/capi-*.png
+            </code>
+            ) 未配置時は破線プレースホルダー想定。
+          </p>
+          <p
+            style={{
+              margin: '8px 0 0',
+              fontSize: 13,
+              lineHeight: 1.6,
+              color: '#615d59',
+              maxWidth: 720,
+            }}
+          >
+            2026-04-28 リファクタ: 汎用絵文字マーク重ね合わせを撤去。感情表現は
+            別レイヤー(AI 応答 + カピぶちょーフキダシ)が担当する。詳細は{' '}
+            <code
+              style={{
+                fontFamily:
+                  '"SourceCodePro", "SFMono-Regular", "Menlo", monospace',
+                fontSize: 12,
+              }}
+            >
+              docs/戦略_2026.md
+            </code>{' '}
+            Section 7.3。
+          </p>
+        </header>
+
+        {/* ── サイズ確認 ── */}
+        <Section title="サイズ確認 (pose=default / animation=idle)">
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 32,
+              alignItems: 'flex-end',
+            }}
+          >
+            {MASCOT_SIZES.map((s) => (
+              <div
+                key={s}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <Mascot pose="default" size={s} />
+                <code
+                  style={{
+                    fontFamily:
+                      '"SourceCodePro", "SFMono-Regular", "Menlo", monospace',
+                    fontSize: 11,
+                    color: '#615d59',
+                  }}
+                >
+                  size="{s}" ({SIZE_PX[s]}px)
+                </code>
+              </div>
+            ))}
+          </div>
+        </Section>
+
+        {/* ── ポーズ × アニメーション ── */}
+        <Section title="ポーズ × アニメーション (size=md)">
+          <div style={{ overflowX: 'auto' }}>
+            <table
+              style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                fontSize: 12,
+              }}
+            >
+              <thead>
+                <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
+                  <th
+                    style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      width: 140,
+                      fontWeight: 500,
+                      color: '#615d59',
+                    }}
+                  >
+                    animation \ pose
+                  </th>
+                  {MASCOT_POSES.map((p) => (
+                    <th
+                      key={p}
+                      style={{
+                        padding: '12px',
+                        textAlign: 'center',
+                        fontWeight: 500,
+                        color: 'rgba(0,0,0,0.95)',
+                      }}
+                    >
+                      {POSE_LABEL[p]}
+                      <br />
+                      <code
+                        style={{
+                          fontFamily:
+                            '"SourceCodePro", "SFMono-Regular", "Menlo", monospace',
+                          fontSize: 10,
+                          color: '#a39e98',
+                          fontWeight: 400,
+                        }}
+                      >
+                        pose="{p}"
+                      </code>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(['idle', 'none'] as const).map((a) => (
+                  <tr
+                    key={a}
+                    style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}
+                  >
+                    <td
+                      style={{
+                        padding: '16px 12px',
+                        textAlign: 'center',
+                        color: 'rgba(0,0,0,0.95)',
+                      }}
+                    >
+                      <code
+                        style={{
+                          fontFamily:
+                            '"SourceCodePro", "SFMono-Regular", "Menlo", monospace',
+                          fontSize: 11,
+                        }}
+                      >
+                        animation="{a}"
+                      </code>
+                    </td>
+                    {MASCOT_POSES.map((p) => (
+                      <td
+                        key={`${p}-${a}`}
+                        style={{
+                          padding: '16px 12px',
+                          textAlign: 'center',
+                        }}
+                      >
+                        <Mascot pose={p} size="md" animation={a} />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p
+            style={{
+              marginTop: 16,
+              fontSize: 12,
+              color: '#615d59',
+              lineHeight: 1.6,
+            }}
+          >
+            <code
+              style={{
+                fontFamily:
+                  '"SourceCodePro", "SFMono-Regular", "Menlo", monospace',
+                fontSize: 11,
+              }}
+            >
+              idle
+            </code>{' '}
+            は 0.5px 上下の控えめな呼吸(4 秒周期)。
+            <code
+              style={{
+                fontFamily:
+                  '"SourceCodePro", "SFMono-Regular", "Menlo", monospace',
+                fontSize: 11,
+              }}
+            >
+              none
+            </code>{' '}
+            は完全静止。カピバラ静的設計原則に従い、立ち絵自体は派手に動かさない。
+          </p>
+        </Section>
+
+        <footer
+          style={{
+            marginTop: 64,
+            paddingTop: 24,
+            borderTop: '1px solid rgba(0,0,0,0.1)',
+            fontSize: 11,
+            color: '#a39e98',
+            textAlign: 'center',
+          }}
+        >
+          internal preview — 本番リンク無し / Header からの導線無し
+        </footer>
       </div>
-      <p className="break-all text-center font-mono text-[10px] leading-tight text-text-muted">
-        {label}
-      </p>
-    </div>
+    </main>
   );
 }
