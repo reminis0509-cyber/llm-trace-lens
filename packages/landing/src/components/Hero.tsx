@@ -1,51 +1,47 @@
 import { trackDashboardConversion } from '../utils/gtag';
 import { useSeo } from '../hooks/useSeo';
-import Mascot from './Mascot';
 
 /**
- * Hero — 広告着地先 (2026-04-28 リブランド)
+ * Hero — LP メインビジュアル (2026-04-28 完全作り直し)
  *
- * 方針 (CEO 判断 2026-04-28):
- *  - 「おしごと AI」(=主役) と「カピぶちょー」(=見守り役) の 2 キャラ並走モデル
- *  - サブ訴求は「月¥3,000 から、事務員 1 人分働く AI を雇う」
- *  - 御見積書プレビュー(資産)は温存。立ち絵は size="lg" で配置
- *  - 派手なアニメ禁止、絵文字禁止、老舗 SaaS 基調
+ * 戦略 doc Section 18.2.M / Section 7.3 配置ルール:
+ *  - **カピぶちょー(マスコット)はここでは出さない**
+ *    Hero は商品名 + メインコピー + CTA が主役。キャラを入れると焦点ぼやける。
+ *  - 御見積書プレビューは AI の成果物として温存
+ *  - Stats(数値訴求 5/8/23/¥3,000) は Hero 内に小さく統合
  *
- * 旧キャラ「フジ」「AI 事務員」「AI 社員」「身近な相談相手」表現は本コミットで完全撤去。
+ * 戦略 doc Section 9.5 「明るい未来の 3 主体ストーリー」:
+ *  - メインコピー「おしごと AI、雇いませんか。」
+ *  - サブ「採用市場が壊れた日本で、月¥3,000 から事務員 1 人分働く AI を。」
  */
 export default function Hero() {
   useSeo({
     title:
-      'おしごと AI — 月¥3,000から事務員1人分働く AI を雇う | FujiTrace',
+      'おしごと AI、雇いませんか。 月¥3,000 から事務員 1 人分働く AI を | FujiTrace',
     description:
-      '見積書・請求書・議事録・スライドまで、机上の事務作業をひととおりこなすおしごと AI。日本の商慣習に合わせて、国内データ滞留・承認後実行で運用できます。',
+      '採用市場が壊れた日本で、月¥3,000 から事務員 1 人分働くおしごと AI を。見積書・請求書・議事録・スライドまで、机上の事務作業をひととおり。国内データ滞留・承認後実行で運用できます。',
     url: 'https://fujitrace.jp/',
   });
 
   const scrollToDemo = (e: React.MouseEvent) => {
     e.preventDefault();
-    document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('home-end-cta')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
     <section className="pt-24 pb-16 sm:pt-28 sm:pb-20 px-4 sm:px-6">
       <div className="section-container w-full">
         <div className="grid lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-14 items-center">
-          {/* ---- Left: headline + copy + CTA ---- */}
+          {/* ---- Left: headline + copy + CTA (キャラなし) ---- */}
           <div>
-            {/* カピぶちょー立ち絵 — Eyebrow バッジ直上 lg=256px (CEO 判断 2026-04-28 / Q4 案 A) */}
-            <div className="mb-4 -ml-2" aria-hidden="true">
-              <Mascot pose="default" size="lg" animation="idle" />
-            </div>
-
-            {/* Eyebrow — 2 キャラ並走モデルの存在を示すバッジ */}
+            {/* Eyebrow */}
             <div className="inline-flex items-center gap-2 px-3 py-1.5 surface-card text-xs mb-6">
               <span className="w-1.5 h-1.5 bg-accent rounded-full" aria-hidden="true" />
-              <span className="text-text-muted">おしごと AI とカピぶちょーが並走します</span>
+              <span className="text-text-muted">採用市場が壊れた日本で</span>
             </div>
 
             {/* Main headline */}
-            <h1 className="text-[2rem] sm:text-display-sm lg:text-[3rem] font-semibold text-text-primary mb-5 leading-[1.25] tracking-tight">
+            <h1 className="text-[2rem] sm:text-display-sm lg:text-[3rem] font-semibold text-text-primary mb-5 leading-[1.2] tracking-tight">
               おしごと AI、
               <br />
               雇いませんか。
@@ -58,13 +54,9 @@ export default function Hero() {
               見積書・請求書・議事録・スライドまで、机上の仕事をひととおり。
             </p>
 
-            {/* Trust badges (inline, 老舗SaaS風に控えめ) */}
+            {/* Trust badges (inline、控えめ) */}
             <ul className="flex flex-wrap gap-x-5 gap-y-2 mb-8 text-sm text-text-secondary">
-              {[
-                '国内データ滞留',
-                '承認後に実行',
-                '日本の商慣習に準拠',
-              ].map((badge) => (
+              {['国内データ滞留', '承認後に実行', '日本の商慣習に準拠'].map((badge) => (
                 <li key={badge} className="flex items-center gap-1.5">
                   <svg
                     className="w-4 h-4 text-status-pass flex-shrink-0"
@@ -86,25 +78,25 @@ export default function Hero() {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
               <a
-                href="/login"
+                href="/tutorial"
                 onClick={trackDashboardConversion}
                 className="px-7 py-3.5 bg-accent text-white rounded-card text-base font-semibold hover:bg-accent-hover transition-colors duration-120 text-center"
               >
-                おしごと AI を雇う
+                無料で試す
               </a>
               <a
-                href="#demo"
+                href="#home-end-cta"
                 onClick={scrollToDemo}
                 className="px-6 py-3.5 text-text-secondary hover:text-text-primary border border-border rounded-card font-medium hover:bg-app-bg-elevated transition-colors duration-120 text-center"
               >
-                デモを見る
+                LINE で相談する
               </a>
             </div>
             <p className="text-sm text-text-muted">
               クレジットカード不要・メール登録だけで、当日からおしごと AI が稼働します。
             </p>
 
-            {/* Stats — 数字4つ */}
+            {/* Stats — 数字 4 つ (LP 内に小さく統合) */}
             <div className="mt-10 pt-8 border-t border-border-subtle grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 max-w-2xl">
               {[
                 { value: '5', unit: '種', label: '対応書類' },
@@ -117,19 +109,15 @@ export default function Hero() {
                     <span className="text-2xl sm:text-3xl font-mono tabular-nums text-text-primary">
                       {stat.value}
                     </span>
-                    {stat.unit && (
-                      <span className="text-sm text-text-muted">{stat.unit}</span>
-                    )}
+                    {stat.unit && <span className="text-sm text-text-muted">{stat.unit}</span>}
                   </div>
-                  <div className="mt-1 text-xs text-text-muted label-spacing">
-                    {stat.label}
-                  </div>
+                  <div className="mt-1 text-xs text-text-muted label-spacing">{stat.label}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* ---- Right: 御見積書プレビュー (資産温存) + カピぶちょー立ち絵 ---- */}
+          {/* ---- Right: 御見積書プレビュー (資産温存、キャラなし) ---- */}
           <div className="relative">
             {/* 薄い背景紙 */}
             <div
@@ -150,8 +138,7 @@ export default function Hero() {
                 <div>
                   <p className="mb-1 text-[#444]">宛先</p>
                   <p className="text-sm font-medium">
-                    株式会社 日本橋商事{' '}
-                    <span className="text-[#666] font-normal">御中</span>
+                    株式会社 日本橋商事 <span className="text-[#666] font-normal">御中</span>
                   </p>
                   <p className="mt-3 text-[#444]">件名</p>
                   <p className="text-sm">業務システム導入支援</p>
@@ -185,9 +172,7 @@ export default function Hero() {
                       {row.no}
                     </div>
                     <div className="px-2 py-1.5 border-r border-[#333]">{row.name}</div>
-                    <div className="px-2 py-1.5 text-center border-r border-[#333]">
-                      {row.qty}
-                    </div>
+                    <div className="px-2 py-1.5 text-center border-r border-[#333]">{row.qty}</div>
                     <div className="px-2 py-1.5 text-right tabular-nums">{row.amount}</div>
                   </div>
                 ))}
@@ -211,7 +196,7 @@ export default function Hero() {
                 </div>
               </div>
 
-              {/* AI検証チップ (角に小さく) */}
+              {/* AI検証チップ */}
               <div className="mt-4 pt-4 border-t border-border-subtle flex items-center gap-2 text-[11px] text-text-muted">
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-status-pass/10 text-status-pass font-medium">
                   <span className="w-1.5 h-1.5 rounded-full bg-status-pass" aria-hidden="true" />
@@ -219,16 +204,6 @@ export default function Hero() {
                 </span>
                 <span>金額・消費税・記載事項 チェック完了</span>
               </div>
-            </div>
-
-            {/* カピぶちょー立ち絵 — 御見積書の右下にちょこんと立つ。
-                Q3 案 A (CEO 判断 2026-04-28): 主役は御見積書(=AI の成果物)、
-                マスコットは sm=64px に控えめに。Eyebrow 直上の lg と役割分担。 */}
-            <div
-              className="hidden md:block absolute -bottom-3 -right-3 lg:-bottom-4 lg:-right-4 pointer-events-none"
-              aria-hidden="true"
-            >
-              <Mascot pose="default" size="sm" animation="idle" />
             </div>
           </div>
         </div>

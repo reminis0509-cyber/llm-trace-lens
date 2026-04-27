@@ -1,10 +1,14 @@
 /**
- * Solution — おしごと AI 全機能を 3 カテゴリで提示 (2026-04-28 リブランド)
+ * Solution — おしごと AI 全機能を 3 カテゴリで提示 (2026-04-28 リブランド + 顧客代弁者役カピぶちょー)
  *
  * 旧名「AI 社員」「AI 事務員」を「おしごと AI」に統一。
  * 「書類業務 / 分析・リサーチ / コミュニケーション」の 3 カテゴリ訴求は維持。
  * チュートリアル訴求は EducationShowcase が引き続き担当。
+ *
+ * 戦略 doc Section 7.3 (2026-04-28 改訂、Founder 確定):
+ *   セクション末尾にカピぶちょーフキダシで顧客代弁(共感+期待感)。
  */
+import MascotQuote from './home/MascotQuote';
 interface Capability {
   label: string;
 }
@@ -146,7 +150,7 @@ export default function Solution() {
         {/* 補足リンク */}
         <div className="mt-10 text-center">
           <a
-            href="/tools"
+            href="/features"
             className="inline-flex items-center gap-2 text-sm text-accent hover:underline underline-offset-4"
           >
             搭載機能の全体像を見る
@@ -165,6 +169,15 @@ export default function Solution() {
               />
             </svg>
           </a>
+        </div>
+
+        {/* カピぶちょー顧客代弁フキダシ — 共感+期待感 (Section 7.3 改訂) */}
+        <div className="mt-12 sm:mt-14 flex justify-center">
+          <MascotQuote
+            size="md"
+            reverse
+            quote="これは助かるなぁ。社員も喜ぶで〜、机上の仕事ぐらい AI に任せたらええんや。"
+          />
         </div>
       </div>
     </section>

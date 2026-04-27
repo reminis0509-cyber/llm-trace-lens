@@ -1,10 +1,14 @@
 import { trackDashboardConversion } from '../utils/gtag';
+import MascotQuote from './home/MascotQuote';
 
 /**
- * CTA — 最終誘導 (2026-04-22 刷新)
+ * CTA — 最終誘導 (2026-04-22 刷新 + 2026-04-28 カピぶちょー軽い励まし追加)
  *
  * 中小企業向けに「無料で試す」「導入のご相談」の 2 導線に統一。
  * 老舗 SaaS 風の落ち着いたトーン、派手な装飾を避ける。
+ *
+ * 戦略 doc Section 7.3 (2026-04-28 改訂):
+ *   末尾 CTA でカピぶちょー sm + 軽い励ましフキダシ。
  */
 export default function CTA() {
   return (
@@ -76,6 +80,14 @@ export default function CTA() {
             </a>
             からご利用いただけます。
           </p>
+        </div>
+
+        {/* カピぶちょー軽い励まし — 末尾にちょこんと (Section 7.3 改訂) */}
+        <div className="mt-12 sm:mt-14 flex justify-center">
+          <MascotQuote
+            size="sm"
+            quote="気軽に話しかけてや〜。うち、いつでも待っとるで。"
+          />
         </div>
       </div>
     </section>

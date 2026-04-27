@@ -23,10 +23,8 @@ import TutorialPage from './components/TutorialPage';
 import ScenarioTutorialPage from './components/ScenarioTutorialPage';
 import type { DocumentKind } from './lib/tutorial-scripts';
 import EstimateDemo from './components/EstimateDemo';
-import MidPageCTA from './components/MidPageCTA';
 import EducationShowcase from './components/EducationShowcase';
 import Capabilities from './components/Capabilities';
-import LongTermFuture from './components/LongTermFuture';
 import MascotDevPage from './components/MascotDevPage';
 import EstimateAdPage from './components/ads/EstimateAdPage';
 import InvoiceAdPage from './components/ads/InvoiceAdPage';
@@ -40,6 +38,136 @@ const AD_LANDING_PAGES: Record<string, React.ComponentType> = {
   minutes: MinutesAdPage,
   slide: SlideAdPage,
 };
+
+/**
+ * トップ LP — 王道シンプル LP (2026-04-28 完全作り直し、戦略 doc Section 18.2.M)
+ *
+ * 旧 17 セクション詰め込みから 5 セクションに圧縮:
+ *   Hero → 悩み → 解決 → 料金 → 末尾 CTA
+ *
+ * 削除したセクションは各サブページに移動:
+ *   Capabilities / Differentiation / DemoShowcase / EducationShowcase → /features
+ *   FAQ → /pricing
+ *   EstimateDemo → /demo
+ *   TrustSection → /how-it-works
+ *   LongTermFuture → 削除 (Phase A1 以降で再考)
+ *   MidPageCTA → 末尾 CTA に統合
+ */
+function HomePage() {
+  return (
+    <>
+      <Hero />
+      <div className="section-divider" />
+      <Problems />
+      <div className="section-divider" />
+      <Solution />
+      <div className="section-divider" />
+      <Pricing />
+      <div className="section-divider" />
+      <CTA />
+    </>
+  );
+}
+
+/**
+ * /features — 機能詳細ページ (2026-04-28 新設、Section 18.2.M)
+ *
+ * トップ LP の機能訴求セクションを集約:
+ *   Capabilities (全 12 機能) + Differentiation (海外 AI 比較) +
+ *   DemoShowcase (書類サンプル) + EducationShowcase (教育訴求)
+ */
+function FeaturesPage() {
+  return (
+    <>
+      <div className="pt-24 pb-8 px-4 sm:px-6">
+        <div className="section-container">
+          <h1 className="text-display-md font-semibold tracking-tight text-text-primary">
+            おしごと AI でできること。
+          </h1>
+          <p className="mt-3 text-text-secondary text-base sm:text-lg max-w-2xl">
+            机上の事務作業を AI が肩代わり。机に向かう時間を、判断と提案に使う時間に変えます。
+          </p>
+        </div>
+      </div>
+      <Capabilities />
+      <div className="section-divider" />
+      <Differentiation />
+      <div className="section-divider" />
+      <DemoShowcase />
+      <div className="section-divider" />
+      <EducationShowcase />
+    </>
+  );
+}
+
+/**
+ * /pricing — 料金詳細ページ (2026-04-28 新設、Section 18.2.M)
+ */
+function PricingPage() {
+  return (
+    <>
+      <div className="pt-24 pb-8 px-4 sm:px-6">
+        <div className="section-container">
+          <h1 className="text-display-md font-semibold tracking-tight text-text-primary">
+            シンプルな 5 プラン。
+          </h1>
+          <p className="mt-3 text-text-secondary text-base sm:text-lg max-w-2xl">
+            個人から大企業まで、規模に合わせて選べます。会計ソフトと同じ価格帯から始められます。
+          </p>
+        </div>
+      </div>
+      <Pricing />
+      <div className="section-divider" />
+      <FAQ />
+    </>
+  );
+}
+
+/**
+ * /demo — 見積書デモフォームページ (2026-04-28 新設、Section 18.2.M)
+ */
+function DemoPage() {
+  return (
+    <>
+      <div className="pt-24 pb-8 px-4 sm:px-6">
+        <div className="section-container">
+          <h1 className="text-display-md font-semibold tracking-tight text-text-primary">
+            無料で、見積書を 1 枚作ってみる。
+          </h1>
+          <p className="mt-3 text-text-secondary text-base sm:text-lg max-w-2xl">
+            登録不要・クレジットカード不要。実際にどんな出力になるか、その手触りで判断してください。
+          </p>
+        </div>
+      </div>
+      <EstimateDemo />
+    </>
+  );
+}
+
+/**
+ * /how-it-works — 技術詳細ページ (2026-04-28 新設、Section 18.2.M)
+ *
+ * セキュリティ + 監査統制 + 国内データ滞留 + 機密情報マネジメント。
+ * Enterprise 訴求の中核ページ。
+ */
+function HowItWorksPage() {
+  return (
+    <>
+      <div className="pt-24 pb-8 px-4 sm:px-6">
+        <div className="section-container">
+          <h1 className="text-display-md font-semibold tracking-tight text-text-primary">
+            国内で完結する、AI 運用基盤。
+          </h1>
+          <p className="mt-3 text-text-secondary text-base sm:text-lg max-w-2xl">
+            機密情報を社外に出さない設計、人間承認後に実行する運用、すべての操作を記録する監査統制 —
+            おしごと AI を中小企業の業務に乗せるための基盤です。
+          </p>
+        </div>
+      </div>
+      <TrustSection />
+    </>
+  );
+}
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -79,73 +207,22 @@ export default function App() {
   } else if (currentPath === '/tutorial' || currentPath === '/liff/tutorial') {
     pageContent = <TutorialPage />;
   } else if (currentPath === '/dev/mascot') {
-    // 開発者向けマスコット動作確認ページ — Header/Footer 抜きで描画する。
-    // LP メニューには出さない (Header.tsx に追加禁止)。
     pageContent = <MascotDevPage />;
   } else if (currentPath.startsWith('/ads/')) {
-    // 広告着地 LP — Header/Footer 抜きで描画する (Q10 完全 chromeless)。
-    // 各ページが独自の簡素フッターのみ持つ。
     const slug = currentPath.replace('/ads/', '');
     const AdPage = AD_LANDING_PAGES[slug];
     pageContent = AdPage ? <AdPage /> : null;
+  } else if (currentPath === '/features') {
+    pageContent = <FeaturesPage />;
+  } else if (currentPath === '/pricing') {
+    pageContent = <PricingPage />;
+  } else if (currentPath === '/demo') {
+    pageContent = <DemoPage />;
+  } else if (currentPath === '/how-it-works') {
+    pageContent = <HowItWorksPage />;
   } else {
-    pageContent = (
-      <>
-        {/* 1. Hero — おしごと AI、雇いませんか。 */}
-        <Hero />
-        <div className="section-divider" />
-
-        {/* 2. できること一覧 — 15機能を Before→After で具体化 (2026-04-22 新設) */}
-        <Capabilities />
-        <div className="section-divider" />
-
-        {/* 3. 課題共感 — 中小企業 DX ペイン */}
-        <Problems />
-        <div className="section-divider" />
-
-        {/* 4. 解決策 — おしごと AI の 3 カテゴリ */}
-        <Solution />
-        <div className="section-divider" />
-
-        {/* 5. 雇った、その先 — 余裕のある未来 (2026-04-28 新設、温泉カピぶちょー配置) */}
-        <LongTermFuture />
-        <div className="section-divider" />
-
-        {/* 6. 差別化 — ChatGPT/海外AI との比較 */}
-        <Differentiation />
-        <div className="section-divider" />
-
-        {/* 6. デモ見積書フォーム — 即体験 */}
-        <EstimateDemo />
-        <div className="section-divider" />
-
-        {/* 7. 出力サンプル — 実書類の雰囲気 */}
-        <DemoShowcase />
-        <div className="section-divider" />
-
-        {/* 8. 中間CTA */}
-        <MidPageCTA />
-        <div className="section-divider" />
-
-        {/* 9. 安心材料 — セキュリティ・法令遵守 */}
-        <TrustSection />
-        <div className="section-divider" />
-
-        {/* 10. 教育ショーケース — チュートリアル訴求 */}
-        <EducationShowcase />
-        <div className="section-divider" />
-
-        {/* 11. 料金 */}
-        <Pricing />
-        <div className="section-divider" />
-
-        {/* 12. FAQ */}
-        <FAQ />
-
-        {/* 13. 最終CTA */}
-        <CTA />
-      </>
-    );
+    // トップ LP — 王道シンプル 5 セクション (Section 18.2.M)
+    pageContent = <HomePage />;
   }
 
   // Tutorial is a full-screen modal experience — it paints its own chrome

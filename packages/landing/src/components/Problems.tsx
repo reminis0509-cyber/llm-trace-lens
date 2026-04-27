@@ -1,9 +1,14 @@
 /**
- * Problems — 中小企業 DX 決裁者の 3 大ペイン (2026-04-28 リブランド)
+ * Problems — 中小企業 DX 決裁者の 3 大ペイン (2026-04-28 リブランド + 顧客代弁者役カピぶちょー)
  *
  * 旧名「AI 事務員」「フジ」を完全撤去。「おしごと AI」表現に統一。
  * ペインの本質 (人手不足 / 安全不安 / 業務システムの空白) は維持。
+ *
+ * 戦略 doc Section 7.3 (2026-04-28 改訂、Founder 確定):
+ *   ぶちょーは無理に挿入せず、適切なタイミングでお客様の声を代弁する感じが理想。
+ *   ここではセクション末尾にカピぶちょーフキダシで顧客代弁(感情ヒット)。
  */
+import MascotQuote from './home/MascotQuote';
 interface Problem {
   title: string;
   description: string;
@@ -73,6 +78,14 @@ export default function Problems() {
               </p>
             </article>
           ))}
+        </div>
+
+        {/* カピぶちょー顧客代弁フキダシ — 感情ヒット (Section 7.3 改訂) */}
+        <div className="mt-12 sm:mt-14 flex justify-center">
+          <MascotQuote
+            size="md"
+            quote="うちもよう聞くわ、人手足らんって。なぁ、社長さんたちホンマえらいこっちゃで。"
+          />
         </div>
       </div>
     </section>
