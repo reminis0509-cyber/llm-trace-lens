@@ -171,10 +171,10 @@ export default function Solution() {
           </a>
         </div>
 
-        {/* カピぶちょー顧客代弁フキダシ — 共感+期待感 (Section 7.3 改訂) */}
+        {/* カピぶちょー顧客代弁フキダシ — Founder 指摘 2026-04-28: md→lg に拡大 */}
         <div className="mt-12 sm:mt-14 flex justify-center">
           <MascotQuote
-            size="md"
+            size="lg"
             reverse
             quote="これは助かるなぁ。社員も喜ぶで〜、机上の仕事ぐらい AI に任せたらええんや。"
           />

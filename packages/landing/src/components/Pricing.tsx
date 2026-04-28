@@ -154,61 +154,64 @@ export default function Pricing() {
           </p>
         </div>
 
-        {/* 5 plan cards — wraps 3 / 2 on desktop */}
-        <div className="grid gap-6 max-w-6xl mx-auto sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        {/* 5 plan cards — Founder 指摘 2026-04-28: 縦長すぎ問題を解消、
+            features を 3 項目に絞り、padding 縮小、価格と CTA を主役に */}
+        <div className="grid gap-4 max-w-6xl mx-auto sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`relative surface-card p-6 flex flex-col ${
+              className={`relative surface-card p-5 flex flex-col ${
                 plan.highlighted
-                  ? 'border-accent ring-1 ring-accent/20'
+                  ? 'border-accent ring-2 ring-accent/30 shadow-md'
                   : ''
               }`}
             >
               {plan.badge && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-block px-3 py-0.5 text-xs font-medium text-white bg-accent rounded-full whitespace-nowrap">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-block px-3 py-0.5 text-xs font-bold text-white bg-accent rounded-full whitespace-nowrap shadow">
                   {plan.badge}
                 </span>
               )}
 
-              <div className="mb-4">
-                <h3 className="text-lg font-medium text-text-primary mb-1">
+              <div className="mb-3">
+                <h3 className="text-xl font-bold text-text-primary mb-0.5">
                   {plan.name}
                 </h3>
                 <p className="text-xs text-text-muted">{plan.audience}</p>
               </div>
 
               <div className="mb-4">
-                <span className="text-3xl font-mono tabular-nums text-text-primary">
+                <span className="text-3xl font-mono tabular-nums text-text-primary font-bold">
                   {plan.price}
                 </span>
-                <span className="ml-1 text-text-muted text-sm">
+                <span className="ml-1 text-text-muted text-xs">
                   {plan.priceNote}
                 </span>
                 {plan.priceSubnote && (
-                  <p className="mt-1 text-xs text-text-muted">{plan.priceSubnote}</p>
+                  <p className="mt-1 text-[11px] text-text-muted">{plan.priceSubnote}</p>
                 )}
               </div>
 
-              <p className="text-sm text-text-secondary mb-5 leading-relaxed">
-                {plan.description}
-              </p>
-
-              <ul className="space-y-2.5 mb-6 flex-1">
-                {plan.features.map((feature, i) => (
+              {/* 主要機能 上位 3 項目のみ — フル機能は /pricing */}
+              <ul className="space-y-2 mb-5 flex-1">
+                {plan.features.slice(0, 3).map((feature, i) => (
                   <li
                     key={i}
-                    className="flex items-start text-sm text-text-secondary"
+                    className="flex items-start text-xs sm:text-sm text-text-secondary leading-relaxed"
                   >
                     <CheckIcon />
                     <span>{feature}</span>
                   </li>
                 ))}
+                {plan.features.length > 3 && (
+                  <li className="text-[11px] text-text-muted pl-6">
+                    + 他 {plan.features.length - 3} 機能
+                  </li>
+                )}
               </ul>
 
               <a
                 href={plan.ctaHref}
-                className={`block w-full py-2.5 px-4 rounded-card text-sm font-medium text-center transition-colors duration-120 ${
+                className={`block w-full py-2.5 px-4 rounded-card text-sm font-semibold text-center transition-colors duration-120 ${
                   plan.highlighted
                     ? 'bg-accent text-white hover:bg-accent/90'
                     : 'bg-app-bg-elevated text-text-secondary border border-border hover:text-text-primary'
@@ -220,9 +223,32 @@ export default function Pricing() {
           ))}
         </div>
 
-        <p className="mt-10 text-xs text-text-muted text-center">
-          表示価格はすべて税抜です。年次契約は10%割引でご利用いただけます。Free と Enterprise を除くすべてのプランはクレジットカードで即時開始できます。
-        </p>
+        {/* 詳細リンク + 注釈 */}
+        <div className="mt-10 text-center space-y-3">
+          <a
+            href="/pricing"
+            className="inline-flex items-center gap-2 text-sm font-medium text-accent hover:underline underline-offset-4"
+          >
+            全プランの詳細を見る
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+              />
+            </svg>
+          </a>
+          <p className="text-xs text-text-muted">
+            表示価格はすべて税抜。年次契約は 10% 割引。Free と Enterprise を除く全プランはクレジットカードで即時開始可能。
+          </p>
+        </div>
       </div>
     </section>
   );

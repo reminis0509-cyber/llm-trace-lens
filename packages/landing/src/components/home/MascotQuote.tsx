@@ -37,17 +37,23 @@ export default function MascotQuote({ size = 'md', quote, reverse = false }: Mas
         <Mascot pose="default" size={size} animation="idle" />
       </div>
 
-      {/* フキダシ */}
-      <div className="relative max-w-md mb-6 sm:mb-8">
+      {/* フキダシ — size に応じて文字サイズを動的に調整(Founder 指摘 2026-04-28) */}
+      <div className={`relative ${size === 'sm' ? 'max-w-sm' : size === 'md' ? 'max-w-lg' : 'max-w-xl'} mb-6 sm:mb-8`}>
         <div
-          className="bg-white rounded-card px-4 py-3 sm:px-5 sm:py-4 text-sm sm:text-base text-text-primary leading-relaxed"
+          className={`bg-white rounded-card text-text-primary leading-relaxed ${
+            size === 'sm'
+              ? 'px-4 py-3 sm:px-5 sm:py-4 text-base sm:text-lg'
+              : size === 'md'
+                ? 'px-5 py-4 sm:px-6 sm:py-5 text-lg sm:text-xl'
+                : 'px-6 py-5 sm:px-7 sm:py-6 text-xl sm:text-2xl'
+          }`}
           style={{
             border: '1px solid rgba(0,0,0,0.1)',
             boxShadow:
               '0 1px 1px rgba(0,0,0,0.04), 0 4px 8px rgba(0,0,0,0.04)',
           }}
         >
-          <span className="block">{quote}</span>
+          <span className="block font-medium">{quote}</span>
         </div>
 
         {/* 三角形 — 立ち絵側を指す */}

@@ -82,10 +82,11 @@ export default function CTA() {
           </p>
         </div>
 
-        {/* カピぶちょー軽い励まし — 末尾にちょこんと (Section 7.3 改訂) */}
+        {/* カピぶちょー軽い励まし — Founder 指摘 2026-04-28: 小さすぎる問題を
+            解消、sm→lg に大幅拡大、セリフも大きく */}
         <div className="mt-12 sm:mt-14 flex justify-center">
           <MascotQuote
-            size="sm"
+            size="lg"
             quote="気軽に話しかけてや〜。うち、いつでも待っとるで。"
           />
         </div>
