@@ -9,7 +9,7 @@ export default function Footer() {
   return (
     <footer className="py-8 sm:py-12 px-4 sm:px-6 border-t border-border">
       <div className="section-container">
-        <div className="grid md:grid-cols-4 gap-8 mb-8">
+        <div className="grid md:grid-cols-5 gap-8 mb-8">
           {/* Brand */}
           <div className="md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
@@ -33,6 +33,59 @@ export default function Footer() {
               <li><a href="#pricing" className="hover:text-text-primary transition-colors duration-120">料金</a></li>
               <li><a href="#faq" className="hover:text-text-primary transition-colors duration-120">よくあるご質問</a></li>
               <li><a href="/for-engineers" className="hover:text-text-primary transition-colors duration-120">技術詳細</a></li>
+            </ul>
+          </div>
+
+          {/* Free tools — Phase B (戦略 doc Section 5.6) */}
+          {/* メインナビには出さず、フッターからのみ誘導 (Pro 訴求軸の汚染回避) */}
+          <div>
+            <h4 className="text-sm font-medium text-text-primary mb-3">無料ツール</h4>
+            <ul className="space-y-2 text-sm text-text-muted">
+              <li>
+                <a
+                  href="/tools/seikyusho"
+                  onClick={(e) => handleNavigation(e, '/tools/seikyusho')}
+                  className="hover:text-text-primary transition-colors duration-120"
+                >
+                  請求書テンプレート
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/tools/mitsumori"
+                  onClick={(e) => handleNavigation(e, '/tools/mitsumori')}
+                  className="hover:text-text-primary transition-colors duration-120"
+                >
+                  見積書テンプレート
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/tools/nouhin"
+                  onClick={(e) => handleNavigation(e, '/tools/nouhin')}
+                  className="hover:text-text-primary transition-colors duration-120"
+                >
+                  納品書テンプレート
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/tools/hatchu"
+                  onClick={(e) => handleNavigation(e, '/tools/hatchu')}
+                  className="hover:text-text-primary transition-colors duration-120"
+                >
+                  発注書テンプレート
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/tools/soufu"
+                  onClick={(e) => handleNavigation(e, '/tools/soufu')}
+                  className="hover:text-text-primary transition-colors duration-120"
+                >
+                  送付状テンプレート
+                </a>
+              </li>
             </ul>
           </div>
 

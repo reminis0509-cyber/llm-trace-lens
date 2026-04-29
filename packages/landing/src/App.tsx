@@ -31,6 +31,10 @@ import InvoiceAdPage from './components/ads/InvoiceAdPage';
 import MinutesAdPage from './components/ads/MinutesAdPage';
 import SlideAdPage from './components/ads/SlideAdPage';
 import SeikyushoPage from './pages/tools/SeikyushoPage';
+import MitsumoriPage from './pages/tools/MitsumoriPage';
+import NouhinPage from './pages/tools/NouhinPage';
+import HatchuPage from './pages/tools/HatchuPage';
+import SoufuPage from './pages/tools/SoufuPage';
 
 // 広告着地 LP slug → component の対応表 (CEO 判断 2026-04-28 / Q10 完全 chromeless)
 const AD_LANDING_PAGES: Record<string, React.ComponentType> = {
@@ -199,6 +203,18 @@ export default function App() {
   } else if (currentPath === '/tools/seikyusho') {
     // Freemium 第 1 層 Phase A — 請求書テンプレート (戦略 doc Section 5.6 / 18.2.N)
     pageContent = <SeikyushoPage />;
+  } else if (currentPath === '/tools/mitsumori') {
+    // Freemium 第 1 層 Phase B — 見積書テンプレート (戦略 doc Section 5.6 / 18.2.N)
+    pageContent = <MitsumoriPage />;
+  } else if (currentPath === '/tools/nouhin') {
+    // Freemium 第 1 層 Phase B — 納品書テンプレート (戦略 doc Section 5.6 / 18.2.N)
+    pageContent = <NouhinPage />;
+  } else if (currentPath === '/tools/hatchu') {
+    // Freemium 第 1 層 Phase B — 発注書テンプレート (戦略 doc Section 5.6 / 18.2.N)
+    pageContent = <HatchuPage />;
+  } else if (currentPath === '/tools/soufu') {
+    // Freemium 第 1 層 Phase B — 送付状テンプレート (戦略 doc Section 5.6 / 18.2.N)
+    pageContent = <SoufuPage />;
   } else if (currentPath === '/tools') {
     pageContent = <ToolsIndexPage />;
   } else if (currentPath === '/blog') {
