@@ -8,12 +8,13 @@
  * Style direction: 大企業の正式書類 — 黒系統一、外枠+格子罫線、印鑑欄、
  * No列、ページ番号、二重線の合計欄。Boldフォント未登録のため線・色・サイズで重み出し。
  *
- * NOTE (Phase A duplication, 2026-04-29):
+ * NOTE (Phase A/B duplication, 2026-04-29):
  *   This file is duplicated from packages/dashboard/src/lib/pdf/base.tsx
- *   for the unauthenticated /tools/seikyusho page. Phase A is speed-first;
- *   Phase B (戦略 doc Section 5.6) lifts this to a shared monorepo package
- *   once all 5 document tools are live. Until then, any change here MUST
- *   be mirrored in dashboard/src/lib/pdf/base.tsx.
+ *   for the unauthenticated /tools/* freemium pages (請求書 / 見積書 /
+ *   納品書 / 発注書 / 送付状). Phase B keeps the duplication for speed;
+ *   Phase C (戦略 doc Section 5.6) lifts this to a shared monorepo package.
+ *   Until then, any change here MUST be mirrored in
+ *   dashboard/src/lib/pdf/base.tsx.
  */
 import { Text, View, StyleSheet, Font } from '@react-pdf/renderer';
 import type { ReactNode } from 'react';
@@ -74,10 +75,15 @@ export const sharedStyles = StyleSheet.create({
     color: COLOR_INK,
   },
   // Outer frame around the document body — 1.5pt black for the formal feel.
+  // flexGrow:1 + flexDirection:column makes the frame fill the page height,
+  // so children with marginTop:'auto' (PdfFooter) get pushed to the bottom.
+  // This removes the awkward dead space on short single-page invoices.
   bodyFrame: {
     borderWidth: 1.5,
     borderColor: COLOR_BORDER,
     padding: 14,
+    flexGrow: 1,
+    flexDirection: 'column',
   },
   // Header block — left: client/document meta, right: issuer + seal box.
   header: {
@@ -263,10 +269,14 @@ export const sharedStyles = StyleSheet.create({
     textAlign: 'right',
   },
   // Footer notes block — bordered list of meta info.
+  // marginTop:auto pushes the footer block to the bottom of the body frame
+  // when content is short, removing the awkward gap between content and the
+  // page-number footer (Founder feedback 2026-04-29: 「下の空白って気にならない?」).
+  // A4 page padding still leaves a small intentional margin below.
   footerBlock: {
     borderTop: `0.5pt solid ${COLOR_BORDER_THIN}`,
     paddingTop: 8,
-    marginTop: 4,
+    marginTop: 'auto',
   },
   footerRow: {
     flexDirection: 'row',
@@ -283,13 +293,15 @@ export const sharedStyles = StyleSheet.create({
     color: COLOR_INK,
   },
   // Page number footer — fixed across pages.
+  // Right-aligned: brand text removed (Founder 2026-04-29), so only the
+  // page number remains. flex-end keeps it visually anchored on every page.
   pageFooter: {
     position: 'absolute',
     bottom: 24,
     left: 36,
     right: 36,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     paddingTop: 6,
     borderTop: `0.5pt solid ${COLOR_BORDER_THIN}`,
   },
@@ -499,11 +511,16 @@ export function PdfFooter({ items }: PdfFooterProps): ReactNode {
 /**
  * Page-number footer fixed to every page bottom.
  * Use as the LAST child of <Page> with the `fixed` prop already set internally.
+ *
+ * IMPORTANT (Founder 判断 2026-04-29): No service-name / brand text here.
+ * Users send these PDFs to their counterparties. Printing "FujiTrace おしごと
+ * AI" on customer-facing invoices was killing the SEO funnel — visitors
+ * generated a PDF, saw the brand, decided "this can't be sent" and bounced.
+ * Page numbers are still rendered (right-aligned) for multi-page legibility.
  */
 export function PdfPageFooter(): ReactNode {
   return (
     <View style={sharedStyles.pageFooter} fixed>
-      <Text style={sharedStyles.pageFooterText}>FujiTrace おしごと AI</Text>
       <Text
         style={sharedStyles.pageFooterText}
         render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}

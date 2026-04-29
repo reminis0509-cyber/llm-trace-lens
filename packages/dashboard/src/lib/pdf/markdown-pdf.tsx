@@ -101,13 +101,15 @@ const styles = StyleSheet.create({
   spacer: {
     height: 8,
   },
+  // Brand text removed (Founder 2026-04-29) — see base.tsx PdfPageFooter
+  // for the same rationale. Right-aligned so the page number sits cleanly.
   footer: {
     position: 'absolute',
     bottom: 25,
     left: 40,
     right: 40,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     borderTop: '0.5pt solid #e5e7eb',
     paddingTop: 6,
@@ -196,7 +198,10 @@ function stripInlineMarkdown(text: string): string {
 function extractTitle(content: string): string {
   const match = content.match(/^#{1,3}\s+(.+)/m);
   if (match) return stripInlineMarkdown(match[1]);
-  return 'おしごと AIレポート';
+  // Neutral fallback only — no brand name (Founder 2026-04-29).
+  // Users send these PDFs to their counterparties; brand text was removed
+  // from the page footer for the same reason.
+  return 'レポート';
 }
 
 /* ------------------------------------------------------------------ */
@@ -257,9 +262,8 @@ function MarkdownPdfDocument({ content, title, companyName, date }: MarkdownPdfP
           }
         })}
 
-        {/* Footer */}
+        {/* Footer — page number only, no brand text (Founder 2026-04-29) */}
         <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>FujiTrace おしごと AI</Text>
           <Text
             style={styles.footerText}
             render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}

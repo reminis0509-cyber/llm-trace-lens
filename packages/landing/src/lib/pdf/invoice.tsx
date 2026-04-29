@@ -3,7 +3,7 @@
  * Built on the shared pdf/base primitives for consistent look and feel.
  * Lazy-loaded to keep initial bundle small.
  *
- * NOTE (Phase A duplication, 2026-04-29):
+ * NOTE (Phase A/B duplication, 2026-04-29):
  *   Mirror of packages/dashboard/src/lib/pdf/invoice.tsx for the
  *   unauthenticated /tools/seikyusho freemium tool. See ./base.tsx header.
  */
