@@ -11,11 +11,14 @@
  *
  * 送付状は明細表・合計欄なし — 同封書類リスト + 本文の手紙形式。
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSeo } from '../../hooks/useSeo';
 import { todayIso, formatJapaneseDate } from './_shared/formatting';
 import { Fieldset, TextField, DateField, TextAreaField } from './_shared/FormControls';
 import PostDownloadPanel from './_shared/PostDownloadPanel';
+import SeoContent from './_shared/SeoContent';
+import { TOOLS_SEO, buildAllJsonLd, CANONICAL_ORIGIN } from '../../data/seo-tools';
+import { SEO_CONTENT } from '../../data/seo-content';
 import type { CoverLetterPdfData, IssuerInfo } from '../../lib/pdf/cover-letter';
 
 interface IssuerForm {
@@ -54,35 +57,14 @@ function trackEvent(
 }
 
 export default function SoufuPage() {
+  const seoConfig = TOOLS_SEO['/tools/soufu'];
+  const jsonLd = useMemo(() => buildAllJsonLd(seoConfig), [seoConfig]);
   useSeo({
-    title: '送付状テンプレート 無料｜ビジネス書類用｜おしごと AI',
-    description:
-      'ビジネス書類（請求書・見積書・契約書）に同封する送付状を無料で作成・PDFダウンロード。会員登録不要、同封書類リスト対応。月¥3,000 で AI 事務員に進化。',
-    url: 'https://oshigoto.ai/tools/soufu',
-    ogTitle: '送付状テンプレート 無料｜ビジネス書類用',
-    jsonLd: [
-      {
-        id: 'jsonld-soufu-webpage',
-        data: {
-          '@context': 'https://schema.org',
-          '@type': 'WebPage',
-          name: '送付状テンプレート 無料 (ビジネス書類用)',
-          url: 'https://oshigoto.ai/tools/soufu',
-          description:
-            'ビジネス書類に同封する送付状を無料で作成・PDFダウンロード。同封書類リスト対応。',
-          inLanguage: 'ja-JP',
-          isPartOf: { '@type': 'WebSite', name: 'おしごと AI', url: 'https://oshigoto.ai' },
-          breadcrumb: {
-            '@type': 'BreadcrumbList',
-            itemListElement: [
-              { '@type': 'ListItem', position: 1, name: 'ホーム', item: 'https://oshigoto.ai/' },
-              { '@type': 'ListItem', position: 2, name: '無料ツール', item: 'https://oshigoto.ai/tools' },
-              { '@type': 'ListItem', position: 3, name: '送付状', item: 'https://oshigoto.ai/tools/soufu' },
-            ],
-          },
-        },
-      },
-    ],
+    title: seoConfig.title,
+    description: seoConfig.description,
+    url: `${CANONICAL_ORIGIN}${seoConfig.path}`,
+    ogTitle: seoConfig.ogTitle,
+    jsonLd,
   });
 
   const [issuer, setIssuer] = useState<IssuerForm>({
@@ -196,7 +178,7 @@ export default function SoufuPage() {
             無料テンプレート
           </p>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 leading-tight mb-5">
-            送付状を、無料で作成。
+            送付状テンプレートを無料で作成
           </h1>
           <p className="text-base sm:text-lg text-slate-600 leading-relaxed mb-3">
             請求書・見積書などビジネス書類に同封する送付状を、PDF ですぐ出力。
@@ -387,6 +369,9 @@ export default function SoufuPage() {
           </div>
         </div>
       </section>
+
+      {/* ===== SEO deep content (always visible — feeds Google bot) ===== */}
+      <SeoContent data={SEO_CONTENT['/tools/soufu']} />
 
       {showPostDownload && (
         <PostDownloadPanel

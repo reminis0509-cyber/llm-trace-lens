@@ -14,6 +14,7 @@ dist/
 *.db-shm
 *.db-wal
 data/
+!packages/*/src/data/
 
 # IDE
 .idea/

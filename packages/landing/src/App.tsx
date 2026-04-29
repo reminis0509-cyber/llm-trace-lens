@@ -174,11 +174,23 @@ function HowItWorksPage() {
   );
 }
 
+/**
+ * Normalize a window.location.pathname for routing.
+ * - Strips a trailing slash from non-root paths so `/tools/seikyusho/` and
+ *   `/tools/seikyusho` both match the same route. This matters because
+ *   prerender produces directory-style files (dist/tools/seikyusho/index.html)
+ *   which browsers may serve under either URL form.
+ */
+function normalizePath(p: string): string {
+  if (p.length > 1 && p.endsWith('/')) return p.slice(0, -1);
+  return p;
+}
+
 export default function App() {
-  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+  const [currentPath, setCurrentPath] = useState(normalizePath(window.location.pathname));
 
   useEffect(() => {
-    const handlePopState = () => setCurrentPath(window.location.pathname);
+    const handlePopState = () => setCurrentPath(normalizePath(window.location.pathname));
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);

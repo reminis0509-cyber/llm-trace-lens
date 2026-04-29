@@ -16,9 +16,12 @@
  *
  * Phase A は請求書のみ。Phase B で残り 4 書類 + ナビ分離。
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSeo } from '../../hooks/useSeo';
 import { trackDashboardConversion } from '../../utils/gtag';
+import { TOOLS_SEO, buildAllJsonLd, CANONICAL_ORIGIN } from '../../data/seo-tools';
+import { SEO_CONTENT } from '../../data/seo-content';
+import SeoContent from './_shared/SeoContent';
 // `@react-pdf/renderer` is ~500KB and only needed when a user clicks
 // "PDFをダウンロード". Lazy-import in handleDownloadPdf so the SEO landing
 // payload stays small (Lighthouse Performance / FCP).
@@ -109,54 +112,14 @@ function trackEvent(
 
 export default function SeikyushoPage() {
   /* ----- SEO ----- */
+  const seoConfig = TOOLS_SEO['/tools/seikyusho'];
+  const jsonLd = useMemo(() => buildAllJsonLd(seoConfig), [seoConfig]);
   useSeo({
-    title: '請求書テンプレート 無料｜おしごと AI（カピぶちょー）',
-    description:
-      '請求書テンプレートを無料で作成・PDFダウンロード。会員登録不要、インボイス制度対応、税区分(10%/8%/0%) 対応。月¥3,000 で AI 事務員に進化。',
-    url: 'https://oshigoto.ai/tools/seikyusho',
-    ogTitle: '請求書テンプレート 無料｜おしごと AI',
-    jsonLd: [
-      {
-        id: 'jsonld-seikyusho-webpage',
-        data: {
-          '@context': 'https://schema.org',
-          '@type': 'WebPage',
-          name: '請求書テンプレート 無料',
-          url: 'https://oshigoto.ai/tools/seikyusho',
-          description:
-            '請求書テンプレートを無料で作成・PDFダウンロード。会員登録不要、インボイス制度対応。',
-          inLanguage: 'ja-JP',
-          isPartOf: {
-            '@type': 'WebSite',
-            name: 'おしごと AI',
-            url: 'https://oshigoto.ai',
-          },
-          breadcrumb: {
-            '@type': 'BreadcrumbList',
-            itemListElement: [
-              {
-                '@type': 'ListItem',
-                position: 1,
-                name: 'ホーム',
-                item: 'https://oshigoto.ai/',
-              },
-              {
-                '@type': 'ListItem',
-                position: 2,
-                name: '無料ツール',
-                item: 'https://oshigoto.ai/tools',
-              },
-              {
-                '@type': 'ListItem',
-                position: 3,
-                name: '請求書テンプレート',
-                item: 'https://oshigoto.ai/tools/seikyusho',
-              },
-            ],
-          },
-        },
-      },
-    ],
+    title: seoConfig.title,
+    description: seoConfig.description,
+    url: `${CANONICAL_ORIGIN}${seoConfig.path}`,
+    ogTitle: seoConfig.ogTitle,
+    jsonLd,
   });
 
   /* ----- Form state ----- */
@@ -346,7 +309,7 @@ export default function SeikyushoPage() {
             無料テンプレート
           </p>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 leading-tight mb-5">
-            請求書テンプレートを、無料で。
+            請求書テンプレートを無料で作成
           </h1>
           <p className="text-base sm:text-lg text-slate-600 leading-relaxed mb-6">
             会員登録不要、PDF ですぐ出力。インボイス制度対応・税区分（10% / 8% / 非課税）対応。
@@ -788,6 +751,9 @@ export default function SeikyushoPage() {
           </div>
         </div>
       </section>
+
+      {/* ===== SEO deep content (always visible — feeds Google bot) ===== */}
+      <SeoContent data={SEO_CONTENT['/tools/seikyusho']} />
 
       {/* ===== Post-download self-promo (only after PDF DL) ===== */}
       {showPostDownload && (

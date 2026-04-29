@@ -8,7 +8,7 @@
  *   - 認証不要・登録不要・コスト 0 で完結する純粋関数ツール
  *   - PDF DL 直後にのみ「自社広告」(第 2 層 Free 登録誘導) を提示
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSeo } from '../../hooks/useSeo';
 import {
   formatJpy,
@@ -18,6 +18,9 @@ import {
 } from './_shared/formatting';
 import { Fieldset, TextField, DateField, TextAreaField, Row } from './_shared/FormControls';
 import PostDownloadPanel from './_shared/PostDownloadPanel';
+import SeoContent from './_shared/SeoContent';
+import { TOOLS_SEO, buildAllJsonLd, CANONICAL_ORIGIN } from '../../data/seo-tools';
+import { SEO_CONTENT } from '../../data/seo-content';
 import type { PurchaseOrderPdfData, IssuerInfo } from '../../lib/pdf/purchase-order';
 
 type TaxKind = '10' | '8' | '0';
@@ -62,35 +65,14 @@ function trackEvent(
 }
 
 export default function HatchuPage() {
+  const seoConfig = TOOLS_SEO['/tools/hatchu'];
+  const jsonLd = useMemo(() => buildAllJsonLd(seoConfig), [seoConfig]);
   useSeo({
-    title: '発注書 作成 ソフト 無料｜おしごと AI（カピぶちょー）',
-    description:
-      '発注書を無料で作成・PDFダウンロード。会員登録不要、自動計算、税区分(10%/8%/0%) 対応。月¥3,000 で AI 事務員に進化。',
-    url: 'https://oshigoto.ai/tools/hatchu',
-    ogTitle: '発注書 作成 無料｜おしごと AI',
-    jsonLd: [
-      {
-        id: 'jsonld-hatchu-webpage',
-        data: {
-          '@context': 'https://schema.org',
-          '@type': 'WebPage',
-          name: '発注書 作成 無料',
-          url: 'https://oshigoto.ai/tools/hatchu',
-          description:
-            '発注書を無料で作成・PDFダウンロード。会員登録不要、自動計算、税区分対応。',
-          inLanguage: 'ja-JP',
-          isPartOf: { '@type': 'WebSite', name: 'おしごと AI', url: 'https://oshigoto.ai' },
-          breadcrumb: {
-            '@type': 'BreadcrumbList',
-            itemListElement: [
-              { '@type': 'ListItem', position: 1, name: 'ホーム', item: 'https://oshigoto.ai/' },
-              { '@type': 'ListItem', position: 2, name: '無料ツール', item: 'https://oshigoto.ai/tools' },
-              { '@type': 'ListItem', position: 3, name: '発注書', item: 'https://oshigoto.ai/tools/hatchu' },
-            ],
-          },
-        },
-      },
-    ],
+    title: seoConfig.title,
+    description: seoConfig.description,
+    url: `${CANONICAL_ORIGIN}${seoConfig.path}`,
+    ogTitle: seoConfig.ogTitle,
+    jsonLd,
   });
 
   const [issuer, setIssuer] = useState<IssuerForm>({ companyName: '', address: '', phone: '' });
@@ -241,7 +223,7 @@ export default function HatchuPage() {
             無料テンプレート
           </p>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 leading-tight mb-5">
-            発注書を、無料で作成。
+            発注書テンプレートを無料で作成
           </h1>
           <p className="text-base sm:text-lg text-slate-600 leading-relaxed mb-6">
             会員登録不要、PDF ですぐ出力。自動計算・税区分（10% / 8% / 非課税）対応。
@@ -463,6 +445,9 @@ export default function HatchuPage() {
           </div>
         </div>
       </section>
+
+      {/* ===== SEO deep content (always visible — feeds Google bot) ===== */}
+      <SeoContent data={SEO_CONTENT['/tools/hatchu']} />
 
       {showPostDownload && (
         <PostDownloadPanel

@@ -14,7 +14,11 @@
  *   - LLM 呼び出し禁止
  *   - ハブで Pro の価格メリットを「強く」打ち出す訴求は禁止 — あくまで「興味があれば」レベル
  */
+import { useMemo } from 'react';
 import { useSeo } from '../hooks/useSeo';
+import { TOOLS_SEO, buildAllJsonLd, CANONICAL_ORIGIN } from '../data/seo-tools';
+import { SEO_CONTENT } from '../data/seo-content';
+import SeoContent from '../pages/tools/_shared/SeoContent';
 
 interface ToolCard {
   id: string;
@@ -76,44 +80,33 @@ const TOOLS: ToolCard[] = [
 ];
 
 export default function ToolsIndexPage() {
+  const seoConfig = TOOLS_SEO['/tools'];
+  const jsonLd = useMemo(() => {
+    // Standard 5-block bundle (WebPage / Breadcrumb / FAQ / HowTo / SoftwareApplication)...
+    const base = buildAllJsonLd(seoConfig);
+    // ...plus an extra hasPart map for the index page so Google understands
+    // this is a hub linking to the 5 tool sub-pages.
+    const indexWebPage = base[0];
+    if (
+      indexWebPage &&
+      indexWebPage.data &&
+      typeof indexWebPage.data === 'object'
+    ) {
+      (indexWebPage.data as Record<string, unknown>).hasPart = TOOLS.map((t) => ({
+        '@type': 'WebPage',
+        name: `${t.title}テンプレート 無料`,
+        url: `${CANONICAL_ORIGIN}${t.href}`,
+        description: t.description,
+      }));
+    }
+    return base;
+  }, [seoConfig]);
   useSeo({
-    title: '業務書類 無料テンプレート｜おしごと AI（カピぶちょー）',
-    description:
-      '請求書・見積書・納品書・発注書・送付状を会員登録なしで作成・PDF ダウンロード。インボイス制度対応、税区分対応、追跡なし。',
-    url: 'https://oshigoto.ai/tools',
-    ogTitle: '業務書類 無料テンプレート｜おしごと AI',
-    jsonLd: [
-      {
-        id: 'jsonld-tools-index-webpage',
-        data: {
-          '@context': 'https://schema.org',
-          '@type': 'WebPage',
-          name: '業務書類 無料テンプレート',
-          url: 'https://oshigoto.ai/tools',
-          description:
-            '請求書・見積書・納品書・発注書・送付状を会員登録なしで作成・PDF ダウンロード。',
-          inLanguage: 'ja-JP',
-          isPartOf: {
-            '@type': 'WebSite',
-            name: 'おしごと AI',
-            url: 'https://oshigoto.ai',
-          },
-          breadcrumb: {
-            '@type': 'BreadcrumbList',
-            itemListElement: [
-              { '@type': 'ListItem', position: 1, name: 'ホーム', item: 'https://oshigoto.ai/' },
-              { '@type': 'ListItem', position: 2, name: '無料ツール', item: 'https://oshigoto.ai/tools' },
-            ],
-          },
-          hasPart: TOOLS.map((t) => ({
-            '@type': 'WebPage',
-            name: `${t.title}テンプレート 無料`,
-            url: `https://oshigoto.ai${t.href}`,
-            description: t.description,
-          })),
-        },
-      },
-    ],
+    title: seoConfig.title,
+    description: seoConfig.description,
+    url: `${CANONICAL_ORIGIN}${seoConfig.path}`,
+    ogTitle: seoConfig.ogTitle,
+    jsonLd,
   });
 
   const navigate = (href: string): void => {
@@ -131,7 +124,7 @@ export default function ToolsIndexPage() {
             無料テンプレート
           </p>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 leading-tight mb-5">
-            無料で使える、業務書類ツール
+            業務書類テンプレートを無料で作成
           </h1>
           <p className="text-base sm:text-lg text-slate-600 leading-relaxed mb-6 max-w-3xl mx-auto">
             請求書・見積書・納品書・発注書・送付状を会員登録なしで作成・PDF ダウンロード。
@@ -194,6 +187,9 @@ export default function ToolsIndexPage() {
           </div>
         </div>
       </section>
+
+      {/* ===== SEO deep content (always visible — feeds Google bot) ===== */}
+      <SeoContent data={SEO_CONTENT['/tools']} />
 
       {/* もっと楽したい? — soft Pro upsell (例外的に許可) */}
       <section className="py-12 sm:py-16 px-4 sm:px-6 bg-slate-50 border-t border-slate-200">

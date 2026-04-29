@@ -14,7 +14,7 @@
  *   - フォーム入力中の自社広告表示禁止 (邪魔)
  *   - 自社広告でのいきなりの Pro 訴求禁止 (転換率低下、第 1 段は Free のみ)
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSeo } from '../../hooks/useSeo';
 import {
   formatJpy,
@@ -24,6 +24,9 @@ import {
 } from './_shared/formatting';
 import { Fieldset, TextField, DateField, TextAreaField, Row } from './_shared/FormControls';
 import PostDownloadPanel from './_shared/PostDownloadPanel';
+import SeoContent from './_shared/SeoContent';
+import { TOOLS_SEO, buildAllJsonLd, CANONICAL_ORIGIN } from '../../data/seo-tools';
+import { SEO_CONTENT } from '../../data/seo-content';
 // `@react-pdf/renderer` is ~500KB and only needed when a user clicks
 // "PDFをダウンロード". Lazy-import in handleDownloadPdf so the SEO landing
 // payload stays small (Lighthouse Performance / FCP).
@@ -85,39 +88,14 @@ function trackEvent(
 
 export default function MitsumoriPage() {
   /* ----- SEO ----- */
+  const seoConfig = TOOLS_SEO['/tools/mitsumori'];
+  const jsonLd = useMemo(() => buildAllJsonLd(seoConfig), [seoConfig]);
   useSeo({
-    title: '見積書 作成 無料｜おしごと AI（カピぶちょー）',
-    description:
-      '見積書を無料で作成・PDFダウンロード。会員登録不要、自動計算、税区分(10%/8%/0%) 対応。月¥3,000 で AI 事務員に進化。',
-    url: 'https://oshigoto.ai/tools/mitsumori',
-    ogTitle: '見積書 作成 無料｜おしごと AI',
-    jsonLd: [
-      {
-        id: 'jsonld-mitsumori-webpage',
-        data: {
-          '@context': 'https://schema.org',
-          '@type': 'WebPage',
-          name: '見積書 作成 無料',
-          url: 'https://oshigoto.ai/tools/mitsumori',
-          description:
-            '見積書を無料で作成・PDFダウンロード。会員登録不要、自動計算、税区分対応。',
-          inLanguage: 'ja-JP',
-          isPartOf: {
-            '@type': 'WebSite',
-            name: 'おしごと AI',
-            url: 'https://oshigoto.ai',
-          },
-          breadcrumb: {
-            '@type': 'BreadcrumbList',
-            itemListElement: [
-              { '@type': 'ListItem', position: 1, name: 'ホーム', item: 'https://oshigoto.ai/' },
-              { '@type': 'ListItem', position: 2, name: '無料ツール', item: 'https://oshigoto.ai/tools' },
-              { '@type': 'ListItem', position: 3, name: '見積書', item: 'https://oshigoto.ai/tools/mitsumori' },
-            ],
-          },
-        },
-      },
-    ],
+    title: seoConfig.title,
+    description: seoConfig.description,
+    url: `${CANONICAL_ORIGIN}${seoConfig.path}`,
+    ogTitle: seoConfig.ogTitle,
+    jsonLd,
   });
 
   /* ----- Form state ----- */
@@ -290,7 +268,7 @@ export default function MitsumoriPage() {
             無料テンプレート
           </p>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 leading-tight mb-5">
-            見積書を、無料で作成。
+            見積書テンプレートを無料で作成
           </h1>
           <p className="text-base sm:text-lg text-slate-600 leading-relaxed mb-6">
             会員登録不要、PDF ですぐ出力。自動計算・税区分（10% / 8% / 非課税）対応。
@@ -676,6 +654,9 @@ export default function MitsumoriPage() {
           </div>
         </div>
       </section>
+
+      {/* ===== SEO deep content (always visible — feeds Google bot) ===== */}
+      <SeoContent data={SEO_CONTENT['/tools/mitsumori']} />
 
       {showPostDownload && (
         <PostDownloadPanel
