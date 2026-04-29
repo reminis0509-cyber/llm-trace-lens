@@ -30,6 +30,7 @@ import EstimateAdPage from './components/ads/EstimateAdPage';
 import InvoiceAdPage from './components/ads/InvoiceAdPage';
 import MinutesAdPage from './components/ads/MinutesAdPage';
 import SlideAdPage from './components/ads/SlideAdPage';
+import SeikyushoPage from './pages/tools/SeikyushoPage';
 
 // 広告着地 LP slug → component の対応表 (CEO 判断 2026-04-28 / Q10 完全 chromeless)
 const AD_LANDING_PAGES: Record<string, React.ComponentType> = {
@@ -195,6 +196,9 @@ export default function App() {
     pageContent = <ForEngineersPage />;
   } else if (currentPath === '/tools/clerk') {
     pageContent = <ClerkPage />;
+  } else if (currentPath === '/tools/seikyusho') {
+    // Freemium 第 1 層 Phase A — 請求書テンプレート (戦略 doc Section 5.6 / 18.2.N)
+    pageContent = <SeikyushoPage />;
   } else if (currentPath === '/tools') {
     pageContent = <ToolsIndexPage />;
   } else if (currentPath === '/blog') {
